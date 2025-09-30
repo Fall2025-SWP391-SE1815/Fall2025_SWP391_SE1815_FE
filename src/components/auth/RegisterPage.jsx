@@ -85,10 +85,10 @@ const RegisterPage = () => {
     
     try {
       const registerData = {
+        fullName: formData.full_name, // API expects fullName (camelCase)
         email: formData.email,
-        password: formData.password,
-        full_name: formData.full_name,
         phone: formData.phone,
+        password: formData.password,
         role: 'renter' // Default role for registration
       };
       

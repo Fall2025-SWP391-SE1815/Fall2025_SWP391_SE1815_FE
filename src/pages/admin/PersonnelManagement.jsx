@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { UserCog, Plus, Search, Filter, Edit, Trash2, Eye, Users, UserCheck, Shield } from 'lucide-react';
-import { apiClient } from '@/lib/api/apiClient';
+import userService from '@/services/users/userService.js';
 import { useToast } from '@/hooks/use-toast';
 
 const PersonnelManagement = () => {
@@ -21,7 +21,7 @@ const PersonnelManagement = () => {
   const [showViewDialog, setShowViewDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [formData, setFormData] = useState({
-    full_name: '',
+    fullName: '',
     email: '',
     phone: '',
     password: '',
@@ -39,99 +39,30 @@ const PersonnelManagement = () => {
 
   useEffect(() => {
     fetchUsers();
-    fetchStatistics();
   }, []);
 
-  // Mock data for testing
-  const mockUsers = [
-    {
-      id: 1,
-      full_name: 'Nguyễn Văn An',
-      email: 'nguyen.van.an@company.com',
-      phone: '0901234567',
-      role: 'admin',
-      status: 'active',
-      created_at: '2024-01-15T09:00:00Z',
-      updated_at: '2024-02-20T14:30:00Z'
-    },
-    {
-      id: 2,
-      full_name: 'Trần Thị Bình',
-      email: 'tran.thi.binh@company.com',
-      phone: '0912345678',
-      role: 'staff',
-      status: 'active',
-      created_at: '2024-01-20T10:15:00Z',
-      updated_at: '2024-02-18T16:45:00Z'
-    },
-    {
-      id: 3,
-      full_name: 'Lê Minh Cường',
-      email: 'le.minh.cuong@company.com',
-      phone: '0923456789',
-      role: 'staff',
-      status: 'active',
-      created_at: '2024-02-01T08:30:00Z',
-      updated_at: '2024-02-15T11:20:00Z'
-    },
-    {
-      id: 4,
-      full_name: 'Phạm Thị Dung',
-      email: 'pham.thi.dung@company.com',
-      phone: '0934567890',
-      role: 'staff',
-      status: 'inactive',
-      created_at: '2024-02-10T13:45:00Z',
-      updated_at: '2024-02-22T09:10:00Z'
-    },
-    {
-      id: 5,
-      full_name: 'Hoàng Văn Em',
-      email: 'hoang.van.em@company.com',
-      phone: '0945678901',
-      role: 'admin',
-      status: 'active',
-      created_at: '2024-02-15T15:20:00Z',
-      updated_at: '2024-02-25T12:30:00Z'
-    },
-    {
-      id: 6,
-      full_name: 'Vũ Thị Hoa',
-      email: 'vu.thi.hoa@gmail.com',
-      phone: '0956789012',
-      role: 'renter',
-      status: 'active',
-      created_at: '2024-03-01T09:15:00Z',
-      updated_at: '2024-03-01T09:15:00Z'
-    }
-  ];
+  // real user data fetched from API via userService
 
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      // TODO: Uncomment when API is ready
-      // const params = new URLSearchParams();
-      // if (roleFilter && roleFilter !== 'all') params.append('role', roleFilter);
-      // if (searchTerm) params.append('phone', searchTerm);
-      // const response = await apiClient.get(`/admin/users?${params.toString()}`);
-      // setUsers(response.users || []);
-      
-      // Mock implementation
-      setTimeout(() => {
-        let filteredUsers = [...mockUsers];
-        if (roleFilter && roleFilter !== 'all') {
-          filteredUsers = filteredUsers.filter(u => u.role === roleFilter);
-        }
-        if (searchTerm) {
-          filteredUsers = filteredUsers.filter(u => 
-            u.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            u.phone.includes(searchTerm)
-          );
-        }
-        setUsers(filteredUsers);
-        setLoading(false);
-      }, 500);
+      const params = {};
+      if (roleFilter && roleFilter !== 'all') params.role = roleFilter;
+      if (searchTerm) params.phone = searchTerm;
+      const response = await userService.admin.getUsers(params);
+      const list = response?.users || response?.data?.users || response || [];
+      setUsers(list);
+      // compute statistics from fetched list
+      const stats = list.reduce((acc, user) => {
+        acc.total += 1;
+        if (user.status === 'active') acc.active += 1;
+        if (user.role === 'admin') acc.admin += 1;
+        if (user.role === 'staff') acc.staff += 1;
+        if (user.role === 'renter') acc.renter += 1;
+        return acc;
+      }, { total: 0, active: 0, admin: 0, staff: 0, renter: 0 });
+      setStatistics(stats);
+      setLoading(false);
     } catch (error) {
       console.error('Error fetching users:', error);
       toast({
@@ -145,11 +76,12 @@ const PersonnelManagement = () => {
 
   const fetchStatistics = async () => {
     try {
-      // Mock implementation
-      const stats = mockUsers.reduce((acc, user) => {
-        acc.total++;
-        if (user.status === 'active') acc.active++;
-        acc[user.role] = (acc[user.role] || 0) + 1;
+      const stats = users.reduce((acc, user) => {
+        acc.total += 1;
+        if (user.status === 'active') acc.active += 1;
+        if (user.role === 'admin') acc.admin += 1;
+        if (user.role === 'staff') acc.staff += 1;
+        if (user.role === 'renter') acc.renter += 1;
         return acc;
       }, { total: 0, active: 0, admin: 0, staff: 0, renter: 0 });
       setStatistics(stats);
@@ -160,35 +92,18 @@ const PersonnelManagement = () => {
 
   const handleCreateUser = async () => {
     try {
-      // TODO: Uncomment when API is ready
-      // const response = await apiClient.post('/admin/users', formData);
-      // toast({
-      //   title: 'Thành công',
-      //   description: 'Đã tạo tài khoản mới thành công'
-      // });
-      
-      // Mock implementation
-      const newUser = {
-        id: Date.now(),
-        ...formData,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-      
-      setUsers(prev => [...prev, newUser]);
-      toast({
-        title: 'Thành công',
-        description: 'Đã tạo tài khoản mới thành công'
-      });
-      
+      const response = await userService.admin.createUser(formData);
+      const created = response?.user || response?.data || response;
+      toast({ title: 'Thành công', description: 'Đã tạo tài khoản mới thành công' });
       setShowCreateDialog(false);
       resetForm();
-      fetchStatistics();
+      await fetchUsers();
+      await fetchStatistics();
     } catch (error) {
       console.error('Error creating user:', error);
       toast({
         title: 'Lỗi',
-        description: error.response?.data?.message || 'Không thể tạo tài khoản mới',
+        description: error?.message || error?.response?.data?.message || 'Không thể tạo tài khoản mới',
         variant: 'destructive'
       });
     }
@@ -196,30 +111,13 @@ const PersonnelManagement = () => {
 
   const handleUpdateUser = async () => {
     try {
-      // TODO: Uncomment when API is ready
-      // const response = await apiClient.put(`/admin/users/${selectedUser.id}`, formData);
-      // toast({
-      //   title: 'Thành công',
-      //   description: 'Đã cập nhật thông tin thành công'
-      // });
-      
-      // Mock implementation
-      const updatedUser = {
-        ...selectedUser,
-        ...formData,
-        updated_at: new Date().toISOString()
-      };
-      
-      setUsers(prev => prev.map(u => u.id === selectedUser.id ? updatedUser : u));
-      toast({
-        title: 'Thành công',
-        description: 'Đã cập nhật thông tin thành công'
-      });
-      
+      await userService.admin.updateUser(selectedUser.id, formData);
+      toast({ title: 'Thành công', description: 'Đã cập nhật thông tin thành công' });
       setShowEditDialog(false);
       setSelectedUser(null);
       resetForm();
-      fetchStatistics();
+      await fetchUsers();
+      await fetchStatistics();
     } catch (error) {
       console.error('Error updating user:', error);
       toast({
@@ -236,16 +134,10 @@ const PersonnelManagement = () => {
     }
 
     try {
-      // TODO: Uncomment when API is ready
-      // await apiClient.delete(`/admin/users/${userId}`);
-      
-      // Mock implementation
-      setUsers(prev => prev.filter(u => u.id !== userId));
-      toast({
-        title: 'Thành công',
-        description: 'Đã xóa tài khoản thành công'
-      });
-      fetchStatistics();
+      await userService.admin.deleteUser(userId);
+      toast({ title: 'Thành công', description: 'Đã xóa tài khoản thành công' });
+      await fetchUsers();
+      await fetchStatistics();
     } catch (error) {
       console.error('Error deleting user:', error);
       toast({
@@ -258,12 +150,9 @@ const PersonnelManagement = () => {
 
   const handleViewUser = async (user) => {
     try {
-      // TODO: Uncomment when API is ready
-      // const response = await apiClient.get(`/admin/users/${user.id}`);
-      // setSelectedUser(response);
-      
-      // Mock implementation
-      setSelectedUser(user);
+      const response = await userService.admin.getUserById(user.id);
+      const payload = response?.user || response?.data || response || user;
+      setSelectedUser(payload);
       setShowViewDialog(true);
     } catch (error) {
       console.error('Error fetching user details:', error);
@@ -277,7 +166,7 @@ const PersonnelManagement = () => {
 
   const resetForm = () => {
     setFormData({
-      full_name: '',
+      fullName: '',
       email: '',
       phone: '',
       password: '',
@@ -294,7 +183,7 @@ const PersonnelManagement = () => {
   const openEditDialog = (user) => {
     setSelectedUser(user);
     setFormData({
-      full_name: user.full_name,
+      fullName: user.fullName,
       email: user.email,
       phone: user.phone,
       password: '', // Don't prefill password for security
@@ -336,7 +225,7 @@ const PersonnelManagement = () => {
   };
 
   const filteredUsers = users.filter(user =>
-    user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.phone?.includes(searchTerm)
   );
@@ -472,7 +361,7 @@ const PersonnelManagement = () => {
               {filteredUsers.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell className='font-medium'>
-                    {user.full_name}
+                    {user.fullName}
                   </TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell>{user.phone}</TableCell>
@@ -483,7 +372,7 @@ const PersonnelManagement = () => {
                     {getStatusBadge(user.status)}
                   </TableCell>
                   <TableCell>
-                    {new Date(user.created_at).toLocaleDateString('vi-VN')}
+                    {new Date(user.createdAt).toLocaleDateString('vi-VN')}
                   </TableCell>
                   <TableCell className='text-right'>
                     <div className='flex justify-end gap-2'>
@@ -536,11 +425,11 @@ const PersonnelManagement = () => {
           <div className='grid gap-4 py-4'>
             <div className='grid grid-cols-2 gap-4'>
               <div className='space-y-2'>
-                <Label htmlFor='full_name'>Họ và tên</Label>
+                <Label htmlFor='fullName'>Họ và tên</Label>
                 <Input
-                  id='full_name'
-                  value={formData.full_name}
-                  onChange={(e) => setFormData({...formData, full_name: e.target.value})}
+                  id='fullName'
+                  value={formData.fullName}
+                  onChange={(e) => setFormData({...formData, fullName: e.target.value})}
                   placeholder='Nguyễn Văn A'
                 />
               </div>
@@ -633,11 +522,11 @@ const PersonnelManagement = () => {
           <div className='grid gap-4 py-4'>
             <div className='grid grid-cols-2 gap-4'>
               <div className='space-y-2'>
-                <Label htmlFor='edit_full_name'>Họ và tên</Label>
+                <Label htmlFor='fullName'>Họ và tên</Label>
                 <Input
-                  id='edit_full_name'
-                  value={formData.full_name}
-                  onChange={(e) => setFormData({...formData, full_name: e.target.value})}
+                  id='fullName'
+                  value={formData.fullName}
+                  onChange={(e) => setFormData({...formData, fullName: e.target.value})}
                   placeholder='Nguyễn Văn A'
                 />
               </div>
@@ -687,7 +576,6 @@ const PersonnelManagement = () => {
                   <SelectContent>
                     <SelectItem value='staff'>Nhân viên</SelectItem>
                     <SelectItem value='admin'>Quản trị viên</SelectItem>
-                    <SelectItem value='renter'>Khách hàng</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -733,7 +621,7 @@ const PersonnelManagement = () => {
               <div className='grid grid-cols-2 gap-4'>
                 <div>
                   <Label className='text-sm font-medium text-muted-foreground'>Họ và tên</Label>
-                  <p className='text-lg font-semibold'>{selectedUser.full_name}</p>
+                  <p className='text-lg font-semibold'>{selectedUser.fullName}</p>
                 </div>
                 <div>
                   <Label className='text-sm font-medium text-muted-foreground'>Email</Label>
@@ -770,7 +658,7 @@ const PersonnelManagement = () => {
               <div className='grid grid-cols-2 gap-4'>
                 <div>
                   <Label className='text-sm font-medium text-muted-foreground'>Ngày tạo</Label>
-                  <p className='text-lg'>{new Date(selectedUser.created_at).toLocaleDateString('vi-VN', {
+                  <p className='text-lg'>{new Date(selectedUser.createdAt).toLocaleDateString('vi-VN', {
                     year: 'numeric',
                     month: 'long',
                     day: 'numeric',
@@ -780,7 +668,7 @@ const PersonnelManagement = () => {
                 </div>
                 <div>
                   <Label className='text-sm font-medium text-muted-foreground'>Cập nhật lần cuối</Label>
-                  <p className='text-lg'>{new Date(selectedUser.updated_at).toLocaleDateString('vi-VN', {
+                  <p className='text-lg'>{new Date(selectedUser.updatedAt).toLocaleDateString('vi-VN', {
                     year: 'numeric',
                     month: 'long',
                     day: 'numeric',

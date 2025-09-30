@@ -8,7 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { UserCheck, MapPin, Clock, AlertCircle, Plus, Search, Filter, Edit, Trash2, Eye, Users } from 'lucide-react';
-import { apiClient } from '@/lib/api/apiClient';
+import staffStationService from '@/services/staffStations/staffStationService.js';
+import stationService from '@/services/stations/stationService.js';
+import { apiGet } from '@/lib/api/apiClient.js';
 import { useToast } from '@/hooks/use-toast';
 
 const StationStaffManagement = () => {
@@ -40,104 +42,17 @@ const StationStaffManagement = () => {
     fetchStatistics();
   }, []);
 
-  // Mock data for testing
-  const mockAssignments = [
-    {
-      id: 1,
-      staff_id: 1,
-      staff_name: 'Nguyễn Văn An',
-      station_id: 1,
-      station_name: 'Trạm Quận 1',
-      status: 'active',
-      assigned_at: '2024-01-15T09:00:00Z'
-    },
-    {
-      id: 2,
-      staff_id: 2,
-      staff_name: 'Trần Thị Bình',
-      station_id: 1,
-      station_name: 'Trạm Quận 1',
-      status: 'active',
-      assigned_at: '2024-01-20T10:15:00Z'
-    },
-    {
-      id: 3,
-      staff_id: 3,
-      staff_name: 'Lê Minh Cường',
-      station_id: 2,
-      station_name: 'Trạm Quận 3',
-      status: 'active',
-      assigned_at: '2024-02-01T08:30:00Z'
-    },
-    {
-      id: 4,
-      staff_id: 4,
-      staff_name: 'Phạm Thị Dung',
-      station_id: 3,
-      station_name: 'Trạm Quận 7',
-      status: 'inactive',
-      assigned_at: '2024-02-10T13:45:00Z'
-    },
-    {
-      id: 5,
-      staff_id: 5,
-      staff_name: 'Hoàng Văn Em',
-      station_id: 4,
-      station_name: 'Trạm Thủ Đức',
-      status: 'active',
-      assigned_at: '2024-02-15T15:20:00Z'
-    },
-    {
-      id: 6,
-      staff_id: 6,
-      staff_name: 'Vũ Thị Hoa',
-      station_id: 5,
-      station_name: 'Trạm Bình Thạnh',
-      status: 'active',
-      assigned_at: '2024-03-01T09:15:00Z'
-    }
-  ];
-
-  const mockStaff = [
-    { id: 1, name: 'Nguyễn Văn An', phone: '0901234567' },
-    { id: 2, name: 'Trần Thị Bình', phone: '0912345678' },
-    { id: 3, name: 'Lê Minh Cường', phone: '0923456789' },
-    { id: 4, name: 'Phạm Thị Dung', phone: '0934567890' },
-    { id: 5, name: 'Hoàng Văn Em', phone: '0945678901' },
-    { id: 6, name: 'Vũ Thị Hoa', phone: '0956789012' },
-    { id: 7, name: 'Đặng Văn Giang', phone: '0967890123' },
-    { id: 8, name: 'Bùi Thị Huyền', phone: '0978901234' }
-  ];
-
-  const mockStations = [
-    { id: 1, name: 'Trạm Quận 1', address: '123 Nguyễn Huệ, Q1' },
-    { id: 2, name: 'Trạm Quận 3', address: '456 Võ Văn Tần, Q3' },
-    { id: 3, name: 'Trạm Quận 7', address: '789 Nguyễn Thị Thập, Q7' },
-    { id: 4, name: 'Trạm Thủ Đức', address: '321 Võ Văn Ngân, Thủ Đức' },
-    { id: 5, name: 'Trạm Bình Thạnh', address: '654 Xô Viết Nghệ Tĩnh, Bình Thạnh' }
-  ];
+  // real data will be fetched via services
   const fetchAssignments = async () => {
     try {
       setLoading(true);
-      // TODO: Uncomment when API is ready
-      // const response = await apiClient.get('/admin/staff-stations');
-      // setAssignments(response.assignments || []);
-      
-      // Mock implementation
-      setTimeout(() => {
-        let filteredAssignments = [...mockAssignments];
-        if (statusFilter && statusFilter !== 'all') {
-          filteredAssignments = filteredAssignments.filter(a => a.status === statusFilter);
-        }
-        if (searchTerm) {
-          filteredAssignments = filteredAssignments.filter(a => 
-            a.staff_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            a.station_name.toLowerCase().includes(searchTerm.toLowerCase())
-          );
-        }
-        setAssignments(filteredAssignments);
-        setLoading(false);
-      }, 500);
+      const params = {};
+      if (statusFilter && statusFilter !== 'all') params.status = statusFilter;
+      if (searchTerm) params.search = searchTerm;
+      const res = await staffStationService.admin.getAssignments(params);
+      const list = res?.assignments || res?.data || res || [];
+      setAssignments(list);
+      setLoading(false);
     } catch (error) {
       console.error('Error fetching assignments:', error);
       toast({
@@ -151,12 +66,9 @@ const StationStaffManagement = () => {
 
   const fetchStaffList = async () => {
     try {
-      // TODO: Uncomment when API is ready
-      // const response = await apiClient.get('/admin/users?role=staff');
-      // setStaffList(response.users || []);
-      
-      // Mock implementation
-      setStaffList(mockStaff);
+      const res = await apiGet('/api/admin/users?role=staff');
+      const list = res?.users || res || [];
+      setStaffList(list);
     } catch (error) {
       console.error('Error fetching staff list:', error);
     }
@@ -164,12 +76,9 @@ const StationStaffManagement = () => {
 
   const fetchStationsList = async () => {
     try {
-      // TODO: Uncomment when API is ready
-      // const response = await apiClient.get('/admin/stations');
-      // setStationsList(response.stations || []);
-      
-      // Mock implementation
-      setStationsList(mockStations);
+      const res = await stationService.admin.getStations();
+      const list = res?.stations || res || [];
+      setStationsList(list);
     } catch (error) {
       console.error('Error fetching stations list:', error);
     }
@@ -177,15 +86,18 @@ const StationStaffManagement = () => {
 
   const fetchStatistics = async () => {
     try {
-      // Mock implementation
-      const activeAssignments = mockAssignments.filter(a => a.status === 'active');
-      const uniqueStations = new Set(activeAssignments.map(a => a.station_id));
-      
+      // derive statistics from current lists if available
+      const total_staff = staffList.length;
+      const active_assignments = assignments.filter(a => a.status === 'active').length;
+      const uniqueStations = new Set(assignments.filter(a => a.status === 'active').map(a => a.station_id));
+      const stations_with_staff = uniqueStations.size;
+      const needs_support = Math.max(0, stationsList.length - stations_with_staff);
+
       setStatistics({
-        total_staff: mockStaff.length,
-        active_assignments: activeAssignments.length,
-        stations_with_staff: uniqueStations.size,
-        needs_support: Math.max(0, mockStations.length - uniqueStations.size)
+        total_staff,
+        active_assignments,
+        stations_with_staff,
+        needs_support
       });
     } catch (error) {
       console.error('Error fetching statistics:', error);
@@ -194,36 +106,16 @@ const StationStaffManagement = () => {
 
   const handleAssignStaff = async () => {
     try {
-      // TODO: Uncomment when API is ready
-      // const response = await apiClient.post('/admin/staff-stations', formData);
-      // toast({
-      //   title: 'Thành công',
-      //   description: 'Đã phân công nhân viên thành công'
-      // });
-      
-      // Mock implementation
-      const staff = mockStaff.find(s => s.id == formData.staff_id);
-      const station = mockStations.find(s => s.id == formData.station_id);
-      
-      const newAssignment = {
-        id: Date.now(),
+      const payload = {
         staff_id: parseInt(formData.staff_id),
-        staff_name: staff?.name || '',
-        station_id: parseInt(formData.station_id),
-        station_name: station?.name || '',
-        status: 'active',
-        assigned_at: new Date().toISOString()
+        station_id: parseInt(formData.station_id)
       };
-      
-      setAssignments(prev => [...prev, newAssignment]);
-      toast({
-        title: 'Thành công',
-        description: 'Đã phân công nhân viên thành công'
-      });
-      
+      await staffStationService.admin.createAssignment(payload);
+      toast({ title: 'Thành công', description: 'Đã phân công nhân viên thành công' });
       setShowAssignDialog(false);
       resetForm();
-      fetchStatistics();
+      await fetchAssignments();
+      await fetchStatistics();
     } catch (error) {
       console.error('Error assigning staff:', error);
       toast({
@@ -240,23 +132,10 @@ const StationStaffManagement = () => {
     }
 
     try {
-      // TODO: Uncomment when API is ready
-      // await apiClient.put(`/admin/staff-stations/${assignmentId}/deactivate`);
-      
-      // Mock implementation
-      setAssignments(prev => 
-        prev.map(a => 
-          a.id === assignmentId 
-            ? { ...a, status: 'inactive', updated_at: new Date().toISOString() }
-            : a
-        )
-      );
-      
-      toast({
-        title: 'Thành công',
-        description: 'Đã kết thúc phân công thành công'
-      });
-      fetchStatistics();
+      await staffStationService.admin.deactivateAssignment(assignmentId);
+      toast({ title: 'Thành công', description: 'Đã kết thúc phân công thành công' });
+      await fetchAssignments();
+      await fetchStatistics();
     } catch (error) {
       console.error('Error deactivating assignment:', error);
       toast({
@@ -375,7 +254,7 @@ const StationStaffManagement = () => {
           <CardContent>
             <div className="text-2xl font-bold">{statistics.stations_with_staff}</div>
             <p className="text-xs text-muted-foreground">
-              Trên {mockStations.length} trạm hoạt động
+              Trên {stationsList.length} trạm hoạt động
             </p>
           </CardContent>
         </Card>
@@ -428,17 +307,18 @@ const StationStaffManagement = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {mockStations.map((station) => {
-                const staffCount = getStationStaffCount(station.id);
+              {stationsList.map((station) => {
+                const stationId = station.id ?? station.station_id ?? station._id;
+                const staffCount = getStationStaffCount(stationId);
                 const status = staffCount >= 2 ? 'normal' : 'warning';
-                
+
                 return (
-                  <div key={station.id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div key={stationId} className="flex items-center justify-between p-3 border rounded-lg">
                     <div className="flex items-center gap-2">
                       <MapPin className="h-4 w-4 text-muted-foreground" />
                       <div>
-                        <span className="font-medium">{station.name}</span>
-                        <p className="text-xs text-muted-foreground">{station.address}</p>
+                        <span className="font-medium">{station.name || station.station_name}</span>
+                        <p className="text-xs text-muted-foreground">{station.address || station.location || station.addr}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -496,7 +376,7 @@ const StationStaffManagement = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-muted-foreground">
-                    {mockStaff.length - assignments.filter(a => a.status === 'active').length} người
+                {staffList.length - assignments.filter(a => a.status === 'active').length} người
                   </span>
                   <Badge variant='outline'>Sẵn sàng</Badge>
                 </div>

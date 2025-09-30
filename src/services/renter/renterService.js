@@ -5,8 +5,16 @@ export const renterService = {
   // Document Management
   documents: {
     // Upload tài liệu (ảnh CCCD, GPLX...)
-    upload: async (formData) => {
-      return await apiClient.post('/renter/documents', formData);
+    // metadata: object { type, documentNumber }
+    // Upload tài liệu (metadata sent as query string, file as multipart)
+    // metadata: object { type, documentNumber }
+    upload: async (file, metadata = {}) => {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      // Build URL with metadata as query string per Swagger (metadata passed as JSON string)
+      const metadataQuery = metadata && Object.keys(metadata).length ? `?metadata=${encodeURIComponent(JSON.stringify(metadata))}` : '';
+      return await apiClient.post(`/renter/documents${metadataQuery}`, formData);
     },
     
     // Xem danh sách tài liệu đã upload

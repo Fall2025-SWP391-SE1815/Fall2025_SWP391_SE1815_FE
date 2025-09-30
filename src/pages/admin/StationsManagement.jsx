@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Plus, MapPin, Edit, Trash2, Search, Eye, Settings, Users, X } from 'lucide-react';
-import { apiClient } from '@/lib/api/apiClient';
+import stationService from '@/services/stations/stationService.js';
 import { useToast } from '@/hooks/use-toast';
 
 const StationsManagement = () => {
@@ -22,7 +22,8 @@ const StationsManagement = () => {
     name: '',
     address: '',
     latitude: '',
-    longitude: ''
+    longitude: '',
+    status: 'active'
   });
   const [formErrors, setFormErrors] = useState({});
   const { toast } = useToast();
@@ -34,61 +35,11 @@ const StationsManagement = () => {
   const fetchStations = async () => {
     try {
       setLoading(true);
-      
-      // Mock data for testing - replace with actual API call later
-      const mockData = {
-        stations: [
-          {
-            id: 1,
-            name: "Trạm Quận 1",
-            address: "123 Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP.HCM",
-            latitude: 10.762622,
-            longitude: 106.660172,
-            created_at: "2024-01-15T08:30:00Z"
-          },
-          {
-            id: 2,
-            name: "Trạm Quận 2",
-            address: "456 Đường Trần Não, Phường Bình An, Quận 2, TP.HCM",
-            latitude: 10.787448,
-            longitude: 106.720557,
-            created_at: "2024-02-20T10:15:00Z"
-          },
-          {
-            id: 3,
-            name: "Trạm Quận 3",
-            address: "789 Võ Văn Tần, Phường 6, Quận 3, TP.HCM",
-            latitude: 10.776889,
-            longitude: 106.690899,
-            created_at: "2024-09-18T14:45:00Z"
-          },
-          {
-            id: 4,
-            name: "Trạm Quận 7",
-            address: "321 Nguyễn Thị Thập, Phường Tân Phú, Quận 7, TP.HCM",
-            latitude: 10.729054,
-            longitude: 106.719308,
-            created_at: "2024-03-10T16:20:00Z"
-          },
-          {
-            id: 5,
-            name: "Trạm Thủ Đức",
-            address: "Đại học Quốc gia TP.HCM, Khu phố 6, Phường Linh Trung, Thành phố Thủ Đức",
-            latitude: 10.870446,
-            longitude: 106.802490,
-            created_at: "2024-09-20T09:00:00Z"
-          }
-        ]
-      };
-
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      setStations(mockData.stations || []);
-      
-      // TODO: Replace with actual API call
-      // const response = await apiClient.get('/api/admin/stations');
-      // setStations(response.stations || []);
+      // Call real API to fetch stations (admin)
+      const res = await stationService.admin.getStations();
+      // apiClient/apiGet returns parsed data; backend commonly returns { stations: [...] }
+      const list = res?.stations || res || [];
+      setStations(list);
     } catch (error) {
       console.error('Error fetching stations:', error);
       toast({
@@ -120,6 +71,10 @@ const StationsManagement = () => {
       errors.longitude = 'Kinh độ phải là số hợp lệ';
     }
     
+    if (!formData.status || !['active','inactive','maintenance'].includes(formData.status)) {
+      errors.status = 'Trạng thái không hợp lệ';
+    }
+    
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -129,7 +84,8 @@ const StationsManagement = () => {
       name: '',
       address: '',
       latitude: '',
-      longitude: ''
+      longitude: '',
+      status: 'active'
     });
     setFormErrors({});
   };
@@ -144,33 +100,18 @@ const StationsManagement = () => {
         name: formData.name.trim(),
         address: formData.address.trim(),
         latitude: parseFloat(formData.latitude),
-        longitude: parseFloat(formData.longitude)
+        longitude: parseFloat(formData.longitude),
+        status: formData.status
       };
-
-      // Mock success response for testing
-      const mockResponse = {
-        id: stations.length + 1,
-        ...requestBody,
-        created_at: new Date().toISOString()
-      };
-
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Add to local state for now
-      setStations([...stations, mockResponse]);
-      
+      // Call API to create station
+      await stationService.admin.createStation(requestBody);
       toast({
         title: 'Thành công',
         description: 'Đã tạo trạm xe mới thành công'
       });
-      
       setIsCreateDialogOpen(false);
       resetForm();
-      
-      // TODO: Replace with actual API call
-      // await apiClient.post('/api/admin/stations', requestBody);
-      // fetchStations();
+      fetchStations();
     } catch (error) {
       console.error('Error creating station:', error);
       toast({
@@ -191,33 +132,20 @@ const StationsManagement = () => {
         name: formData.name.trim(),
         address: formData.address.trim(),
         latitude: parseFloat(formData.latitude),
-        longitude: parseFloat(formData.longitude)
+        longitude: parseFloat(formData.longitude),
+        status: formData.status
       };
-
-      // Mock update for testing
-      const updatedStations = stations.map(station => 
-        station.id === selectedStation.id 
-          ? { ...station, ...requestBody, updated_at: new Date().toISOString() }
-          : station
-      );
-      
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setStations(updatedStations);
-      
+      // Call API to update station
+      if (!selectedStation) throw new Error('Chưa chọn trạm');
+      await stationService.admin.updateStation(selectedStation.id, requestBody);
       toast({
         title: 'Thành công',
         description: 'Đã cập nhật thông tin trạm xe'
       });
-      
       setIsEditDialogOpen(false);
       resetForm();
       setSelectedStation(null);
-      
-      // TODO: Replace with actual API call
-      // await apiClient.put(`/api/admin/stations/${selectedStation.id}`, requestBody);
-      // fetchStations();
+      fetchStations();
     } catch (error) {
       console.error('Error updating station:', error);
       toast({
@@ -234,22 +162,13 @@ const StationsManagement = () => {
     }
 
     try {
-      // Mock delete for testing
-      const updatedStations = stations.filter(station => station.id !== stationId);
-      
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      setStations(updatedStations);
-      
+      // Call API to delete station
+      await stationService.admin.deleteStation(stationId);
       toast({
         title: 'Thành công',
         description: 'Đã xóa trạm xe thành công'
       });
-      
-      // TODO: Replace with actual API call
-      // await apiClient.delete(`/api/admin/stations/${stationId}`);
-      // fetchStations();
+      fetchStations();
     } catch (error) {
       console.error('Error deleting station:', error);
       toast({
@@ -262,9 +181,8 @@ const StationsManagement = () => {
 
   const handleViewStation = async (stationId) => {
     try {
-      // Mock get station detail for testing
-      const station = stations.find(s => s.id === stationId);
-      
+      const res = await stationService.admin.getStationById(stationId);
+      const station = res || res?.data || res?.station;
       if (!station) {
         toast({
           title: 'Lỗi',
@@ -273,17 +191,8 @@ const StationsManagement = () => {
         });
         return;
       }
-      
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
       setSelectedStation(station);
       setIsViewDialogOpen(true);
-      
-      // TODO: Replace with actual API call
-      // const response = await apiClient.get(`/api/admin/stations/${stationId}`);
-      // setSelectedStation(response);
-      // setIsViewDialogOpen(true);
     } catch (error) {
       console.error('Error fetching station details:', error);
       toast({
@@ -299,21 +208,20 @@ const StationsManagement = () => {
     setFormData({
       name: station.name,
       address: station.address,
-      latitude: station.latitude.toString(),
-      longitude: station.longitude.toString()
+      latitude: station.latitude?.toString() || '',
+      longitude: station.longitude?.toString() || '',
+      status: station.status || 'active'
     });
     setIsEditDialogOpen(true);
   };
 
   const getStatusBadge = (station) => {
-    // Since the API doesn't provide status, we'll determine it based on creation date
-    const isNew = new Date() - new Date(station.created_at) < 7 * 24 * 60 * 60 * 1000;
-    
-    return (
-      <Badge variant={isNew ? 'default' : 'secondary'}>
-        {isNew ? 'Mới' : 'Hoạt động'}
-      </Badge>
-    );
+    // Prefer server-provided status; fallback to recent/new logic
+    const status = station.status || (new Date() - new Date(station.created_at) < 7 * 24 * 60 * 60 * 1000 ? 'new' : 'active');
+    if (status === 'new') return <Badge variant='default'>Mới</Badge>;
+    if (status === 'maintenance') return <Badge variant='warning'>Bảo trì</Badge>;
+    if (status === 'inactive') return <Badge variant='secondary'>Không hoạt động</Badge>;
+    return <Badge variant='default'>Hoạt động</Badge>;
   };
 
   const filteredStations = stations.filter(station =>
@@ -364,6 +272,22 @@ const StationsManagement = () => {
                 />
                 {formErrors.name && (
                   <span className="text-sm text-red-500">{formErrors.name}</span>
+                )}
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="status">Trạng thái</Label>
+                <select
+                  id="status"
+                  value={formData.status}
+                  onChange={(e) => setFormData({...formData, status: e.target.value})}
+                  className="border rounded px-2 py-1"
+                >
+                  <option value="active">Hoạt động</option>
+                  <option value="inactive">Không hoạt động</option>
+                  <option value="maintenance">Bảo trì</option>
+                </select>
+                {formErrors.status && (
+                  <span className="text-sm text-red-500">{formErrors.status}</span>
                 )}
               </div>
               <div className="grid gap-2">

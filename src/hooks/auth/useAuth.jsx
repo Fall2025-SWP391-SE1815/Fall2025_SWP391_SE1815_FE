@@ -1,6 +1,6 @@
 // Authentication Hook with API Integration
 import React, { useState, useEffect, useContext, createContext } from 'react';
-import apiClient from '@/lib/api/apiClient';
+import authService from '@/services/auth/authService';
 
 // Create Auth Context
 const AuthContext = createContext({});
@@ -13,16 +13,16 @@ export const AuthProvider = ({ children }) => {
 
   // Initialize authentication state
   useEffect(() => {
-    const initAuth = async () => {
+    const initAuth = async () => {  
       try {
         const token = localStorage.getItem('accessToken');
         const userData = localStorage.getItem('userData');
-        
+
         if (token && userData) {
           const parsedUser = JSON.parse(userData);
           setUser(parsedUser);
           setIsAuthenticated(true);
-          
+
           // Verify token is still valid (optional) - Disabled for now to prevent logout issues
           // try {
           //   const response = await apiClient.get('/auth/me');
@@ -48,61 +48,50 @@ export const AuthProvider = ({ children }) => {
     initAuth();
   }, []);
 
-  // Login function
-  const login = async (email, password) => {
+  // Login function (phone, password)
+  const login = async (phone, password) => {
     try {
       setLoading(true);
-      const response = await apiClient.auth.login(email, password);
-      
-      if (response.success) {
-        const { userInfo, accessToken, refreshToken } = response.data;
-        
-        // Store tokens and user data
-        localStorage.setItem('accessToken', accessToken);
-        localStorage.setItem('refreshToken', refreshToken);
-        localStorage.setItem('userData', JSON.stringify(userInfo));
-        
-        // Update state
+      const res = await authService.login(phone, password);
+
+      if (!res || !res.success) {
+        return { success: false, message: res?.message || 'Đăng nhập thất bại' };
+      }
+
+      // authService stores tokens/userData in localStorage; read from there for consistency
+      const storedUser = localStorage.getItem('userData');
+      const userInfo = res.user || (storedUser ? JSON.parse(storedUser) : null);
+
+      if (userInfo) {
         setUser(userInfo);
         setIsAuthenticated(true);
-        
-        return { success: true, user: userInfo };
-      } else {
-        return { success: false, message: response.message };
       }
+
+      return { success: true, user: userInfo };
     } catch (error) {
-      const errorMessage = error.response?.data?.message || 'Đăng nhập thất bại';
-      return { success: false, message: errorMessage };
+      return { success: false, message: error?.message || 'Đăng nhập thất bại' };
     } finally {
       setLoading(false);
     }
   };
 
+
   // Register function
   const register = async (userData) => {
     try {
       setLoading(true);
-      const response = await apiClient.auth.register(userData);
-      
-      if (response.success) {
-        const { userInfo, accessToken, refreshToken } = response.data;
-        
-        // Store tokens and user data
-        localStorage.setItem('accessToken', accessToken);
-        localStorage.setItem('refreshToken', refreshToken);
-        localStorage.setItem('userData', JSON.stringify(userInfo));
-        
-        // Update state
+      const res = await authService.register(userData);
+      if (!res || !res.success) return { success: false, message: res?.message || 'Đăng ký thất bại' };
+
+      const storedUser = localStorage.getItem('userData');
+      const userInfo = res.user || (storedUser ? JSON.parse(storedUser) : null);
+      if (userInfo) {
         setUser(userInfo);
         setIsAuthenticated(true);
-        
-        return { success: true, user: userInfo };
-      } else {
-        return { success: false, message: response.message };
       }
+      return { success: true, user: userInfo };
     } catch (error) {
-      const errorMessage = error.response?.data?.message || 'Đăng ký thất bại';
-      return { success: false, message: errorMessage };
+      return { success: false, message: error?.message || 'Đăng ký thất bại' };
     } finally {
       setLoading(false);
     }
@@ -111,12 +100,10 @@ export const AuthProvider = ({ children }) => {
   // Logout function
   const logout = async () => {
     try {
-      // Call logout API (optional)
-      await apiClient.post('/auth/logout');
+      await authService.logout();
     } catch (error) {
-      // Ignore logout API errors
+      // ignore
     } finally {
-      // Clear storage and state
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
       localStorage.removeItem('userData');
@@ -129,7 +116,7 @@ export const AuthProvider = ({ children }) => {
   const updateProfile = async (updateData) => {
     try {
       const response = await apiClient.put(`/users/${user.id}`, updateData);
-      
+
       if (response.success) {
         const updatedUser = { ...user, ...response.data };
         setUser(updatedUser);
@@ -151,7 +138,7 @@ export const AuthProvider = ({ children }) => {
         current_password: currentPassword,
         new_password: newPassword
       });
-      
+
       if (response.success) {
         return { success: true, message: 'Đổi mật khẩu thành công' };
       } else {

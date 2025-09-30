@@ -13,15 +13,15 @@ import { Eye, EyeOff, Mail, Lock, Zap, AlertCircle, Loader2 } from 'lucide-react
 const LoginPage = () => {
   const navigate = useNavigate();
   const { login, loading } = useAuth();
-  const { validateEmail, validatePassword } = useAuthValidation();
-  
+  const { validatePhone, validatePassword } = useAuthValidation();
+
   // Form state
   const [formData, setFormData] = useState({
-    email: '',
+    phone: '',
     password: '',
     rememberMe: false
   });
-  
+
   // UI state
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
@@ -31,7 +31,7 @@ const LoginPage = () => {
   // Handle input changes
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    
+
     // Clear errors when user starts typing
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
@@ -44,13 +44,13 @@ const LoginPage = () => {
   // Validate form
   const validateForm = () => {
     const newErrors = {};
-    
-    const emailError = validateEmail(formData.email);
-    if (emailError) newErrors.email = emailError;
-    
+
+    const phoneError = validatePhone(formData.phone);
+    if (phoneError) newErrors.phone = phoneError;
+
     const passwordError = validatePassword(formData.password);
     if (passwordError) newErrors.password = passwordError;
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -58,25 +58,20 @@ const LoginPage = () => {
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
-    
+
     setIsSubmitting(true);
     setSubmitError('');
-    
+
     try {
-      const result = await login(formData.email, formData.password);
-      
-      if (result.success) {
-        // Store remember me preference
-        if (formData.rememberMe) {
-          localStorage.setItem('rememberMe', 'true');
-        }
-        
-        // Redirect based on user role
+      const result = await login(formData.phone, formData.password);
+
+      if (result.success && result.user) {
         const userRole = result.user.role;
+
         switch (userRole) {
           case 'admin':
             navigate('/admin');
@@ -86,32 +81,36 @@ const LoginPage = () => {
             break;
           case 'renter':
           default:
-            navigate('/'); // Renter về trang chủ thay vì dashboard
+            navigate('/');
             break;
         }
       } else {
         setSubmitError(result.message || 'Đăng nhập thất bại');
       }
+
     } catch (error) {
+      // Log error for debugging and show user-friendly message
+      // eslint-disable-next-line no-console
+      console.error('Login error:', error);
       setSubmitError('Có lỗi xảy ra. Vui lòng thử lại sau.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Demo login functions for testing
+  // Demo login functions for testing (phone-based)
   const handleDemoLogin = async (role) => {
     const demoCredentials = {
-      admin: { email: 'admin@evrent.com', password: 'admin123' },
-      staff: { email: 'staff1@evrent.com', password: 'staff123' },
-      renter: { email: 'user1@gmail.com', password: 'user123' }
+      admin: { phone: '0123456789', password: 'Admin@123' },
+      staff: { phone: '0910000000', password: 'staff123' },
+      renter: { phone: '0999999999', password: 'User1@123' }
     };
-    
+
     const credentials = demoCredentials[role];
     if (credentials) {
       setFormData(prev => ({
         ...prev,
-        email: credentials.email,
+        phone: credentials.phone,
         password: credentials.password
       }));
     }
@@ -152,24 +151,24 @@ const LoginPage = () => {
                 </Alert>
               )}
 
-              {/* Email Field */}
+              {/* Phone Field */}
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="phone">Số điện thoại</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
-                    id="email"
-                    type="email"
-                    placeholder="Nhập email của bạn"
-                    value={formData.email}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
-                    className={`pl-10 ${errors.email ? 'border-red-500' : ''}`}
+                    id="phone"
+                    type="tel"
+                    placeholder="Nhập số điện thoại của bạn"
+                    value={formData.phone}
+                    onChange={(e) => handleInputChange('phone', e.target.value)}
+                    className={`pl-10 ${errors.phone ? 'border-red-500' : ''}`}
                     disabled={isSubmitting}
                   />
                 </div>
-                {errors.email && (
+                {errors.phone && (
                   <p className="text-sm text-red-500 animate-in fade-in-50">
-                    {errors.email}
+                    {errors.phone}
                   </p>
                 )}
               </div>

@@ -2,20 +2,17 @@
 // This makes it easy to switch between mock API and real Swagger API
 
 // Environment configuration
-export const API_CONFIG = {
-  USE_MOCK: import.meta.env.VITE_USE_MOCK_API === 'true', 
-  BASE_URL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5174/api',
-  MOCK_DELAY: parseInt(import.meta.env.VITE_MOCK_DELAY) || 500,
-  TIMEOUT: parseInt(import.meta.env.VITE_API_TIMEOUT) || 10000
-};
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
 // API Endpoints mapping based on the provided list
 export const API_ENDPOINTS = {
   // Authentication endpoints
   AUTH: {
-    LOGIN: '/auth/login',
-    REGISTER: '/auth/register',
-    REFRESH_TOKEN: '/auth/refresh-token'
+    // Swagger backend uses /api/auth/* paths (see backend swagger UI)
+    LOGIN: '/api/auth/sign-in',
+    REGISTER: '/api/auth/register',
+    LOGOUT: '/api/auth/sign-out',
+    REFRESH_TOKEN: '/api/auth/refresh-token'
   },
 
   // Renter endpoints
@@ -136,11 +133,10 @@ export const API_ENDPOINTS = {
 
 // Helper function to get full URL
 export const getApiUrl = (endpoint) => {
-  if (API_CONFIG.USE_MOCK) {
-    // For mock APIs, we don't need the base URL since they're local functions
-    return endpoint;
-  }
-  return `${API_CONFIG.BASE_URL}${endpoint}`;
+  if (!endpoint) return API_BASE_URL;
+  // If endpoint already starts with 'http', assume absolute
+  if (endpoint.startsWith('http')) return endpoint;
+  return `${API_BASE_URL.replace(/\/$/, '')}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
 };
 
 // Helper function to build endpoint with parameters

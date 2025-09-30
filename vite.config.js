@@ -10,4 +10,15 @@ export default defineConfig({
       "@": resolve(__dirname, "src"),
     },
   },
+  server: {
+    // Proxy /api to the backend Swagger server to avoid CORS in development
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path // keep /api prefix
+      }
+    }
+  }
 });
