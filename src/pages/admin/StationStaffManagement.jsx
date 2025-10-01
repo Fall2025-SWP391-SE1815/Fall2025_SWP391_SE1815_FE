@@ -4,13 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { UserCheck, MapPin, Clock, AlertCircle, Plus, Search, Filter, Edit, Trash2, Eye, Users } from 'lucide-react';
 import staffStationService from '@/services/staffStations/staffStationService.js';
+import userService from '@/services/users/userService.js';
 import stationService from '@/services/stations/stationService.js';
-import { apiGet } from '@/lib/api/apiClient.js';
 import { useToast } from '@/hooks/use-toast';
 
 const StationStaffManagement = () => {
@@ -20,37 +20,63 @@ const StationStaffManagement = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [selectedStationId, setSelectedStationId] = useState('all');
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [showViewDialog, setShowViewDialog] = useState(false);
   const [selectedAssignment, setSelectedAssignment] = useState(null);
   const [formData, setFormData] = useState({
-    staff_id: '',
-    station_id: ''
+    staffId: '',
+    stationId: ''
   });
-  const [statistics, setStatistics] = useState({
-    total_staff: 0,
-    active_assignments: 0,
-    stations_with_staff: 0,
-    needs_support: 0
-  });
+
   const { toast } = useToast();
 
   useEffect(() => {
     fetchAssignments();
-    fetchStaffList();
     fetchStationsList();
-    fetchStatistics();
+    fetchStaffList();
   }, []);
+
+  const fetchStaffList = async () => {
+    try {
+      const res = await userService.admin.getUsers({ role: 'staff' });
+      // response may be shaped as { users: [...] } or an array
+      const raw = res?.users || res?.data?.users || res || [];
+      const list = (Array.isArray(raw) ? raw : raw.users || []).map((u) => ({
+        id: u.id ?? u._id ?? u.userId,
+        name: u.fullName ?? u.name ?? `${u.firstName || ''} ${u.lastName || ''}`.trim(),
+        phone: u.phone ?? u.mobile ?? ''
+      }));
+
+      setStaffList(list);
+    } catch (error) {
+      console.error('Error fetching staff list:', error);
+    }
+  };
 
   // real data will be fetched via services
   const fetchAssignments = async () => {
     try {
       setLoading(true);
-      const params = {};
-      if (statusFilter && statusFilter !== 'all') params.status = statusFilter;
-      if (searchTerm) params.search = searchTerm;
+  const params = {};
+  // Note: don't send status to API (server may not support it); apply status filter client-side
+  if (searchTerm) params.search = searchTerm;
+      if (selectedStationId && selectedStationId !== 'all') params.name = selectedStationId;
+
       const res = await staffStationService.admin.getAssignments(params);
-      const list = res?.assignments || res?.data || res || [];
+      const rawList = res?.assignments || res?.data || res || [];
+
+      const list = (Array.isArray(rawList) ? rawList : [rawList]).map((item) => ({
+        id: item.id,
+        staffId: item.staff?.id,
+        staffName: item.staff?.fullName,
+        stationId: item.station?.id,
+        stationName: item.station?.name,
+        assignedAt: item.assignedAt,
+        updatedAt: item.updatedAt ?? item.deactivatedAt,
+        status: item.isActive ? 'active' : 'inactive'
+      }));
+
       setAssignments(list);
       setLoading(false);
     } catch (error) {
@@ -64,58 +90,36 @@ const StationStaffManagement = () => {
     }
   };
 
-  const fetchStaffList = async () => {
-    try {
-      const res = await apiGet('/api/admin/users?role=staff');
-      const list = res?.users || res || [];
-      setStaffList(list);
-    } catch (error) {
-      console.error('Error fetching staff list:', error);
-    }
-  };
-
   const fetchStationsList = async () => {
     try {
       const res = await stationService.admin.getStations();
-      const list = res?.stations || res || [];
+      const raw = res?.stations || res || [];
+      const list = (raw || []).map((st) => ({
+        id: st.id ?? st._id ?? st.stationId,
+        name: st.name ?? st.stationName,
+        address: st.address ?? st.location ?? st.addr
+      }));
+
       setStationsList(list);
     } catch (error) {
       console.error('Error fetching stations list:', error);
     }
   };
 
-  const fetchStatistics = async () => {
-    try {
-      // derive statistics from current lists if available
-      const total_staff = staffList.length;
-      const active_assignments = assignments.filter(a => a.status === 'active').length;
-      const uniqueStations = new Set(assignments.filter(a => a.status === 'active').map(a => a.station_id));
-      const stations_with_staff = uniqueStations.size;
-      const needs_support = Math.max(0, stationsList.length - stations_with_staff);
-
-      setStatistics({
-        total_staff,
-        active_assignments,
-        stations_with_staff,
-        needs_support
-      });
-    } catch (error) {
-      console.error('Error fetching statistics:', error);
-    }
-  };
+  // Note: statistics removed to simplify to 3 APIs: assignments, staff, stations
 
   const handleAssignStaff = async () => {
     try {
       const payload = {
-        staff_id: parseInt(formData.staff_id),
-        station_id: parseInt(formData.station_id)
+        staffId: parseInt(formData.staffId),
+        stationId: parseInt(formData.stationId)
       };
       await staffStationService.admin.createAssignment(payload);
       toast({ title: 'Thành công', description: 'Đã phân công nhân viên thành công' });
       setShowAssignDialog(false);
       resetForm();
       await fetchAssignments();
-      await fetchStatistics();
+      await fetchStaffList();
     } catch (error) {
       console.error('Error assigning staff:', error);
       toast({
@@ -135,7 +139,7 @@ const StationStaffManagement = () => {
       await staffStationService.admin.deactivateAssignment(assignmentId);
       toast({ title: 'Thành công', description: 'Đã kết thúc phân công thành công' });
       await fetchAssignments();
-      await fetchStatistics();
+      await fetchStaffList();
     } catch (error) {
       console.error('Error deactivating assignment:', error);
       toast({
@@ -153,8 +157,8 @@ const StationStaffManagement = () => {
 
   const resetForm = () => {
     setFormData({
-      staff_id: '',
-      station_id: ''
+      staffId: '',
+      stationId: ''
     });
   };
 
@@ -168,9 +172,9 @@ const StationStaffManagement = () => {
       'active': { label: 'Hoạt động', variant: 'default' },
       'inactive': { label: 'Kết thúc', variant: 'secondary' }
     };
-    
+
     const statusInfo = statusMap[status] || { label: status, variant: 'outline' };
-    
+
     return (
       <Badge variant={statusInfo.variant}>
         {statusInfo.label}
@@ -179,22 +183,26 @@ const StationStaffManagement = () => {
   };
 
   const getStationStaffCount = (stationId) => {
-    return assignments.filter(a => a.station_id === stationId && a.status === 'active').length;
+    return assignments.filter(a => String(a.stationId) === String(stationId) && a.status === 'active').length;
   };
 
-  const filteredAssignments = assignments.filter(assignment =>
-    assignment.staff_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    assignment.station_name?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredAssignments = assignments.filter((assignment) => {
+    // status filter (client-side guard in case API doesn't strictly honor status query)
+    if (statusFilter && statusFilter !== 'all' && assignment.status !== statusFilter) return false;
+
+    // station filter (also ensure client-side correctness)
+    if (selectedStationId && selectedStationId !== 'all' && String(assignment.stationId) !== String(selectedStationId)) return false;
+
+    // search filter
+    if (!searchTerm) return true;
+    const q = searchTerm.toLowerCase();
+    return (assignment.staffName?.toLowerCase().includes(q) || assignment.stationName?.toLowerCase().includes(q));
+  });
 
   // Re-fetch data when filters change
   useEffect(() => {
     fetchAssignments();
-  }, [statusFilter, searchTerm]);
-  // Re-fetch data when filters change
-  useEffect(() => {
-    fetchAssignments();
-  }, [statusFilter, searchTerm]);
+  }, [statusFilter, searchTerm, selectedStationId]);
 
   if (loading) {
     return (
@@ -219,59 +227,7 @@ const StationStaffManagement = () => {
         </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Tổng nhân viên</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{statistics.total_staff}</div>
-            <p className="text-xs text-muted-foreground">
-              Nhân viên có thể phân công
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Đang phân công</CardTitle>
-            <UserCheck className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{statistics.active_assignments}</div>
-            <p className="text-xs text-muted-foreground">
-              Phân công hiện tại
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Trạm có nhân viên</CardTitle>
-            <MapPin className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{statistics.stations_with_staff}</div>
-            <p className="text-xs text-muted-foreground">
-              Trên {stationsList.length} trạm hoạt động
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Cần hỗ trợ</CardTitle>
-            <AlertCircle className="h-4 w-4 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{statistics.needs_support}</div>
-            <p className="text-xs text-muted-foreground">
-              Trạm chưa có nhân viên
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Statistics removed - UI simplified to 3 APIs: assignments, staff, stations */}
 
       <div className='flex items-center gap-4'>
         <div className='relative flex-1 max-w-sm'>
@@ -283,7 +239,19 @@ const StationStaffManagement = () => {
             className='pl-8'
           />
         </div>
-        
+
+        <Select value={selectedStationId} onValueChange={setSelectedStationId}>
+          <SelectTrigger className='w-56 mr-2'>
+            <SelectValue placeholder='Lọc theo trạm' />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value='all'>Tất cả trạm</SelectItem>
+            {stationsList.map((st) => (
+              <SelectItem key={st.id} value={String(st.id)}>{st.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className='w-48'>
             <Filter className='h-4 w-4 mr-2' />
@@ -308,7 +276,7 @@ const StationStaffManagement = () => {
           <CardContent>
             <div className="space-y-3">
               {stationsList.map((station) => {
-                const stationId = station.id ?? station.station_id ?? station._id;
+                const stationId = station.id ?? station.stationId ?? station._id;
                 const staffCount = getStationStaffCount(stationId);
                 const status = staffCount >= 2 ? 'normal' : 'warning';
 
@@ -317,7 +285,7 @@ const StationStaffManagement = () => {
                     <div className="flex items-center gap-2">
                       <MapPin className="h-4 w-4 text-muted-foreground" />
                       <div>
-                        <span className="font-medium">{station.name || station.station_name}</span>
+                        <span className="font-medium">{station.name || station.stationName}</span>
                         <p className="text-xs text-muted-foreground">{station.address || station.location || station.addr}</p>
                       </div>
                     </div>
@@ -376,7 +344,7 @@ const StationStaffManagement = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-muted-foreground">
-                {staffList.length - assignments.filter(a => a.status === 'active').length} người
+                    {staffList.length - assignments.filter(a => a.status === 'active').length} người
                   </span>
                   <Badge variant='outline'>Sẵn sàng</Badge>
                 </div>
@@ -401,6 +369,7 @@ const StationStaffManagement = () => {
                 <TableHead>Trạm</TableHead>
                 <TableHead>Trạng thái</TableHead>
                 <TableHead>Ngày phân công</TableHead>
+                <TableHead>Ngày kết thúc</TableHead>
                 <TableHead className='text-right'>Thao tác</TableHead>
               </TableRow>
             </TableHeader>
@@ -408,27 +377,44 @@ const StationStaffManagement = () => {
               {filteredAssignments.map((assignment) => (
                 <TableRow key={assignment.id}>
                   <TableCell className='font-medium'>
-                    {assignment.staff_name}
+                    {assignment.staffName}
                   </TableCell>
-                  <TableCell>{assignment.station_name}</TableCell>
+                  <TableCell>{assignment.stationName}</TableCell>
                   <TableCell>
                     {getStatusBadge(assignment.status)}
                   </TableCell>
                   <TableCell>
-                    {new Date(assignment.assigned_at).toLocaleDateString('vi-VN')}
+                    {new Date(assignment.assignedAt).toLocaleString('vi-VN', {
+                      year: 'numeric',
+                      month: '2-digit',
+                      day: '2-digit',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </TableCell>
+                  <TableCell>
+                    {assignment.updatedAt
+                      ? new Date(assignment.updatedAt).toLocaleString('vi-VN', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })
+                      : 'Chưa kết thúc'}
                   </TableCell>
                   <TableCell className='text-right'>
                     <div className='flex justify-end gap-2'>
-                      <Button 
-                        variant='ghost' 
+                      <Button
+                        variant='ghost'
                         size='sm'
                         onClick={() => handleViewAssignment(assignment)}
                       >
                         <Eye className='h-4 w-4' />
                       </Button>
                       {assignment.status === 'active' && (
-                        <Button 
-                          variant='ghost' 
+                        <Button
+                          variant='ghost'
                           size='sm'
                           onClick={() => handleDeactivateAssignment(assignment.id)}
                         >
@@ -459,29 +445,29 @@ const StationStaffManagement = () => {
               Gán nhân viên vào trạm làm việc
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className='grid gap-4 py-4'>
             <div className='space-y-2'>
-              <Label htmlFor='staff_id'>Chọn nhân viên</Label>
-              <Select value={formData.staff_id} onValueChange={(value) => setFormData({...formData, staff_id: value})}>
+              <Label htmlFor='staffId'>Chọn nhân viên</Label>
+              <Select value={formData.staffId} onValueChange={(value) => setFormData({ ...formData, staffId: value })}>
                 <SelectTrigger>
                   <SelectValue placeholder='Chọn nhân viên' />
                 </SelectTrigger>
                 <SelectContent>
                   {staffList
-                    .filter(staff => !assignments.some(a => a.staff_id === staff.id && a.status === 'active'))
+                    .filter(staff => !assignments.some(a => a.staffId === staff.id && a.status === 'active'))
                     .map((staff) => (
-                    <SelectItem key={staff.id} value={staff.id.toString()}>
-                      {staff.name} - {staff.phone}
-                    </SelectItem>
-                  ))}
+                      <SelectItem key={staff.id} value={staff.id.toString()}>
+                        {staff.name} - {staff.phone}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
 
             <div className='space-y-2'>
-              <Label htmlFor='station_id'>Chọn trạm</Label>
-              <Select value={formData.station_id} onValueChange={(value) => setFormData({...formData, station_id: value})}>
+              <Label htmlFor='stationId'>Chọn trạm</Label>
+              <Select value={formData.stationId} onValueChange={(value) => setFormData({ ...formData, stationId: value })}>
                 <SelectTrigger>
                   <SelectValue placeholder='Chọn trạm' />
                 </SelectTrigger>
@@ -516,17 +502,17 @@ const StationStaffManagement = () => {
               Thông tin chi tiết về phân công nhân viên
             </DialogDescription>
           </DialogHeader>
-          
+
           {selectedAssignment && (
             <div className='grid gap-4 py-4'>
               <div className='grid grid-cols-2 gap-4'>
                 <div>
                   <Label className='text-sm font-medium text-muted-foreground'>Nhân viên</Label>
-                  <p className='text-lg font-semibold'>{selectedAssignment.staff_name}</p>
+                  <p className='text-lg font-semibold'>{selectedAssignment.staffName}</p>
                 </div>
                 <div>
                   <Label className='text-sm font-medium text-muted-foreground'>Trạm</Label>
-                  <p className='text-lg'>{selectedAssignment.station_name}</p>
+                  <p className='text-lg'>{selectedAssignment.stationName}</p>
                 </div>
               </div>
 
@@ -546,7 +532,7 @@ const StationStaffManagement = () => {
               <div className='grid grid-cols-2 gap-4'>
                 <div>
                   <Label className='text-sm font-medium text-muted-foreground'>Ngày phân công</Label>
-                  <p className='text-lg'>{new Date(selectedAssignment.assigned_at).toLocaleDateString('vi-VN', {
+                  <p className='text-lg'>{new Date(selectedAssignment.assignedAt).toLocaleDateString('vi-VN', {
                     year: 'numeric',
                     month: 'long',
                     day: 'numeric',
@@ -554,10 +540,10 @@ const StationStaffManagement = () => {
                     minute: '2-digit'
                   })}</p>
                 </div>
-                {selectedAssignment.updated_at && (
+                {selectedAssignment.updatedAt && (
                   <div>
                     <Label className='text-sm font-medium text-muted-foreground'>Cập nhật lần cuối</Label>
-                    <p className='text-lg'>{new Date(selectedAssignment.updated_at).toLocaleDateString('vi-VN', {
+                    <p className='text-lg'>{new Date(selectedAssignment.updatedAt).toLocaleDateString('vi-VN', {
                       year: 'numeric',
                       month: 'long',
                       day: 'numeric',

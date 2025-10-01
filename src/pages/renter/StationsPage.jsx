@@ -16,6 +16,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/hooks/auth/useAuth';
 import { toast } from 'sonner';
+import stationService from '@/services/stations/stationService.js';
+import vehicleService from '@/services/vehicles/vehicleService.js';
 
 const StationsPage = () => {
   const { user, isAuthenticated } = useAuth();
@@ -28,93 +30,40 @@ const StationsPage = () => {
   const loadStations = async () => {
     setLoading(true);
     setError('');
-
     try {
-      // Always use mock data for development since API is not available
-      console.log('Loading stations with mock data...');
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock data for development
-      const mockStations = [
-        {
-          id: 1,
-          name: 'Trạm D1 - ĐHQG TP.HCM',
-          address: '268 Lý Thường Kiệt, Phường 14, Quận 10, TP.HCM',
-          latitude: 10.7626,
-          longitude: 106.6820,
-          total_vehicles: 15,
-          available_vehicles: 8,
-          status: 'active',
-          operating_hours: '06:00 - 22:00'
-        },
-        {
-          id: 2,
-          name: 'Trạm Quận 1 - Nguyễn Huệ',
-          address: '123 Nguyễn Huệ, Quận 1, TP.HCM',
-          latitude: 10.7769,
-          longitude: 106.7009,
-          total_vehicles: 20,
-          available_vehicles: 12,
-          status: 'active',
-          operating_hours: '24/7'
-        },
-        {
-          id: 3,
-          name: 'Trạm Quận 3 - Võ Văn Tần',
-          address: '456 Võ Văn Tần, Quận 3, TP.HCM',
-          latitude: 10.7829,
-          longitude: 106.6928,
-          total_vehicles: 12,
-          available_vehicles: 5,
-          status: 'active',
-          operating_hours: '06:00 - 22:00'
-        },
-        {
-          id: 4,
-          name: 'Trạm Bình Thạnh - Xô Viết Nghệ Tĩnh',
-          address: '789 Xô Viết Nghệ Tĩnh, Bình Thạnh, TP.HCM',
-          latitude: 10.8017,
-          longitude: 106.7148,
-          total_vehicles: 18,
-          available_vehicles: 10,
-          status: 'active',
-          operating_hours: '06:00 - 22:00'
-        },
-        {
-          id: 5,
-          name: 'Trạm Quận 7 - Phú Mỹ Hưng',
-          address: '101 Nguyễn Văn Linh, Quận 7, TP.HCM',
-          latitude: 10.7308,
-          longitude: 106.7191,
-          total_vehicles: 25,
-          available_vehicles: 15,
-          status: 'active',
-          operating_hours: '24/7'
-        },
-        {
-          id: 6,
-          name: 'Trạm Thủ Đức - ĐHQG',
-          address: 'Khu phố 6, Linh Trung, Thủ Đức, TP.HCM',
-          latitude: 10.8700,
-          longitude: 106.8034,
-          total_vehicles: 14,
-          available_vehicles: 7,
-          status: 'maintenance',
-          operating_hours: '07:00 - 21:00'
-        }
-      ];
-
-      setStations(mockStations);
-      
-      if (mockStations.length === 0) {
-        toast.info('Hiện tại chưa có trạm nào được mở');
-      } else {
-        toast.success(`Đã tải ${mockStations.length} trạm xe điện`);
-      }
+      const [res, vehiclesRes] = await Promise.all([
+        stationService.renter.getStations(),
+        vehicleService.renter.getAvailableVehicles()
+      ]);
+      // { id, name, address, status, latitude, longitude }
+      const list = Array.isArray(res) ? res : (res?.stations || res?.data || []);
+      const vehicles = Array.isArray(vehiclesRes) ? vehiclesRes : (vehiclesRes?.data || []);
+      // aggregate vehicle counts per station
+      const stationVehicleMap = {};
+      vehicles.forEach(v => {
+        const sid = v.station?.id;
+        if (!sid) return;
+        stationVehicleMap[sid] = stationVehicleMap[sid] || { total: 0, available: 0 };
+        stationVehicleMap[sid].total += 1;
+        if (v.status === 'available') stationVehicleMap[sid].available += 1;
+      });
+      const norm = (Array.isArray(list) ? list : []).map(s => ({
+        id: s.id,
+        name: s.name,
+        address: s.address,
+        status: s.status ?? 'active',
+        latitude: s.latitude,
+        longitude: s.longitude,
+        // populate vehicle counts from vehicles API when possible
+        total_vehicles: stationVehicleMap[s.id]?.total ?? s.total_vehicles ?? 0,
+        available_vehicles: stationVehicleMap[s.id]?.available ?? s.available_vehicles ?? 0,
+        operating_hours: s.operating_hours ?? ''
+      }));
+      setStations(norm);
+      if (norm.length === 0) toast.info('Hiện tại chưa có trạm nào được mở');
+      else toast.success(`Đã tải ${norm.length} trạm xe điện`);
     } catch (err) {
-      console.error('Error loading stations:', err);
+      console.error('Error loading stations from API:', err);
       setError('Không thể tải danh sách trạm. Vui lòng thử lại sau.');
       toast.error('Lỗi khi tải danh sách trạm');
     } finally {
@@ -163,22 +112,6 @@ const StationsPage = () => {
         return <Badge variant="outline">Không xác định</Badge>;
     }
   };
-
-  // Remove authentication check since it's handled by ProtectedRoute
-  // if (!isAuthenticated) {
-  //   return (
-  //     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-  //       <Card className="w-96">
-  //         <CardHeader>
-  //           <CardTitle>Cần đăng nhập</CardTitle>
-  //         </CardHeader>
-  //         <CardContent>
-  //           <p className="text-gray-600">Vui lòng đăng nhập để xem danh sách trạm.</p>
-  //         </CardContent>
-  //       </Card>
-  //     </div>
-  //   );
-  // }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -272,15 +205,6 @@ const StationsPage = () => {
                         {station.total_vehicles || 0}
                       </p>
                     </div>
-                  </div>
-
-                  {/* Operating hours */}
-                  <div className="text-sm text-gray-600">
-                    <p className="font-medium mb-1 flex items-center">
-                      <Clock className="h-4 w-4 mr-1" />
-                      Giờ hoạt động:
-                    </p>
-                    <p>{station.operating_hours || 'Không xác định'}</p>
                   </div>
 
                   {/* Distance (mock calculation from city center) */}

@@ -49,7 +49,7 @@ const admin = {
   updateUser: async (id, userData) => update(id, userData),
   deleteUser: async (id) => remove(id),
   getRenters: async (params = {}) => getAll({ ...params, role: 'renter' }),
-  getRenterProfile: async (renterId) => apiGet(`/api${API_ENDPOINTS.ADMIN.USER_BY_ID(renterId).replace(/\/users\/${renterId}$/, '/users/profile/' + renterId)}`, 'Không thể lấy hồ sơ khách hàng')
+  getRenterProfile: async (renterId) => apiGet(`/api/admin/users/profile/${renterId}`, 'Không thể lấy hồ sơ khách hàng'),
 };
 
 export default {

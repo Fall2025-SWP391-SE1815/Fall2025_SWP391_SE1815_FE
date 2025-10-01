@@ -26,7 +26,6 @@ const PersonnelManagement = () => {
     phone: '',
     password: '',
     role: 'staff',
-    status: 'active'
   });
   const [statistics, setStatistics] = useState({
     total: 0,
@@ -47,20 +46,19 @@ const PersonnelManagement = () => {
     try {
       setLoading(true);
       const params = {};
-      if (roleFilter && roleFilter !== 'all') params.role = roleFilter;
-      if (searchTerm) params.phone = searchTerm;
+  if (roleFilter && roleFilter !== 'all') params.role = roleFilter;
+  if (searchTerm) params.phone = searchTerm;
       const response = await userService.admin.getUsers(params);
       const list = response?.users || response?.data?.users || response || [];
       setUsers(list);
       // compute statistics from fetched list
       const stats = list.reduce((acc, user) => {
         acc.total += 1;
-        if (user.status === 'active') acc.active += 1;
         if (user.role === 'admin') acc.admin += 1;
         if (user.role === 'staff') acc.staff += 1;
         if (user.role === 'renter') acc.renter += 1;
         return acc;
-      }, { total: 0, active: 0, admin: 0, staff: 0, renter: 0 });
+      }, { total: 0, admin: 0, staff: 0, renter: 0 });
       setStatistics(stats);
       setLoading(false);
     } catch (error) {
@@ -78,12 +76,11 @@ const PersonnelManagement = () => {
     try {
       const stats = users.reduce((acc, user) => {
         acc.total += 1;
-        if (user.status === 'active') acc.active += 1;
         if (user.role === 'admin') acc.admin += 1;
         if (user.role === 'staff') acc.staff += 1;
         if (user.role === 'renter') acc.renter += 1;
         return acc;
-      }, { total: 0, active: 0, admin: 0, staff: 0, renter: 0 });
+      }, { total: 0, admin: 0, staff: 0, renter: 0 });
       setStatistics(stats);
     } catch (error) {
       console.error('Error fetching statistics:', error);
@@ -92,7 +89,7 @@ const PersonnelManagement = () => {
 
   const handleCreateUser = async () => {
     try {
-      const response = await userService.admin.createUser(formData);
+  const response = await userService.admin.createUser(formData);
       const created = response?.user || response?.data || response;
       toast({ title: 'Thành công', description: 'Đã tạo tài khoản mới thành công' });
       setShowCreateDialog(false);
@@ -170,8 +167,7 @@ const PersonnelManagement = () => {
       email: '',
       phone: '',
       password: '',
-      role: 'staff',
-      status: 'active'
+      role: 'staff'
     });
   };
 
@@ -181,6 +177,12 @@ const PersonnelManagement = () => {
   };
 
   const openEditDialog = (user) => {
+    // Do not allow editing renters
+    if (user.role === 'renter') {
+      toast({ title: 'Không cho phép', description: 'Không thể chỉnh sửa khách hàng', variant: 'warning' });
+      return;
+    }
+
     setSelectedUser(user);
     setFormData({
       fullName: user.fullName,
@@ -188,7 +190,6 @@ const PersonnelManagement = () => {
       phone: user.phone,
       password: '', // Don't prefill password for security
       role: user.role,
-      status: user.status
     });
     setShowEditDialog(true);
   };
@@ -209,20 +210,7 @@ const PersonnelManagement = () => {
     );
   };
 
-  const getStatusBadge = (status) => {
-    const statusMap = {
-      'active': { label: 'Hoạt động', variant: 'default' },
-      'inactive': { label: 'Không hoạt động', variant: 'secondary' }
-    };
-    
-    const statusInfo = statusMap[status] || { label: status, variant: 'outline' };
-    
-    return (
-      <Badge variant={statusInfo.variant}>
-        {statusInfo.label}
-      </Badge>
-    );
-  };
+  // status removed from UI
 
   const filteredUsers = users.filter(user =>
     user.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -258,59 +246,46 @@ const PersonnelManagement = () => {
         </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Tổng nhân viên</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{statistics.total}</div>
-            <p className="text-xs text-muted-foreground">
-              Tất cả tài khoản
-            </p>
-          </CardContent>
-        </Card>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Tổng nhân viên</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{statistics.total}</div>
+                <p className="text-xs text-muted-foreground">
+                  Tất cả tài khoản
+                </p>
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Đang hoạt động</CardTitle>
-            <UserCheck className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{statistics.active}</div>
-            <p className="text-xs text-muted-foreground">
-              {statistics.total > 0 ? Math.round((statistics.active / statistics.total) * 100) : 0}% tỷ lệ hoạt động
-            </p>
-          </CardContent>
-        </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Quản trị viên</CardTitle>
+                <Shield className="h-4 w-4 text-red-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{statistics.admin}</div>
+                <p className="text-xs text-muted-foreground">
+                  Cấp quản lý
+                </p>
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Quản trị viên</CardTitle>
-            <Shield className="h-4 w-4 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{statistics.admin}</div>
-            <p className="text-xs text-muted-foreground">
-              Cấp quản lý
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Nhân viên</CardTitle>
-            <UserCog className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{statistics.staff}</div>
-            <p className="text-xs text-muted-foreground">
-              Nhân viên vận hành
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Nhân viên</CardTitle>
+                <UserCog className="h-4 w-4 text-blue-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{statistics.staff}</div>
+                <p className="text-xs text-muted-foreground">
+                  Nhân viên vận hành
+                </p>
+              </CardContent>
+            </Card>
+          </div>
 
       <div className='flex items-center gap-4'>
         <div className='relative flex-1 max-w-sm'>
@@ -352,7 +327,6 @@ const PersonnelManagement = () => {
                 <TableHead>Email</TableHead>
                 <TableHead>Số điện thoại</TableHead>
                 <TableHead>Vai trò</TableHead>
-                <TableHead>Trạng thái</TableHead>
                 <TableHead>Ngày tạo</TableHead>
                 <TableHead className='text-right'>Thao tác</TableHead>
               </TableRow>
@@ -369,9 +343,6 @@ const PersonnelManagement = () => {
                     {getRoleBadge(user.role)}
                   </TableCell>
                   <TableCell>
-                    {getStatusBadge(user.status)}
-                  </TableCell>
-                  <TableCell>
                     {new Date(user.createdAt).toLocaleDateString('vi-VN')}
                   </TableCell>
                   <TableCell className='text-right'>
@@ -386,7 +357,9 @@ const PersonnelManagement = () => {
                       <Button 
                         variant='ghost' 
                         size='sm'
-                        onClick={() => openEditDialog(user)}
+                          onClick={() => openEditDialog(user)}
+                          disabled={user.role === 'renter'}
+                          className={user.role === 'renter' ? 'opacity-50 cursor-not-allowed' : ''}
                       >
                         <Edit className='h-4 w-4' />
                       </Button>
@@ -482,19 +455,6 @@ const PersonnelManagement = () => {
                   </SelectContent>
                 </Select>
               </div>
-
-              <div className='space-y-2'>
-                <Label htmlFor='status'>Trạng thái</Label>
-                <Select value={formData.status} onValueChange={(value) => setFormData({...formData, status: value})}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value='active'>Hoạt động</SelectItem>
-                    <SelectItem value='inactive'>Không hoạt động</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
           </div>
 
@@ -576,19 +536,7 @@ const PersonnelManagement = () => {
                   <SelectContent>
                     <SelectItem value='staff'>Nhân viên</SelectItem>
                     <SelectItem value='admin'>Quản trị viên</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className='space-y-2'>
-                <Label htmlFor='edit_status'>Trạng thái</Label>
-                <Select value={formData.status} onValueChange={(value) => setFormData({...formData, status: value})}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value='active'>Hoạt động</SelectItem>
-                    <SelectItem value='inactive'>Không hoạt động</SelectItem>
+                    <SelectItem value='renter'>Khách hàng</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -643,12 +591,7 @@ const PersonnelManagement = () => {
               </div>
 
               <div className='grid grid-cols-2 gap-4'>
-                <div>
-                  <Label className='text-sm font-medium text-muted-foreground'>Trạng thái</Label>
-                  <div className='mt-1'>
-                    {getStatusBadge(selectedUser.status)}
-                  </div>
-                </div>
+                {/* status removed */}
                 <div>
                   <Label className='text-sm font-medium text-muted-foreground'>ID</Label>
                   <p className='text-lg'>{selectedUser.id}</p>

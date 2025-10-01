@@ -8,7 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Plus, Car, Edit, Trash2, Search, Eye, Battery, Settings, Filter } from 'lucide-react';
-import { apiClient } from '@/lib/api/apiClient';
+import vehicleService from '@/services/vehicles/vehicleService';
+import stationService from '@/services/stations/stationService';
 import { useToast } from '@/hooks/use-toast';
 
 const VehiclesManagement = () => {
@@ -22,14 +23,15 @@ const VehiclesManagement = () => {
   const [showViewDialog, setShowViewDialog] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState(null);
   const [formData, setFormData] = useState({
-    license_plate: '',
+    licensePlate: '',
     type: '',
     brand: '',
     model: '',
     capacity: '',
+    rangePerFullCharge: '',
     status: 'available',
-    price_per_hour: '',
-    station_id: ''
+    pricePerHour: '',
+    stationId: ''
   });
   const [statistics, setStatistics] = useState({
     available: 0,
@@ -45,114 +47,19 @@ const VehiclesManagement = () => {
     fetchStatistics();
   }, []);
 
-  // Mock data for testing
-  const mockVehicles = [
-    {
-      id: 1,
-      license_plate: '51G-12345',
-      type: 'motorbike',
-      brand: 'Honda',
-      model: 'Vision 2023',
-      capacity: 2,
-      status: 'available',
-      price_per_hour: 50000,
-      station_id: 1,
-      station_name: 'Trạm Quận 1',
-      battery_level: 85,
-      created_at: '2024-01-15T09:00:00Z'
-    },
-    {
-      id: 2,
-      license_plate: '51F-67890',
-      type: 'car',
-      brand: 'VinFast',
-      model: 'VF 5 Plus',
-      capacity: 5,
-      status: 'rented',
-      price_per_hour: 150000,
-      station_id: 2,
-      station_name: 'Trạm Quận 3',
-      battery_level: 42,
-      created_at: '2024-01-20T14:30:00Z'
-    },
-    {
-      id: 3,
-      license_plate: '51H-11111',
-      type: 'motorbike',
-      brand: 'Yamaha',
-      model: 'Grande 2024',
-      capacity: 2,
-      status: 'maintenance',
-      price_per_hour: 45000,
-      station_id: 1,
-      station_name: 'Trạm Quận 1',
-      battery_level: 0,
-      created_at: '2024-02-01T08:15:00Z'
-    },
-    {
-      id: 4,
-      license_plate: '51A-22222',
-      type: 'car',
-      brand: 'Toyota',
-      model: 'Vios 2023',
-      capacity: 5,
-      status: 'available',
-      price_per_hour: 120000,
-      station_id: 3,
-      station_name: 'Trạm Quận 7',
-      battery_level: 78,
-      created_at: '2024-02-10T16:45:00Z'
-    },
-    {
-      id: 5,
-      license_plate: '51B-33333',
-      type: 'motorbike',
-      brand: 'Honda',
-      model: 'Air Blade 2024',
-      capacity: 2,
-      status: 'reserved',
-      price_per_hour: 55000,
-      station_id: 2,
-      station_name: 'Trạm Quận 3',
-      battery_level: 95,
-      created_at: '2024-02-15T11:20:00Z'
-    }
-  ];
-
-  const mockStations = [
-    { id: 1, name: 'Trạm Quận 1' },
-    { id: 2, name: 'Trạm Quận 3' },
-    { id: 3, name: 'Trạm Quận 7' },
-    { id: 4, name: 'Trạm Thủ Đức' },
-    { id: 5, name: 'Trạm Bình Thạnh' }
-  ];
+  // ...existing code...
 
   const fetchVehicles = async () => {
     try {
       setLoading(true);
-      // TODO: Uncomment when API is ready
-      // const params = new URLSearchParams();
-      // if (statusFilter && statusFilter !== 'all') params.append('status', statusFilter);
-      // if (searchTerm) params.append('plate_number', searchTerm);
-      // const response = await apiClient.get(`/admin/vehicles?${params.toString()}`);
-      // setVehicles(response.vehicles || []);
-      
-      // Mock implementation
-      setTimeout(() => {
-        let filteredVehicles = [...mockVehicles];
-        if (statusFilter && statusFilter !== 'all') {
-          filteredVehicles = filteredVehicles.filter(v => v.status === statusFilter);
-        }
-        if (searchTerm) {
-          filteredVehicles = filteredVehicles.filter(v => 
-            v.license_plate.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            v.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            v.brand.toLowerCase().includes(searchTerm.toLowerCase())
-          );
-        }
-        setVehicles(filteredVehicles);
-        setLoading(false);
-      }, 500);
+      const params = {};
+      if (statusFilter && statusFilter !== 'all') params.status = statusFilter;
+      if (searchTerm) params.plate_number = searchTerm;
+      const res = await vehicleService.admin.getVehicles(params);
+      // flexible parsing in case API returns { vehicles } or raw array
+      const list = res?.vehicles || res?.data || res || [];
+      setVehicles(Array.isArray(list) ? list : []);
+      setLoading(false);
     } catch (error) {
       console.error('Error fetching vehicles:', error);
       toast({
@@ -166,12 +73,9 @@ const VehiclesManagement = () => {
 
   const fetchStations = async () => {
     try {
-      // TODO: Uncomment when API is ready
-      // const response = await apiClient.get('/admin/stations');
-      // setStations(response.stations || []);
-      
-      // Mock implementation
-      setStations(mockStations);
+      const res = await stationService.admin.getStations();
+      const list = res?.stations || res?.data || res || [];
+      setStations(Array.isArray(list) ? list : []);
     } catch (error) {
       console.error('Error fetching stations:', error);
     }
@@ -179,21 +83,16 @@ const VehiclesManagement = () => {
 
   const fetchStatistics = async () => {
     try {
-      // TODO: Uncomment when API is ready
-      // const response = await apiClient.get('/admin/vehicles/status');
-      // setStatistics(response);
-      
-      // Mock implementation
-      const stats = mockVehicles.reduce((acc, vehicle) => {
-        acc[vehicle.status] = (acc[vehicle.status] || 0) + 1;
-        return acc;
-      }, {});
-      setStatistics({
-        available: stats.available || 0,
-        rented: stats.rented || 0,
-        maintenance: stats.maintenance || 0,
-        reserved: stats.reserved || 0
-      });
+      const res = await vehicleService.admin.getVehicleStats();
+      // API may return an object with counts or an array; normalize
+      if (res && typeof res === 'object') {
+        setStatistics({
+          available: res.available || res.available_count || 0,
+          rented: res.rented || res.rented_count || 0,
+          maintenance: res.maintenance || res.maintenance_count || 0,
+          reserved: res.reserved || res.reserved_count || 0
+        });
+      }
     } catch (error) {
       console.error('Error fetching statistics:', error);
     }
@@ -201,39 +100,28 @@ const VehiclesManagement = () => {
 
   const handleCreateVehicle = async () => {
     try {
-      // TODO: Uncomment when API is ready
-      // const response = await apiClient.post('/admin/vehicles', formData);
-      // toast({
-      //   title: 'Thành công',
-      //   description: 'Đã tạo phương tiện mới thành công'
-      // });
-      
-      // Mock implementation
-      const newVehicle = {
-        id: Date.now(),
-        ...formData,
-        capacity: parseInt(formData.capacity),
-        price_per_hour: parseFloat(formData.price_per_hour),
-        station_id: parseInt(formData.station_id),
-        station_name: stations.find(s => s.id == formData.station_id)?.name || '',
-        battery_level: 100,
-        created_at: new Date().toISOString()
+      const payload = {
+        licensePlate: formData.licensePlate,
+        type: formData.type,
+        brand: formData.brand,
+        model: formData.model,
+        capacity: Number.parseInt(formData.capacity, 10),
+        rangePerFullCharge: formData.rangePerFullCharge ? Number.parseFloat(formData.rangePerFullCharge) : undefined,
+        status: formData.status,
+        pricePerHour: formData.pricePerHour ? Number.parseFloat(formData.pricePerHour) : undefined,
+        stationId: formData.stationId ? Number.parseInt(formData.stationId, 10) : undefined
       };
-      
-      setVehicles(prev => [...prev, newVehicle]);
-      toast({
-        title: 'Thành công',
-        description: 'Đã tạo phương tiện mới thành công'
-      });
-      
+      await vehicleService.admin.createVehicle(payload);
+      toast({ title: 'Thành công', description: 'Đã tạo phương tiện mới thành công' });
       setShowCreateDialog(false);
       resetForm();
+      fetchVehicles();
       fetchStatistics();
     } catch (error) {
       console.error('Error creating vehicle:', error);
       toast({
         title: 'Lỗi',
-        description: error.response?.data?.message || 'Không thể tạo phương tiện mới',
+        description: error?.message || error?.response?.data?.message || 'Không thể tạo phương tiện mới',
         variant: 'destructive'
       });
     }
@@ -241,33 +129,23 @@ const VehiclesManagement = () => {
 
   const handleUpdateVehicle = async () => {
     try {
-      // TODO: Uncomment when API is ready
-      // const response = await apiClient.put(`/admin/vehicles/${selectedVehicle.id}`, formData);
-      // toast({
-      //   title: 'Thành công',
-      //   description: 'Đã cập nhật phương tiện thành công'
-      // });
-      
-      // Mock implementation
-      const updatedVehicle = {
-        ...selectedVehicle,
-        ...formData,
-        capacity: parseInt(formData.capacity),
-        price_per_hour: parseFloat(formData.price_per_hour),
-        station_id: parseInt(formData.station_id),
-        station_name: stations.find(s => s.id == formData.station_id)?.name || '',
-        updated_at: new Date().toISOString()
+      const payload = {
+        licensePlate: formData.licensePlate,
+        type: formData.type,
+        brand: formData.brand,
+        model: formData.model,
+        capacity: formData.capacity ? Number.parseInt(formData.capacity, 10) : undefined,
+        rangePerFullCharge: formData.rangePerFullCharge ? Number.parseFloat(formData.rangePerFullCharge) : undefined,
+        status: formData.status,
+        pricePerHour: formData.pricePerHour ? Number.parseFloat(formData.pricePerHour) : undefined,
+        stationId: formData.stationId ? Number.parseInt(formData.stationId, 10) : undefined
       };
-      
-      setVehicles(prev => prev.map(v => v.id === selectedVehicle.id ? updatedVehicle : v));
-      toast({
-        title: 'Thành công',
-        description: 'Đã cập nhật phương tiện thành công'
-      });
-      
+      await vehicleService.admin.updateVehicle(selectedVehicle.id, payload);
+      toast({ title: 'Thành công', description: 'Đã cập nhật phương tiện thành công' });
       setShowEditDialog(false);
       setSelectedVehicle(null);
       resetForm();
+      fetchVehicles();
       fetchStatistics();
     } catch (error) {
       console.error('Error updating vehicle:', error);
@@ -285,15 +163,9 @@ const VehiclesManagement = () => {
     }
 
     try {
-      // TODO: Uncomment when API is ready
-      // await apiClient.delete(`/admin/vehicles/${vehicleId}`);
-      
-      // Mock implementation
+      await vehicleService.admin.deleteVehicle(vehicleId);
       setVehicles(prev => prev.filter(v => v.id !== vehicleId));
-      toast({
-        title: 'Thành công',
-        description: 'Đã xóa phương tiện thành công'
-      });
+      toast({ title: 'Thành công', description: 'Đã xóa phương tiện thành công' });
       fetchStatistics();
     } catch (error) {
       console.error('Error deleting vehicle:', error);
@@ -307,12 +179,9 @@ const VehiclesManagement = () => {
 
   const handleViewVehicle = async (vehicle) => {
     try {
-      // TODO: Uncomment when API is ready
-      // const response = await apiClient.get(`/admin/vehicles/${vehicle.id}`);
-      // setSelectedVehicle(response);
-      
-      // Mock implementation
-      setSelectedVehicle(vehicle);
+      const res = await vehicleService.admin.getVehicleById(vehicle.id);
+      const data = res?.vehicle || res?.data || res || vehicle;
+      setSelectedVehicle(data);
       setShowViewDialog(true);
     } catch (error) {
       console.error('Error fetching vehicle details:', error);
@@ -326,14 +195,14 @@ const VehiclesManagement = () => {
 
   const resetForm = () => {
     setFormData({
-      license_plate: '',
+      licensePlate: '',
       type: '',
       brand: '',
       model: '',
       capacity: '',
       status: 'available',
-      price_per_hour: '',
-      station_id: ''
+      pricePerHour: '',
+      stationId: ''
     });
   };
 
@@ -345,14 +214,15 @@ const VehiclesManagement = () => {
   const openEditDialog = (vehicle) => {
     setSelectedVehicle(vehicle);
     setFormData({
-      license_plate: vehicle.license_plate,
+      licensePlate: vehicle.licensePlate,
       type: vehicle.type,
       brand: vehicle.brand,
       model: vehicle.model,
       capacity: vehicle.capacity.toString(),
       status: vehicle.status,
-      price_per_hour: vehicle.price_per_hour.toString(),
-      station_id: vehicle.station_id.toString()
+      pricePerHour: vehicle.pricePerHour.toString(),
+      rangePerFullCharge: vehicle.rangePerFullCharge ? vehicle.rangePerFullCharge.toString() : '',
+      stationId: vehicle.stationId
     });
     setShowEditDialog(true);
   };
@@ -393,9 +263,9 @@ const VehiclesManagement = () => {
 
   const filteredVehicles = vehicles.filter(vehicle =>
     vehicle.model?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    vehicle.license_plate?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    vehicle.licensePlate?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     vehicle.brand?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    vehicle.station_name?.toLowerCase().includes(searchTerm.toLowerCase())
+    vehicle.station.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Re-fetch data when filters change
@@ -522,19 +392,19 @@ const VehiclesManagement = () => {
               {filteredVehicles.map((vehicle) => (
                 <TableRow key={vehicle.id}>
                   <TableCell className='font-medium'>
-                    {vehicle.license_plate}
+                    {vehicle.licensePlate}
                   </TableCell>
                   <TableCell>{getVehicleTypeLabel(vehicle.type)}</TableCell>
                   <TableCell>{vehicle.brand}</TableCell>
                   <TableCell>{vehicle.model}</TableCell>
                   <TableCell>{vehicle.capacity} người</TableCell>
-                  <TableCell>{vehicle.station_name || 'Chưa phân bổ'}</TableCell>
-                  <TableCell>{formatCurrency(vehicle.price_per_hour)}</TableCell>
+                  <TableCell>{vehicle.station.name || 'Chưa phân bổ'}</TableCell>
+                  <TableCell>{formatCurrency(vehicle.pricePerHour)}</TableCell>
                   <TableCell>
                     <div className='flex items-center gap-2'>
                       <Battery className='h-4 w-4' />
-                      <span className={getBatteryColor(vehicle.battery_level)}>
-                        {vehicle.battery_level || 0}%
+                      <span className={getBatteryColor(vehicle.rangePerFullCharge)}>
+                        {vehicle.rangePerFullCharge || 0}%
                       </span>
                     </div>
                   </TableCell>
@@ -595,8 +465,8 @@ const VehiclesManagement = () => {
                 <Label htmlFor='license_plate'>Biển số xe</Label>
                 <Input
                   id='license_plate'
-                  value={formData.license_plate}
-                  onChange={(e) => setFormData({...formData, license_plate: e.target.value})}
+                  value={formData.licensePlate}
+                  onChange={(e) => setFormData({...formData, licensePlate: e.target.value})}
                   placeholder='51G-12345'
                 />
               </div>
@@ -654,12 +524,22 @@ const VehiclesManagement = () => {
                 <Input
                   id='price_per_hour'
                   type='number'
-                  value={formData.price_per_hour}
-                  onChange={(e) => setFormData({...formData, price_per_hour: e.target.value})}
+                  value={formData.pricePerHour}
+                  onChange={(e) => setFormData({...formData, pricePerHour: e.target.value})}
                   placeholder='50000'
                 />
               </div>
 
+              <div className='space-y-2'>
+                <Label htmlFor='range_per_full_charge'>Quãng đường / sạc đầy (km)</Label>
+                <Input
+                  id='range_per_full_charge'
+                  type='number'
+                  value={formData.rangePerFullCharge}
+                  onChange={(e) => setFormData({...formData, rangePerFullCharge: e.target.value})}
+                  placeholder='250'
+                />
+              </div>
               <div className='space-y-2'>
                 <Label htmlFor='status'>Trạng thái</Label>
                 <Select value={formData.status} onValueChange={(value) => setFormData({...formData, status: value})}>
@@ -676,8 +556,8 @@ const VehiclesManagement = () => {
             </div>
 
             <div className='space-y-2'>
-              <Label htmlFor='station_id'>Trạm</Label>
-              <Select value={formData.station_id} onValueChange={(value) => setFormData({...formData, station_id: value})}>
+              <Label htmlFor='stationId'>Trạm</Label>
+              <Select value={formData.stationId} onValueChange={(value) => setFormData({...formData, stationId: value})}>
                 <SelectTrigger>
                   <SelectValue placeholder='Chọn trạm' />
                 </SelectTrigger>
@@ -719,8 +599,8 @@ const VehiclesManagement = () => {
                 <Label htmlFor='edit_license_plate'>Biển số xe</Label>
                 <Input
                   id='edit_license_plate'
-                  value={formData.license_plate}
-                  onChange={(e) => setFormData({...formData, license_plate: e.target.value})}
+                  value={formData.licensePlate}
+                  onChange={(e) => setFormData({...formData, licensePlate: e.target.value})}
                   placeholder='51G-12345'
                 />
               </div>
@@ -778,12 +658,22 @@ const VehiclesManagement = () => {
                 <Input
                   id='edit_price_per_hour'
                   type='number'
-                  value={formData.price_per_hour}
-                  onChange={(e) => setFormData({...formData, price_per_hour: e.target.value})}
+                  value={formData.pricePerHour}
+                  onChange={(e) => setFormData({...formData, pricePerHour: e.target.value})}
                   placeholder='50000'
                 />
               </div>
 
+              <div className='space-y-2'>
+                <Label htmlFor='rangePerFullCharge'>Quãng đường / sạc đầy (km)</Label>
+                <Input
+                  id='edit_rangePerFullCharge'
+                  type='number'
+                  value={formData.rangePerFullCharge}
+                  onChange={(e) => setFormData({...formData, rangePerFullCharge: e.target.value})}
+                  placeholder='250'
+                />
+              </div>
               <div className='space-y-2'>
                 <Label htmlFor='edit_status'>Trạng thái</Label>
                 <Select value={formData.status} onValueChange={(value) => setFormData({...formData, status: value})}>
@@ -802,7 +692,7 @@ const VehiclesManagement = () => {
 
             <div className='space-y-2'>
               <Label htmlFor='edit_station_id'>Trạm</Label>
-              <Select value={formData.station_id} onValueChange={(value) => setFormData({...formData, station_id: value})}>
+              <Select value={formData.stationId} onValueChange={(value) => setFormData({...formData, stationId: value})}>
                 <SelectTrigger>
                   <SelectValue placeholder='Chọn trạm' />
                 </SelectTrigger>
@@ -843,7 +733,7 @@ const VehiclesManagement = () => {
               <div className='grid grid-cols-2 gap-4'>
                 <div>
                   <Label className='text-sm font-medium text-muted-foreground'>Biển số xe</Label>
-                  <p className='text-lg font-semibold'>{selectedVehicle.license_plate}</p>
+                  <p className='text-lg font-semibold'>{selectedVehicle.licensePlate}</p>
                 </div>
                 <div>
                   <Label className='text-sm font-medium text-muted-foreground'>Loại xe</Label>
@@ -869,11 +759,11 @@ const VehiclesManagement = () => {
                 </div>
                 <div>
                   <Label className='text-sm font-medium text-muted-foreground'>Giá/giờ</Label>
-                  <p className='text-lg'>{formatCurrency(selectedVehicle.price_per_hour)}</p>
+                  <p className='text-lg'>{formatCurrency(selectedVehicle.pricePerHour)}</p>
                 </div>
                 <div>
                   <Label className='text-sm font-medium text-muted-foreground'>Mức pin</Label>
-                  <p className='text-lg'>{selectedVehicle.battery_level || 0}%</p>
+                  <p className='text-lg'>{selectedVehicle.rangePerFullCharge || 0}%</p>
                 </div>
               </div>
 
@@ -886,19 +776,8 @@ const VehiclesManagement = () => {
                 </div>
                 <div>
                   <Label className='text-sm font-medium text-muted-foreground'>Trạm</Label>
-                  <p className='text-lg'>{selectedVehicle.station_name || 'Chưa phân bổ'}</p>
+                  <p className='text-lg'>{selectedVehicle.station.name || 'Chưa phân bổ'}</p>
                 </div>
-              </div>
-
-              <div>
-                <Label className='text-sm font-medium text-muted-foreground'>Ngày tạo</Label>
-                <p className='text-lg'>{new Date(selectedVehicle.created_at).toLocaleDateString('vi-VN', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })}</p>
               </div>
             </div>
           )}
