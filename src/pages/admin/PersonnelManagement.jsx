@@ -1,17 +1,19 @@
+'use client';
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { UserCog, Plus, Search, Filter, Edit, Trash2, Eye, Users, UserCheck, Shield } from 'lucide-react';
-import userService from '@/services/users/userService.js';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Plus, Search, Filter } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import userService from '@/services/users/userService.js';
+import PersonnelStatsCard from './personnel/PersonnelStatsCard';
+import PersonnelTable from './personnel/PersonnelTable';
+import PersonnelForm from './personnel/PersonnelForm';
+import PersonnelDetailDialog from './personnel/PersonnelDetailDialog';
 
-const PersonnelManagement = () => {
+export default function PersonnelManagement() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -19,7 +21,9 @@ const PersonnelManagement = () => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showViewDialog, setShowViewDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [userToDelete, setUserToDelete] = useState(null);
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -40,18 +44,17 @@ const PersonnelManagement = () => {
     fetchUsers();
   }, []);
 
-  // real user data fetched from API via userService
-
   const fetchUsers = async () => {
     try {
       setLoading(true);
       const params = {};
-  if (roleFilter && roleFilter !== 'all') params.role = roleFilter;
-  if (searchTerm) params.phone = searchTerm;
+      if (roleFilter && roleFilter !== 'all') params.role = roleFilter;
+
       const response = await userService.admin.getUsers(params);
       const list = response?.users || response?.data?.users || response || [];
       setUsers(list);
-      // compute statistics from fetched list
+
+      // Calculate statistics from fetched list
       const stats = list.reduce((acc, user) => {
         acc.total += 1;
         if (user.role === 'admin') acc.admin += 1;
@@ -72,30 +75,14 @@ const PersonnelManagement = () => {
     }
   };
 
-  const fetchStatistics = async () => {
+  const handleCreateUser = async (values) => {
     try {
-      const stats = users.reduce((acc, user) => {
-        acc.total += 1;
-        if (user.role === 'admin') acc.admin += 1;
-        if (user.role === 'staff') acc.staff += 1;
-        if (user.role === 'renter') acc.renter += 1;
-        return acc;
-      }, { total: 0, admin: 0, staff: 0, renter: 0 });
-      setStatistics(stats);
-    } catch (error) {
-      console.error('Error fetching statistics:', error);
-    }
-  };
-
-  const handleCreateUser = async () => {
-    try {
-  const response = await userService.admin.createUser(formData);
+      const response = await userService.admin.createUser(values);
       const created = response?.user || response?.data || response;
       toast({ title: 'Thành công', description: 'Đã tạo tài khoản mới thành công' });
       setShowCreateDialog(false);
       resetForm();
       await fetchUsers();
-      await fetchStatistics();
     } catch (error) {
       console.error('Error creating user:', error);
       toast({
@@ -106,15 +93,16 @@ const PersonnelManagement = () => {
     }
   };
 
-  const handleUpdateUser = async () => {
+  const handleUpdateUser = async (values) => {
     try {
-      await userService.admin.updateUser(selectedUser.id, formData);
+      // Remove password from payload when updating
+      const { password, ...updateData } = values;
+      await userService.admin.updateUser(selectedUser.id, updateData);
       toast({ title: 'Thành công', description: 'Đã cập nhật thông tin thành công' });
       setShowEditDialog(false);
       setSelectedUser(null);
       resetForm();
       await fetchUsers();
-      await fetchStatistics();
     } catch (error) {
       console.error('Error updating user:', error);
       toast({
@@ -125,21 +113,48 @@ const PersonnelManagement = () => {
     }
   };
 
-  const handleDeleteUser = async (userId) => {
-    if (!confirm('Bạn có chắc chắn muốn xóa tài khoản này?')) {
-      return;
-    }
+  const handleDeleteUser = (userId) => {
+    // Find user to get more info for confirmation
+    const user = users.find(u => u.id === userId);
+    setUserToDelete(user);
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDeleteUser = async () => {
+    if (!userToDelete) return;
+    
+    const userName = userToDelete.fullName || userToDelete.email || `User ID ${userToDelete.id}`;
 
     try {
-      await userService.admin.deleteUser(userId);
-      toast({ title: 'Thành công', description: 'Đã xóa tài khoản thành công' });
+      console.log('Deleting user with ID:', userToDelete.id);
+      await userService.admin.deleteUser(userToDelete.id);
+      toast({ 
+        title: 'Thành công', 
+        description: `Đã xóa tài khoản "${userName}" thành công` 
+      });
       await fetchUsers();
-      await fetchStatistics();
+      setShowDeleteDialog(false);
+      setUserToDelete(null);
     } catch (error) {
       console.error('Error deleting user:', error);
+      
+      let errorMessage = 'Không thể xóa tài khoản';
+      
+      // Handle specific error cases
+      if (error?.response?.data?.message) {
+        const serverMessage = error.response.data.message.toLowerCase();
+        if (serverMessage.includes('reference constraint') || serverMessage.includes('foreign key')) {
+          errorMessage = 'Không thể xóa tài khoản này vì còn dữ liệu liên quan (đơn thuê, thanh toán, v.v.). Vui lòng xử lý dữ liệu liên quan trước khi xóa.';
+        } else {
+          errorMessage = error.response.data.message;
+        }
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
-        title: 'Lỗi',
-        description: 'Không thể xóa tài khoản',
+        title: 'Không thể xóa tài khoản',
+        description: errorMessage,
         variant: 'destructive'
       });
     }
@@ -147,8 +162,39 @@ const PersonnelManagement = () => {
 
   const handleViewUser = async (user) => {
     try {
-      const response = await userService.admin.getUserById(user.id);
-      const payload = response?.user || response?.data || response || user;
+      let response;
+      let payload;
+      
+      // Use different API endpoint based on user role
+      if (user.role === 'renter') {
+        // For renter profiles, use the profile endpoint which includes documents and verification info
+        response = await userService.admin.getRenterProfile(user.id);
+        // API returns an array, get the first item (or find by user id)
+        const profileData = Array.isArray(response) ? response[0] : response;
+        
+        if (profileData?.user) {
+          payload = {
+            ...profileData.user,
+            // Add profile-specific fields from root level
+            type: profileData.type,
+            documentNumber: profileData.documentNumber,
+            documentUrl: profileData.documentUrl,
+            verified: profileData.verified,
+            verifiedBy: profileData.verifiedBy,
+            verifiedAt: profileData.verifiedAt,
+            createdAt: profileData.createdAt || profileData.user.createdAt,
+            updatedAt: profileData.updatedAt || profileData.user.updatedAt
+          };
+          console.log('Processed renter payload:', payload);
+        } else {
+          payload = profileData || user;
+        }
+      } else {
+        // For admin/staff, use the regular user endpoint
+        response = await userService.admin.getUserById(user.id);
+        payload = response?.user || response?.data || response || user;
+      }
+      
       setSelectedUser(payload);
       setShowViewDialog(true);
     } catch (error) {
@@ -159,6 +205,23 @@ const PersonnelManagement = () => {
         variant: 'destructive'
       });
     }
+  };
+
+  const handleEditUser = (user) => {
+    // Do not allow editing renters
+    if (user.role === 'renter') {
+      toast({ title: 'Không cho phép', description: 'Không thể chỉnh sửa khách hàng', variant: 'warning' });
+      return;
+    }
+
+    setSelectedUser(user);
+    setFormData({
+      fullName: user.fullName,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+    });
+    setShowEditDialog(true);
   };
 
   const resetForm = () => {
@@ -176,52 +239,21 @@ const PersonnelManagement = () => {
     setShowCreateDialog(true);
   };
 
-  const openEditDialog = (user) => {
-    // Do not allow editing renters
-    if (user.role === 'renter') {
-      toast({ title: 'Không cho phép', description: 'Không thể chỉnh sửa khách hàng', variant: 'warning' });
-      return;
-    }
-
-    setSelectedUser(user);
-    setFormData({
-      fullName: user.fullName,
-      email: user.email,
-      phone: user.phone,
-      password: '', // Don't prefill password for security
-      role: user.role,
-    });
-    setShowEditDialog(true);
-  };
-
-  const getRoleBadge = (role) => {
-    const roleMap = {
-      'admin': { label: 'Quản trị viên', variant: 'destructive' },
-      'staff': { label: 'Nhân viên', variant: 'default' },
-      'renter': { label: 'Khách hàng', variant: 'secondary' }
-    };
-    
-    const roleInfo = roleMap[role] || { label: role, variant: 'outline' };
-    
+  const filteredUsers = users.filter(user => {
+    // Client-side search without delay
+    if (!searchTerm) return true;
+    const q = searchTerm.toLowerCase();
     return (
-      <Badge variant={roleInfo.variant}>
-        {roleInfo.label}
-      </Badge>
+      user.fullName?.toLowerCase().includes(q) ||
+      user.email?.toLowerCase().includes(q) ||
+      user.phone?.includes(searchTerm)
     );
-  };
+  });
 
-  // status removed from UI
-
-  const filteredUsers = users.filter(user =>
-    user.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.phone?.includes(searchTerm)
-  );
-
-  // Re-fetch data when filters change
+  // Re-fetch data when filters change (excluding searchTerm as it's client-side)
   useEffect(() => {
     fetchUsers();
-  }, [roleFilter, searchTerm]);
+  }, [roleFilter]);
 
   if (loading) {
     return (
@@ -235,9 +267,9 @@ const PersonnelManagement = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Quản lý nhân sự</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Quản lý người dùng</h1>
           <p className="text-muted-foreground">
-            Quản lý nhân viên và phân quyền trong hệ thống
+            Quản lý người dùng và phân quyền trong hệ thống
           </p>
         </div>
         <Button onClick={openCreateDialog}>
@@ -246,46 +278,7 @@ const PersonnelManagement = () => {
         </Button>
       </div>
 
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Tổng nhân viên</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{statistics.total}</div>
-                <p className="text-xs text-muted-foreground">
-                  Tất cả tài khoản
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Quản trị viên</CardTitle>
-                <Shield className="h-4 w-4 text-red-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{statistics.admin}</div>
-                <p className="text-xs text-muted-foreground">
-                  Cấp quản lý
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Nhân viên</CardTitle>
-                <UserCog className="h-4 w-4 text-blue-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{statistics.staff}</div>
-                <p className="text-xs text-muted-foreground">
-                  Nhân viên vận hành
-                </p>
-              </CardContent>
-            </Card>
-          </div>
+      <PersonnelStatsCard statistics={statistics} />
 
       <div className='flex items-center gap-4'>
         <div className='relative flex-1 max-w-sm'>
@@ -297,7 +290,7 @@ const PersonnelManagement = () => {
             className='pl-8'
           />
         </div>
-        
+
         <Select value={roleFilter} onValueChange={setRoleFilter}>
           <SelectTrigger className='w-48'>
             <Filter className='h-4 w-4 mr-2' />
@@ -320,62 +313,16 @@ const PersonnelManagement = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Họ tên</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Số điện thoại</TableHead>
-                <TableHead>Vai trò</TableHead>
-                <TableHead>Ngày tạo</TableHead>
-                <TableHead className='text-right'>Thao tác</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredUsers.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell className='font-medium'>
-                    {user.fullName}
-                  </TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>{user.phone}</TableCell>
-                  <TableCell>
-                    {getRoleBadge(user.role)}
-                  </TableCell>
-                  <TableCell>
-                    {new Date(user.createdAt).toLocaleDateString('vi-VN')}
-                  </TableCell>
-                  <TableCell className='text-right'>
-                    <div className='flex justify-end gap-2'>
-                      <Button 
-                        variant='ghost' 
-                        size='sm'
-                        onClick={() => handleViewUser(user)}
-                      >
-                        <Eye className='h-4 w-4' />
-                      </Button>
-                      <Button 
-                        variant='ghost' 
-                        size='sm'
-                          onClick={() => openEditDialog(user)}
-                          disabled={user.role === 'renter'}
-                          className={user.role === 'renter' ? 'opacity-50 cursor-not-allowed' : ''}
-                      >
-                        <Edit className='h-4 w-4' />
-                      </Button>
-                      <Button 
-                        variant='ghost' 
-                        size='sm'
-                        onClick={() => handleDeleteUser(user.id)}
-                      >
-                        <Trash2 className='h-4 w-4' />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <PersonnelTable
+            users={filteredUsers}
+            onViewUser={handleViewUser}
+            onEditUser={handleEditUser}
+            onDeleteUser={handleDeleteUser}
+            loading={loading}
+            searchTerm={searchTerm}
+            roleFilter={roleFilter}
+            permissions={{ view: true, edit: true, delete: true }}
+          />
 
           {filteredUsers.length === 0 && !loading && (
             <div className='text-center py-8 text-muted-foreground'>
@@ -386,252 +333,62 @@ const PersonnelManagement = () => {
       </Card>
 
       {/* Create User Dialog */}
-      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent className='max-w-2xl'>
-          <DialogHeader>
-            <DialogTitle>Thêm nhân viên mới</DialogTitle>
-            <DialogDescription>
-              Tạo tài khoản mới cho nhân viên hoặc quản trị viên
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className='grid gap-4 py-4'>
-            <div className='grid grid-cols-2 gap-4'>
-              <div className='space-y-2'>
-                <Label htmlFor='fullName'>Họ và tên</Label>
-                <Input
-                  id='fullName'
-                  value={formData.fullName}
-                  onChange={(e) => setFormData({...formData, fullName: e.target.value})}
-                  placeholder='Nguyễn Văn A'
-                />
-              </div>
-              
-              <div className='space-y-2'>
-                <Label htmlFor='email'>Email</Label>
-                <Input
-                  id='email'
-                  type='email'
-                  value={formData.email}
-                  onChange={(e) => setFormData({...formData, email: e.target.value})}
-                  placeholder='user@company.com'
-                />
-              </div>
-            </div>
-
-            <div className='grid grid-cols-2 gap-4'>
-              <div className='space-y-2'>
-                <Label htmlFor='phone'>Số điện thoại</Label>
-                <Input
-                  id='phone'
-                  value={formData.phone}
-                  onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                  placeholder='0901234567'
-                />
-              </div>
-              
-              <div className='space-y-2'>
-                <Label htmlFor='password'>Mật khẩu</Label>
-                <Input
-                  id='password'
-                  type='password'
-                  value={formData.password}
-                  onChange={(e) => setFormData({...formData, password: e.target.value})}
-                  placeholder='Nhập mật khẩu'
-                />
-              </div>
-            </div>
-
-            <div className='grid grid-cols-2 gap-4'>
-              <div className='space-y-2'>
-                <Label htmlFor='role'>Vai trò</Label>
-                <Select value={formData.role} onValueChange={(value) => setFormData({...formData, role: value})}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value='staff'>Nhân viên</SelectItem>
-                    <SelectItem value='admin'>Quản trị viên</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant='outline' onClick={() => setShowCreateDialog(false)}>
-              Hủy
-            </Button>
-            <Button onClick={handleCreateUser}>
-              Tạo tài khoản
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <PersonnelForm
+        isOpen={showCreateDialog}
+        onClose={() => setShowCreateDialog(false)}
+        onSubmit={handleCreateUser}
+        formData={formData}
+        setFormData={setFormData}
+        mode="create"
+        allowedRoles={['staff', 'admin']}
+      />
 
       {/* Edit User Dialog */}
-      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className='max-w-2xl'>
-          <DialogHeader>
-            <DialogTitle>Cập nhật thông tin</DialogTitle>
-            <DialogDescription>
-              Chỉnh sửa thông tin nhân viên
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className='grid gap-4 py-4'>
-            <div className='grid grid-cols-2 gap-4'>
-              <div className='space-y-2'>
-                <Label htmlFor='fullName'>Họ và tên</Label>
-                <Input
-                  id='fullName'
-                  value={formData.fullName}
-                  onChange={(e) => setFormData({...formData, fullName: e.target.value})}
-                  placeholder='Nguyễn Văn A'
-                />
-              </div>
-              
-              <div className='space-y-2'>
-                <Label htmlFor='edit_email'>Email</Label>
-                <Input
-                  id='edit_email'
-                  type='email'
-                  value={formData.email}
-                  onChange={(e) => setFormData({...formData, email: e.target.value})}
-                  placeholder='user@company.com'
-                />
-              </div>
-            </div>
-
-            <div className='grid grid-cols-2 gap-4'>
-              <div className='space-y-2'>
-                <Label htmlFor='edit_phone'>Số điện thoại</Label>
-                <Input
-                  id='edit_phone'
-                  value={formData.phone}
-                  onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                  placeholder='0901234567'
-                />
-              </div>
-              
-              <div className='space-y-2'>
-                <Label htmlFor='edit_password'>Mật khẩu mới (để trống nếu không đổi)</Label>
-                <Input
-                  id='edit_password'
-                  type='password'
-                  value={formData.password}
-                  onChange={(e) => setFormData({...formData, password: e.target.value})}
-                  placeholder='Nhập mật khẩu mới'
-                />
-              </div>
-            </div>
-
-            <div className='grid grid-cols-2 gap-4'>
-              <div className='space-y-2'>
-                <Label htmlFor='edit_role'>Vai trò</Label>
-                <Select value={formData.role} onValueChange={(value) => setFormData({...formData, role: value})}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value='staff'>Nhân viên</SelectItem>
-                    <SelectItem value='admin'>Quản trị viên</SelectItem>
-                    <SelectItem value='renter'>Khách hàng</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant='outline' onClick={() => setShowEditDialog(false)}>
-              Hủy
-            </Button>
-            <Button onClick={handleUpdateUser}>
-              Cập nhật
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <PersonnelForm
+        isOpen={showEditDialog}
+        onClose={() => setShowEditDialog(false)}
+        onSubmit={handleUpdateUser}
+        formData={formData}
+        setFormData={setFormData}
+        mode="edit"
+        allowedRoles={['staff', 'admin', 'renter']}
+      />
 
       {/* View User Dialog */}
-      <Dialog open={showViewDialog} onOpenChange={setShowViewDialog}>
-        <DialogContent className='max-w-2xl'>
-          <DialogHeader>
-            <DialogTitle>Chi tiết nhân viên</DialogTitle>
-            <DialogDescription>
-              Thông tin chi tiết của nhân viên
-            </DialogDescription>
-          </DialogHeader>
-          
-          {selectedUser && (
-            <div className='grid gap-4 py-4'>
-              <div className='grid grid-cols-2 gap-4'>
-                <div>
-                  <Label className='text-sm font-medium text-muted-foreground'>Họ và tên</Label>
-                  <p className='text-lg font-semibold'>{selectedUser.fullName}</p>
-                </div>
-                <div>
-                  <Label className='text-sm font-medium text-muted-foreground'>Email</Label>
-                  <p className='text-lg'>{selectedUser.email}</p>
-                </div>
-              </div>
+      <PersonnelDetailDialog
+        isOpen={showViewDialog}
+        onClose={() => setShowViewDialog(false)}
+        user={selectedUser}
+      />
 
-              <div className='grid grid-cols-2 gap-4'>
-                <div>
-                  <Label className='text-sm font-medium text-muted-foreground'>Số điện thoại</Label>
-                  <p className='text-lg'>{selectedUser.phone}</p>
-                </div>
-                <div>
-                  <Label className='text-sm font-medium text-muted-foreground'>Vai trò</Label>
-                  <div className='mt-1'>
-                    {getRoleBadge(selectedUser.role)}
-                  </div>
-                </div>
-              </div>
-
-              <div className='grid grid-cols-2 gap-4'>
-                {/* status removed */}
-                <div>
-                  <Label className='text-sm font-medium text-muted-foreground'>ID</Label>
-                  <p className='text-lg'>{selectedUser.id}</p>
-                </div>
-              </div>
-
-              <div className='grid grid-cols-2 gap-4'>
-                <div>
-                  <Label className='text-sm font-medium text-muted-foreground'>Ngày tạo</Label>
-                  <p className='text-lg'>{new Date(selectedUser.createdAt).toLocaleDateString('vi-VN', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}</p>
-                </div>
-                <div>
-                  <Label className='text-sm font-medium text-muted-foreground'>Cập nhật lần cuối</Label>
-                  <p className='text-lg'>{new Date(selectedUser.updatedAt).toLocaleDateString('vi-VN', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <DialogFooter>
-            <Button variant='outline' onClick={() => setShowViewDialog(false)}>
-              Đóng
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xác nhận xóa tài khoản</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có chắc chắn muốn xóa tài khoản "{userToDelete?.fullName || userToDelete?.email}"?
+              <br />
+              <span className="text-red-600 font-medium">Hành động này không thể hoàn tác.</span>
+              <br />
+              <span className="text-orange-600 text-sm">
+                Lưu ý: Tài khoản không thể xóa nếu còn dữ liệu liên quan (đơn thuê, thanh toán, v.v.)
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setUserToDelete(null)}>
+              Hủy
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDeleteUser}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Xóa tài khoản
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
-};
-
-export default PersonnelManagement;
+}

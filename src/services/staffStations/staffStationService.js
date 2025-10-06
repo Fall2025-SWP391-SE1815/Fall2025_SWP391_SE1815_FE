@@ -29,7 +29,7 @@ const getStaffAtStation = async (stationId) => {
 
 const admin = {
   createAssignment: async (assignmentData) => apiPost(base, assignmentData, 'Không thể phân công nhân viên'),
-  deactivateAssignment: async (id) => apiPut(`${base}/${id}/deactivate`, null, 'Không thể kết thúc phân công'),
+  deactivateAssignment: async (id) => apiPut(`${base}/${id}/deactivate`, {}, 'Không thể kết thúc phân công'),
   getAssignments: async (params = {}) => {
     const query = params && Object.keys(params).length ? `?${new URLSearchParams(params).toString()}` : '';
     return apiGet(`${base}${query}`, 'Không thể lấy danh sách phân công');

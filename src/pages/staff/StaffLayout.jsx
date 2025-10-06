@@ -3,21 +3,17 @@ import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/auth/useAuth.jsx';
 import { Button } from '@/components/ui/button';
 import {
-  LayoutDashboard,
-  MapPin,
   Car,
-  UserCog,
-  UserCheck,
-  Monitor,
-  Users,
-  MessageSquare,
-  BarChart3,
+  Shield,
+  CreditCard,
+  MapPin,
+  Home,
   LogOut,
   Menu,
   X
 } from 'lucide-react';
 
-const AdminLayout = () => {
+const StaffLayout = () => {
   const { user, logout } = useAuth();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -25,51 +21,33 @@ const AdminLayout = () => {
   const sidebarItems = [
     {
       title: 'Dashboard',
-      icon: LayoutDashboard,
-      path: '/admin',
-      description: 'Tổng quan hệ thống'
+      icon: Home,
+      path: '/staff',
+      description: 'Tổng quan công việc'
     },
     {
-      title: 'Quản lý trạm xe & điểm thuê',
-      icon: MapPin,
-      path: '/admin/stations',
-      description: 'Quản lý trạm xe và điểm thuê'
-    },
-    {
-      title: 'Quản lý phương tiện',
+      title: 'Giao - nhận xe',
       icon: Car,
-      path: '/admin/vehicles',
-      description: 'Quản lý đội xe điện'
+      path: '/staff/rental-management',
+      description: 'Quản lý giao nhận xe'
     },
     {
-      title: 'Quản lý người dùng dùng',
-      icon: UserCog,
-      path: '/admin/personnel',
-      description: 'Quản lý người dùng hệ thống'
+      title: 'Xác thực khách hàng',
+      icon: Shield,
+      path: '/staff/customer-verification',
+      description: 'Xác thực tài liệu'
     },
     {
-      title: 'Quản lý nhân viên trạm',
-      icon: UserCheck,
-      path: '/admin/station-staff',
-      description: 'Phân công nhân viên trạm'
+      title: 'Thanh toán',
+      icon: CreditCard,
+      path: '/staff/payment-management',
+      description: 'Xử lý thanh toán'
     },
     {
-      title: 'Giám sát hệ thống',
-      icon: Monitor,
-      path: '/admin/monitoring',
-      description: 'Theo dõi tình trạng hệ thống'
-    },
-    {
-      title: 'Quản lý khiếu nại',
-      icon: MessageSquare,
-      path: '/admin/complaints',
-      description: 'Xử lý khiếu nại khách hàng'
-    },
-    {
-      title: 'Thống kê & Báo cáo',
-      icon: BarChart3,
-      path: '/admin/reports',
-      description: 'Báo cáo và thống kê'
+      title: 'Quản lý trạm',
+      icon: MapPin,
+      path: '/staff/station-management',
+      description: 'Quản lý tại điểm'
     }
   ];
 
@@ -94,11 +72,11 @@ const AdminLayout = () => {
         <div className="p-6 border-b flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="p-2 bg-blue-600 rounded-lg">
-                <LayoutDashboard className="h-6 w-6 text-white" />
+              <div className="p-2 bg-green-600 rounded-lg">
+                <Car className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">Admin</h1>
+                <h1 className="text-xl font-bold text-gray-900">Staff</h1>
                 <p className="text-sm text-gray-600">{user?.fullName || user?.full_name}</p>
               </div>
             </div>
@@ -121,7 +99,7 @@ const AdminLayout = () => {
                 key={item.path}
                 to={item.path}
                 className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${isActive(item.path)
-                    ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                    ? 'bg-green-100 text-green-700 border border-green-200'
                     : 'text-gray-700 hover:bg-gray-100'
                   }`}
               >
@@ -181,4 +159,4 @@ const AdminLayout = () => {
   );
 };
 
-export default AdminLayout;
+export default StaffLayout;

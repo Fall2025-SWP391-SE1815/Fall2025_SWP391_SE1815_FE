@@ -6,7 +6,7 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 // Layouts
 import MainLayout from "../components/layout/MainLayout.jsx";
 import DashboardLayout from "../components/layout/DashboardLayout.jsx";
-import StaffLayout from "../components/layout/StaffLayout.jsx";
+import StaffLayout from "../pages/staff/StaffLayout.jsx";
 
 // Components
 import Home from "../components/layout/Home.jsx";
@@ -22,7 +22,6 @@ import VehiclesManagement from "../pages/admin/VehiclesManagement.jsx";
 import PersonnelManagement from "../pages/admin/PersonnelManagement.jsx";
 import StationStaffManagement from "../pages/admin/StationStaffManagement.jsx";
 import SystemMonitoring from "../pages/admin/SystemMonitoring.jsx";
-import CustomersManagement from "../pages/admin/CustomersManagement.jsx";
 import ComplaintsManagement from "../pages/admin/ComplaintsManagement.jsx";
 import ReportsAndStatistics from "../pages/admin/ReportsAndStatistics.jsx";
 
@@ -78,7 +77,6 @@ export const paths = {
     personnel: "personnel",
     stationStaff: "station-staff",
     monitoring: "monitoring",
-    customers: "customers",
     complaints: "complaints",
     reports: "reports"
   },
@@ -178,7 +176,6 @@ const router = createBrowserRouter([
       { path: "personnel", element: <PersonnelManagement /> },
       { path: "station-staff", element: <StationStaffManagement /> },
       { path: "monitoring", element: <SystemMonitoring /> },
-      { path: "customers", element: <CustomersManagement /> },
       { path: "complaints", element: <ComplaintsManagement /> },
       { path: "reports", element: <ReportsAndStatistics /> },
     ],

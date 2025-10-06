@@ -99,6 +99,7 @@ export const API_ENDPOINTS = {
     // User management
     USERS: '/api/admin/users',
     USER_BY_ID: (id) => `/api/admin/users/${id}`,
+    USER_PROFILE: (id) => `/api/admin/users/profile/${id}`,
     
     // Staff station assignments
     STAFF_STATIONS: '/api/admin/staff-stations',
