@@ -113,6 +113,21 @@ export const apiPut = async (endpoint, body, errorMessage = 'Không thể cập 
   return data;
 };
 
+export const apiPatch = async (endpoint, body, errorMessage = 'Không thể cập nhật dữ liệu') => {
+  const url = getApiUrl(endpoint);
+  const isForm = body instanceof FormData;
+  const headers = getAuthHeaders(isForm ? {} : { 'Content-Type': 'application/json' });
+  const res = await fetch(url, {
+    method: 'PATCH',
+    headers,
+    body: isForm ? body : JSON.stringify(body),
+    credentials: 'include'
+  });
+  const data = await handleApiResponse(res, errorMessage);
+  invalidateAllGetCache();
+  return data;
+};
+
 export const apiDelete = async (endpoint, errorMessage = 'Không thể xóa dữ liệu') => {
   const url = getApiUrl(endpoint);
   const res = await fetch(url, {
@@ -133,6 +148,7 @@ export const apiClient = {
   },
   post: (endpoint, data, options) => apiPost(endpoint, data, undefined, options),
   put: (endpoint, data, options) => apiPut(endpoint, data, undefined, options),
+  patch: (endpoint, data, options) => apiPatch(endpoint, data, undefined, options),
   delete: (endpoint, options) => apiDelete(endpoint)
 };
 

@@ -2,7 +2,7 @@
 import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/api/apiClient.js';
 import { API_ENDPOINTS } from '@/lib/api/apiConfig.js';
 
-const base = `/api${API_ENDPOINTS.ADMIN.STAFF_STATIONS}`;
+const base = `${API_ENDPOINTS.ADMIN.STAFF_STATIONS}`;
 
 const getAll = async (params = {}) => {
   const query = params && Object.keys(params).length ? `?${new URLSearchParams(params).toString()}` : '';

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import vehicleService from '@/services/vehicles/vehicleService';
 import {
   Card,
   CardContent,
@@ -92,64 +93,7 @@ const StationManagement = () => {
   // State for current rentals
   const [currentRentals, setCurrentRentals] = useState([]);
 
-  // Mock data for vehicles at station
-  const mockVehicles = [
-    {
-      id: 1,
-      license_plate: "29A1-12345",
-      type: "Electric Bike",
-      brand: "VinFast",
-      model: "Klara A2",
-      status: "available",
-      price_per_hour: 25000,
-      battery_level: 85,
-      last_maintenance: "2025-09-20"
-    },
-    {
-      id: 2,
-      license_plate: "29A1-67890",
-      type: "Electric Bike", 
-      brand: "VinFast",
-      model: "Feliz S",
-      status: "rented",
-      price_per_hour: 30000,
-      battery_level: 60,
-      last_maintenance: "2025-09-18"
-    },
-    {
-      id: 3,
-      license_plate: "29A1-11111",
-      type: "Electric Bike",
-      brand: "Honda",
-      model: "Benly e",
-      status: "maintenance",
-      price_per_hour: 28000,
-      battery_level: 0,
-      last_maintenance: "2025-09-15"
-    },
-    {
-      id: 4,
-      license_plate: "29A1-22222",
-      type: "Electric Bike",
-      brand: "Yamaha",
-      model: "E-Vino",
-      status: "available",
-      price_per_hour: 27000,
-      battery_level: 95,
-      last_maintenance: "2025-09-22"
-    },
-    {
-      id: 5,
-      license_plate: "29A1-33333",
-      type: "Electric Scooter",
-      brand: "VinFast",
-      model: "Theon S",
-      status: "rented",
-      price_per_hour: 35000,
-      battery_level: 45,
-      last_maintenance: "2025-09-19"
-    }
-  ];
+  // (Removed mock vehicles; using real API)
 
   // Mock data for current rentals
   const mockCurrentRentals = [
@@ -195,12 +139,10 @@ const StationManagement = () => {
   const fetchVehicles = async () => {
     try {
       setLoading(true);
-      // TODO: Replace with actual API call
-      // const response = await apiClient.get('/api/staff/stations/1/vehicles');
-      // setVehicles(response.data.vehicles);
-      
-      // Using mock data for now
-      setVehicles(mockVehicles);
+      // Real API: GET /api/staff/vehicle (optional filters: status, plate_number)
+      const response = await vehicleService.staff.getAllStaffVehicles();
+      const data = Array.isArray(response) ? response : response?.data || [];
+      setVehicles(data);
       
     } catch (error) {
       console.error('Error fetching vehicles:', error);
@@ -255,24 +197,14 @@ const StationManagement = () => {
 
       setLoading(true);
       
-      // TODO: Replace with actual API call
-      // const response = await apiClient.put(`/api/staff/vehicles/${selectedVehicle.id}/status`, {
-      //   status: newStatus
-      // });
-      
-      // Mock success response
-      const mockResponse = {
-        success: true,
-        message: "Cập nhật trạng thái xe thành công.",
-        data: {
-          vehicle_id: selectedVehicle.id,
-          status: newStatus
-        }
-      };
+      // Real API call
+      await apiClient.put(`/api/staff/vehicles/${selectedVehicle.id}/status`, {
+        status: newStatus
+      });
 
       toast({
         title: "Thành công",
-        description: mockResponse.message,
+        description: "Cập nhật trạng thái xe thành công.",
       });
 
       setStatusDialogOpen(false);
@@ -457,11 +389,7 @@ const StationManagement = () => {
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
-  const getBatteryColor = (level) => {
-    if (level >= 70) return 'text-green-600';
-    if (level >= 30) return 'text-yellow-600';
-    return 'text-red-600';
-  };
+  // (Pin/Bảo trì không có trong API thực; bỏ màu pin)
 
   const getVehicleStats = () => {
     const available = vehicles.filter(v => v.status === 'available').length;
@@ -604,7 +532,7 @@ const StationManagement = () => {
                           <div className="flex flex-col space-y-1">
                             <div className="font-medium flex items-center gap-2">
                               <Car className="h-4 w-4" />
-                              {vehicle.license_plate}
+                              {vehicle.licensePlate}
                             </div>
                             <div className="text-sm text-muted-foreground">
                               {vehicle.brand} {vehicle.model}
@@ -618,18 +546,13 @@ const StationManagement = () => {
                           {getVehicleStatusBadge(vehicle.status)}
                         </TableCell>
                         <TableCell>
-                          <div className="flex flex-col space-y-1">
-                            <div className={`text-sm font-medium ${getBatteryColor(vehicle.battery_level)}`}>
-                              Pin: {vehicle.battery_level}%
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              BT: {vehicle.last_maintenance}
-                            </div>
+                          <div className="text-sm text-muted-foreground">
+                            Trạm: {vehicle.station?.name || 'N/A'}
                           </div>
                         </TableCell>
                         <TableCell>
                           <div className="font-medium">
-                            {formatCurrency(vehicle.price_per_hour)}/giờ
+                            {formatCurrency(vehicle.pricePerHour || 0)}/giờ
                           </div>
                         </TableCell>
                         <TableCell>

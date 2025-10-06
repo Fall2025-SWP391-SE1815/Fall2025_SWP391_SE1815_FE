@@ -19,6 +19,8 @@ import {
   Book
 } from 'lucide-react';
 import { useAuth } from '@/hooks/auth/useAuth';
+import vehicleService from '@/services/vehicles/vehicleService';
+import stationService from '@/services/stations/stationService';
 import { toast } from 'sonner';
 
 const VehiclesPage = () => {
@@ -40,26 +42,14 @@ const VehiclesPage = () => {
   // Load stations for filter dropdown
   const loadStations = async () => {
     try {
-      const response = await fetch('/api/renter/stations', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${user?.token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setStations(data.stations || []);
-      }
+      // use station service renter endpoint
+      const data = await stationService.renter.getStations();
+      const stationsData = Array.isArray(data) ? data : data?.stations || data?.data || [];
+      setStations(stationsData.map(s => ({ id: s.id, name: s.name })));
     } catch (err) {
       console.error('Error loading stations:', err);
-      // Mock stations for development
-      setStations([
-        { id: 1, name: 'Trạm Quận 1' },
-        { id: 2, name: 'Trạm Quận 3' },
-        { id: 3, name: 'Trạm Bình Thạnh' }
-      ]);
+      // Keep stations empty on error (remove mock fallback)
+      setStations([]);
     }
   };
 
@@ -76,67 +66,39 @@ const VehiclesPage = () => {
       if (filters.price_min) queryParams.append('price_min', filters.price_min);
       if (filters.price_max) queryParams.append('price_max', filters.price_max);
 
-      const url = `/api/renter/vehicles${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+      // Build params object for service call
+      const params = {};
+      if (filters.type && filters.type !== 'all') params.type = filters.type;
+      if (filters.station_id && filters.station_id !== 'all') params.station_id = filters.station_id;
+      if (filters.price_min) params.price_min = filters.price_min;
+      if (filters.price_max) params.price_max = filters.price_max;
 
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${user?.token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      const data = await vehicleService.renter.getAvailableVehicles(params);
+      const vehiclesData = Array.isArray(data) ? data : data?.vehicles || data?.data || [];
+      const normalized = vehiclesData.map(v => ({
+        id: v.id,
+        license_plate: v.licensePlate || v.license_plate,
+        type: v.type,
+        brand: v.brand,
+        model: v.model,
+        capacity: v.capacity,
+        status: v.status,
+        price_per_hour: v.pricePerHour || v.price_per_hour,
+        station_id: v.station?.id || v.station_id || null,
+        station: v.station || null
+      }));
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
+      setVehicles(normalized);
 
-      const data = await response.json();
-      setVehicles(data.vehicles || []);
-      
-      if (data.vehicles?.length === 0) {
+      if (normalized.length === 0) {
         toast.info('Không tìm thấy xe nào phù hợp với bộ lọc');
       }
     } catch (err) {
       console.error('Error loading vehicles:', err);
       setError('Không thể tải danh sách xe. Vui lòng thử lại sau.');
       toast.error('Lỗi khi tải danh sách xe');
-      
-      // Mock data for development
-      setVehicles([
-        {
-          id: 1,
-          license_plate: '59A1-12345',
-          type: 'motorbike',
-          brand: 'VinFast',
-          model: 'VF3',
-          capacity: 2,
-          status: 'available',
-          price_per_hour: 50000,
-          station_id: 1
-        },
-        {
-          id: 2,
-          license_plate: '59A1-67890',
-          type: 'car',
-          brand: 'VinFast',
-          model: 'VF5',
-          capacity: 5,
-          status: 'available',
-          price_per_hour: 120000,
-          station_id: 1
-        },
-        {
-          id: 3,
-          license_plate: '59A1-11111',
-          type: 'motorbike',
-          brand: 'VinFast',
-          model: 'VF3',
-          capacity: 2,
-          status: 'available',
-          price_per_hour: 45000,
-          station_id: 2
-        }
-      ]);
+      // Clear vehicles on error
+      setVehicles([]);
     } finally {
       setLoading(false);
     }
@@ -191,22 +153,6 @@ const VehiclesPage = () => {
     const bookingUrl = `/reservations?vehicle_id=${vehicle.id}&station_id=${vehicle.station_id}`;
     window.location.href = bookingUrl;
   };
-
-  // Remove authentication check since it's handled by ProtectedRoute
-  // if (!isAuthenticated) {
-  //   return (
-  //     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-  //       <Card className="w-96">
-  //         <CardHeader>
-  //           <CardTitle>Cần đăng nhập</CardTitle>
-  //         </CardHeader>
-  //         <CardContent>
-  //           <p className="text-gray-600">Vui lòng đăng nhập để xem danh sách xe.</p>
-  //         </CardContent>
-  //       </Card>
-  //     </div>
-  //   );
-  // }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">

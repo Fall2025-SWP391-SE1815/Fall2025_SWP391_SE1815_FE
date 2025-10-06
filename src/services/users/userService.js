@@ -2,7 +2,7 @@
 import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/api/apiClient.js';
 import { API_ENDPOINTS } from '@/lib/api/apiConfig.js';
 
-const basePath = `/api${API_ENDPOINTS.ADMIN.USERS}`;
+const basePath = `${API_ENDPOINTS.ADMIN.USERS}`;
 
 const buildQuery = (params = {}) => (params && Object.keys(params).length ? `?${new URLSearchParams(params).toString()}` : '');
 
@@ -49,7 +49,7 @@ const admin = {
   updateUser: async (id, userData) => update(id, userData),
   deleteUser: async (id) => remove(id),
   getRenters: async (params = {}) => getAll({ ...params, role: 'renter' }),
-  getRenterProfile: async (renterId) => apiGet(`/api/admin/users/profile/${renterId}`, 'Không thể lấy hồ sơ khách hàng'),
+  getRenterProfile: async (renterId) => apiGet(`${API_ENDPOINTS.ADMIN.USERS}/profile/${renterId}`, 'Không thể lấy hồ sơ khách hàng'),
 };
 
 export default {

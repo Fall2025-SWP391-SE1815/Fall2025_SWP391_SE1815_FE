@@ -380,7 +380,7 @@ const VehiclesManagement = () => {
                 <TableHead>Loại xe</TableHead>
                 <TableHead>Hãng xe</TableHead>
                 <TableHead>Model</TableHead>
-                <TableHead>Sức chứa</TableHead>
+                <TableHead>Dung lượng</TableHead>
                 <TableHead>Trạm</TableHead>
                 <TableHead>Giá/giờ</TableHead>
                 <TableHead>Pin</TableHead>
@@ -397,7 +397,7 @@ const VehiclesManagement = () => {
                   <TableCell>{getVehicleTypeLabel(vehicle.type)}</TableCell>
                   <TableCell>{vehicle.brand}</TableCell>
                   <TableCell>{vehicle.model}</TableCell>
-                  <TableCell>{vehicle.capacity} người</TableCell>
+                  <TableCell>{vehicle.capacity}</TableCell>
                   <TableCell>{vehicle.station.name || 'Chưa phân bổ'}</TableCell>
                   <TableCell>{formatCurrency(vehicle.pricePerHour)}</TableCell>
                   <TableCell>
@@ -754,8 +754,8 @@ const VehiclesManagement = () => {
 
               <div className='grid grid-cols-3 gap-4'>
                 <div>
-                  <Label className='text-sm font-medium text-muted-foreground'>Sức chứa</Label>
-                  <p className='text-lg'>{selectedVehicle.capacity} người</p>
+                  <Label className='text-sm font-medium text-muted-foreground'>Dung lượng</Label>
+                  <p className='text-lg'>{selectedVehicle.capacity} </p>
                 </div>
                 <div>
                   <Label className='text-sm font-medium text-muted-foreground'>Giá/giờ</Label>

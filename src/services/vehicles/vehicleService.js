@@ -2,9 +2,8 @@
 import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/api/apiClient.js';
 import { API_ENDPOINTS } from '@/lib/api/apiConfig.js';
 
-const renterBase = `/api${API_ENDPOINTS.RENTER.VEHICLES}`;
-const staffBase = `/api${API_ENDPOINTS.STAFF.STATION_VEHICLES('').replace(/\/stations\//, '/stations/')}`; // placeholder, staff endpoints often use functions
-const adminBase = `/api${API_ENDPOINTS.ADMIN.VEHICLES}`;
+const renterBase = `${API_ENDPOINTS.RENTER.VEHICLES}`;
+const adminBase = `${API_ENDPOINTS.ADMIN.VEHICLES}`;
 
 const buildQuery = (params = {}) => (params && Object.keys(params).length ? `?${new URLSearchParams(params).toString()}` : '');
 
@@ -37,7 +36,7 @@ const remove = async (id) => {
 const updateStatus = async (id, statusData) => {
   // staff endpoint often: PUT /api/staff/vehicles/:id/status
   try {
-    return await apiPut(`/api${API_ENDPOINTS.STAFF.VEHICLE_STATUS(id)}`, statusData, 'Không thể cập nhật trạng thái phương tiện');
+    return await apiPut(`${API_ENDPOINTS.STAFF.VEHICLE_STATUS(id)}`, statusData, 'Không thể cập nhật trạng thái phương tiện');
   } catch (e) {
     // fallback to admin path if staff path not available
     return apiPut(`${adminBase}/${id}`, statusData, 'Không thể cập nhật trạng thái phương tiện');
@@ -69,8 +68,10 @@ export default {
   },
 
   staff: {
-    getStationVehicles: async (stationId) => apiGet(`/api${API_ENDPOINTS.STAFF.STATION_VEHICLES(stationId)}`, 'Không thể lấy phương tiện tại trạm'),
-    updateVehicleStatus: async (vehicleId, statusData) => apiPut(`/api${API_ENDPOINTS.STAFF.VEHICLE_STATUS(vehicleId)}`, statusData, 'Không thể cập nhật trạng thái phương tiện')
+    getStationVehicles: async (stationId) => apiGet(`${API_ENDPOINTS.STAFF.STATION_VEHICLES(stationId)}`, 'Không thể lấy phương tiện tại trạm'),
+    updateVehicleStatus: async (vehicleId, statusData) => apiPut(`${API_ENDPOINTS.STAFF.VEHICLE_STATUS(vehicleId)}`, statusData, 'Không thể cập nhật trạng thái phương tiện'),
+    getAllStaffVehicles: async (params = {}) => apiGet(`${API_ENDPOINTS.STAFF.VEHICLES}${buildQuery(params)}`, 'Không thể lấy danh sách xe cho staff'),
+    getStaffVehicleById: async (id) => apiGet(`${API_ENDPOINTS.STAFF.VEHICLE_BY_ID(id)}`, 'Không thể lấy thông tin xe cho staff')
   },
 
   admin: {
@@ -79,6 +80,6 @@ export default {
     getVehicleById: async (id) => apiGet(`${adminBase}/${id}`, 'Không thể lấy phương tiện'),
     updateVehicle: async (id, data) => apiPut(`${adminBase}/${id}`, data, 'Không thể cập nhật phương tiện'),
     deleteVehicle: async (id) => apiDelete(`${adminBase}/${id}`, 'Không thể xóa phương tiện'),
-    getVehicleStats: async () => apiGet(`/api${API_ENDPOINTS.ADMIN.VEHICLES_STATUS}`, 'Không thể lấy thống kê phương tiện')
+    getVehicleStats: async () => apiGet(`${API_ENDPOINTS.ADMIN.VEHICLES_STATUS}`, 'Không thể lấy thống kê phương tiện')
   }
 };

@@ -2,7 +2,7 @@
 import { apiGet, apiPost, apiDelete } from '@/lib/api/apiClient.js';
 import { API_ENDPOINTS } from '@/lib/api/apiConfig.js';
 
-const basePath = `/api${API_ENDPOINTS.RENTER.DOCUMENTS}`;
+const basePath = `${API_ENDPOINTS.RENTER.DOCUMENTS}`;
 
 const getAll = async (params = {}) => {
   // Note: apiGet uses getApiUrl internally; params are not currently serialized by apiGet
@@ -28,9 +28,14 @@ const remove = async (id) => {
   return apiDelete(`${basePath}/${id}`, 'Không thể xóa tài liệu');
 };
 
+const getRenterDocumentsByStaff = async (renterId) => {
+  return apiGet(API_ENDPOINTS.STAFF.RENTER_DOCUMENTS_BY_STAFF(renterId), 'Không thể lấy tài liệu của người thuê');
+};
+
 export default {
   getAll,
   getById,
   upload,
-  delete: remove
+  delete: remove,
+  getRenterDocumentsByStaff
 };

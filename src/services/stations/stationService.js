@@ -2,8 +2,8 @@
 import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/api/apiClient.js';
 import { API_ENDPOINTS } from '@/lib/api/apiConfig.js';
 
-const renterBase = `/api${API_ENDPOINTS.RENTER.STATIONS}`;
-const adminBase = `/api${API_ENDPOINTS.ADMIN.STATIONS}`;
+const renterBase = `${API_ENDPOINTS.RENTER.STATIONS}`;
+const adminBase = `${API_ENDPOINTS.ADMIN.STATIONS}`;
 
 const getAll = async (params = {}) => {
   const query = params && Object.keys(params).length ? `?${new URLSearchParams(params).toString()}` : '';

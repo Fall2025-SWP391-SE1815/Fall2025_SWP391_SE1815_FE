@@ -10,14 +10,14 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useAuth } from '@/hooks/auth/useAuth.jsx';
 import renterService from '@/services/renter/renterService.js';
-import apiClient from '../../lib/api/apiClient';
+import stationService from '@/services/stations/stationService';
+import vehicleService from '@/services/vehicles/vehicleService';
 import {
   Calendar,
   Car,
   MapPin,
   Clock,
   CreditCard,
-  Edit3,
   Trash2,
   Eye,
   RefreshCw,
@@ -26,12 +26,6 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  Users,
-  Battery,
-  Phone,
-  Navigation,
-  Download,
-  ArrowRight
 } from 'lucide-react';
 
 const ReservationsPage = () => {
@@ -47,18 +41,20 @@ const ReservationsPage = () => {
   const [filteredReservations, setFilteredReservations] = useState([]);
   const [selectedReservation, setSelectedReservation] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [reservationDetail, setReservationDetail] = useState(null); // raw detail from API
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   // Create booking form
   const [createForm, setCreateForm] = useState({
-    vehicle_id: '',
-    vehicle_type: '',
+    id: '',
+    type: '',
     station_id: '',
-    reserved_start_time: '',
-    reserved_end_time: ''
+    resreservedStartTime: '',
+    reservedEndTime: ''
   });
   const [stations, setStations] = useState([]);
   const [vehicles, setVehicles] = useState([]);
+
 
   // Filters
   const [filters, setFilters] = useState({
@@ -77,11 +73,11 @@ const ReservationsPage = () => {
   useEffect(() => {
     const vehicleId = searchParams.get('vehicle_id');
     const stationId = searchParams.get('station_id');
-    
+
     if (vehicleId && stationId && vehicles.length > 0) {
       // Find the selected vehicle to get its type
       const selectedVehicle = vehicles.find(v => v.id === parseInt(vehicleId));
-      
+
       // Pre-fill form with vehicle selection
       setCreateForm(prev => ({
         ...prev,
@@ -89,10 +85,10 @@ const ReservationsPage = () => {
         station_id: stationId,
         vehicle_type: selectedVehicle ? selectedVehicle.type : ''
       }));
-      
+
       // Auto-open create modal
       setShowCreateModal(true);
-      
+
       // Clear query parameters from URL after processing
       navigate('/reservations', { replace: true });
     }
@@ -105,9 +101,9 @@ const ReservationsPage = () => {
     // Search filter
     if (filters.search) {
       filtered = filtered.filter(reservation =>
-        reservation.id.toString().includes(filters.search.toLowerCase()) ||
-        reservation.vehicle_type.toLowerCase().includes(filters.search.toLowerCase()) ||
-        reservation.station_id.toString().includes(filters.search.toLowerCase())
+        reservation.id?.toString().includes(filters.search.toLowerCase()) ||
+        (reservation.vehicle?.type || '').toLowerCase().includes(filters.search.toLowerCase()) ||
+        (reservation.vehicle?.station?.id?.toString() || '').includes(filters.search.toLowerCase())
       );
     }
 
@@ -122,14 +118,14 @@ const ReservationsPage = () => {
       let startDate;
       switch (filters.dateRange) {
         case 'upcoming':
-          filtered = filtered.filter(reservation => new Date(reservation.reserved_start_time) > now);
+          filtered = filtered.filter(reservation => new Date(reservation.reservedStartTime) > now);
           break;
         case 'past':
-          filtered = filtered.filter(reservation => new Date(reservation.reserved_end_time) < now);
+          filtered = filtered.filter(reservation => new Date(reservation.reservedEndTime) < now);
           break;
         case 'active':
           filtered = filtered.filter(reservation =>
-            new Date(reservation.reserved_start_time) <= now && new Date(reservation.reserved_end_time) >= now
+            new Date(reservation.reservedStartTime) <= now && new Date(reservation.reservedEndTime) >= now
           );
           break;
         default:
@@ -140,60 +136,71 @@ const ReservationsPage = () => {
     setFilteredReservations(filtered);
   }, [reservations, filters]);
 
-  const loadReservations = async () => {
+  // Whenever filters (status/date/search) change, request server-side filtered data as well
+  useEffect(() => {
+    const serverParams = {};
+    if (filters.status && filters.status !== 'all') serverParams.status = filters.status.toUpperCase();
+    if (filters.search && /^[0-9]+$/.test(filters.search.trim())) serverParams.vehicleId = parseInt(filters.search.trim());
+    // date filters (startFrom/startTo) could be added via UI later
+    // Call server with selected params
+    loadReservations(serverParams);
+  }, [filters]);
+
+  /**
+   * Load reservations from server.
+   * Accepts optional server filter params: { status, vehicleId, startFrom, startTo }
+   */
+  const loadReservations = async (serverParams = {}) => {
     setLoading(true);
     setError('');
+    try {
+      // Build params from UI filters if not explicitly provided
+      const params = { ...serverParams };
+      if (!params.status && filters.status && filters.status !== 'all') {
+        params.status = filters.status.toUpperCase(); // API expects uppercase enums
+      }
+      // If search term is numeric, treat as vehicleId
+      if (!params.vehicleId && filters.search && /^[0-9]+$/.test(filters.search.trim())) {
+        params.vehicleId = parseInt(filters.search.trim());
+      }
 
-    // Load mock data directly for development
-    setTimeout(() => {
-      setReservations([
-        {
-          id: 1,
-          vehicle_id: 1,
-          vehicle_type: 'motorbike',
-          station_id: 1,
-          reserved_start_time: '2025-09-25T09:00:00', // Tomorrow
-          reserved_end_time: '2025-09-25T17:00:00',
-          status: 'confirmed',
-          created_at: '2025-09-23T10:30:00'
-        },
-        {
-          id: 2,
-          vehicle_id: 2,
-          vehicle_type: 'car',
-          station_id: 3,
-          reserved_start_time: '2025-09-26T14:00:00', // Day after tomorrow
-          reserved_end_time: '2025-09-26T20:00:00',
-          status: 'pending',
-          created_at: '2025-09-23T15:20:00'
-        },
-        {
-          id: 3,
-          vehicle_id: null,
-          vehicle_type: 'car',
-          station_id: 2,
-          reserved_start_time: '2025-09-24T08:00:00', // Tomorrow
-          reserved_end_time: '2025-09-24T18:00:00',
-          status: 'confirmed',
-          created_at: '2025-09-22T09:15:00'
-        }
-      ]);
+      const res = await renterService.reservations.getAll(params);
+      const data = Array.isArray(res) ? res : res?.data || res?.reservations || res || [];
+      // Lưu trực tiếp response, ẩn các booking cancelled
+      const withoutCancelled = data.filter(item => String(item.status).toLowerCase() !== 'cancelled');
+      setReservations(withoutCancelled);
+    } catch (err) {
+      console.error('Error loading reservations:', err);
+      setError('Không thể tải danh sách đặt chỗ. Vui lòng thử lại.');
+      setReservations([]);
+    } finally {
       setLoading(false);
-    }, 500);
+    }
   };
 
   // Load stations and vehicles for booking
   const loadStationsAndVehicles = async () => {
-    // Load mock data directly for development
-    setStations([
-      { id: 1, name: 'Trạm Quận 1' },
-      { id: 2, name: 'Trạm Quận 3' },
-      { id: 3, name: 'Trạm Bình Thạnh' }
-    ]);
-    setVehicles([
-      { id: 1, license_plate: '59A1-12345', type: 'motorbike', brand: 'VinFast', model: 'VF3', station_id: 1 },
-      { id: 2, license_plate: '59A1-67890', type: 'car', brand: 'VinFast', model: 'VF5', station_id: 1 }
-    ]);
+    try {
+      const stationsRes = await stationService.renter.getStations();
+      const stationsData = Array.isArray(stationsRes) ? stationsRes : stationsRes?.data || stationsRes?.stations || [];
+      setStations(stationsData.map(s => ({ id: s.id, name: s.name })));
+
+      const vehiclesRes = await vehicleService.renter.getAvailableVehicles();
+      const vehiclesData = Array.isArray(vehiclesRes) ? vehiclesRes : vehiclesRes?.data || vehiclesRes?.vehicles || [];
+      const normalizedVehicles = vehiclesData.map(v => ({
+        id: v.id,
+        license_plate: v.licensePlate || v.license_plate,
+        type: (v.type || '').toLowerCase(),
+        brand: v.brand,
+        model: v.model,
+        station_id: v.station?.id || v.station_id || null
+      }));
+      setVehicles(normalizedVehicles);
+    } catch (err) {
+      console.error('Error loading stations/vehicles:', err);
+      setStations([]);
+      setVehicles([]);
+    }
   };
 
   const handleCreateBooking = async () => {
@@ -203,54 +210,39 @@ const ReservationsPage = () => {
 
     try {
       // Validation
-      if (!createForm.station_id) {
-        throw new Error('Vui lòng chọn trạm');
-      }
       if (!createForm.reserved_start_time || !createForm.reserved_end_time) {
         throw new Error('Vui lòng chọn thời gian');
       }
       if (new Date(createForm.reserved_start_time) >= new Date(createForm.reserved_end_time)) {
         throw new Error('Thời gian kết thúc phải sau thời gian bắt đầu');
       }
-      if (!createForm.vehicle_type && !createForm.vehicle_id) {
-        throw new Error('Vui lòng chọn loại xe hoặc xe cụ thể');
+      if (!createForm.vehicle_id || createForm.vehicle_id === 'none') {
+        throw new Error('Vui lòng chọn xe cụ thể');
       }
 
-      // Prepare data for API (ready for real API)
-      const bookingData = {
-        station_id: parseInt(createForm.station_id),
-        reserved_start_time: createForm.reserved_start_time,
-        reserved_end_time: createForm.reserved_end_time
+      // Payload theo Swagger
+      const payload = {
+        vehicleId: parseInt(createForm.vehicle_id),
+        reservedStartTime: new Date(createForm.reserved_start_time).toISOString(),
+        reservedEndTime: new Date(createForm.reserved_end_time).toISOString()
       };
 
-      // Add vehicle selection (either specific vehicle or vehicle type)
-      if (createForm.vehicle_id && createForm.vehicle_id !== 'none') {
-        bookingData.vehicle_id = parseInt(createForm.vehicle_id);
-      } else if (createForm.vehicle_type && createForm.vehicle_type !== 'none') {
-        bookingData.vehicle_type = createForm.vehicle_type;
-      }
+      const res = await renterService.reservations.create(payload);
+      const created = res?.data || res || {};
 
-      // Mock successful booking creation (replace with real API call later)
-      console.log('Booking data ready for API:', bookingData);
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock successful response
+      // Normalize returned reservation to local shape
       const newReservation = {
-        id: Date.now(), // Mock ID
-        vehicle_id: bookingData.vehicle_id || null,
-        vehicle_type: bookingData.vehicle_type || 'motorbike',
-        station_id: bookingData.station_id,
-        reserved_start_time: bookingData.reserved_start_time,
-        reserved_end_time: bookingData.reserved_end_time,
-        status: 'pending',
-        created_at: new Date().toISOString()
+        id: created.id,
+        vehicle_id: created.vehicle?.id || created.vehicleId || null,
+        vehicle_type: (created.vehicle?.type || created.vehicleType || '').toLowerCase(),
+        station_id: created.vehicle?.station?.id || created.stationId || null,
+        reserved_start_time: created.reservedStartTime || created.reserved_start_time,
+        reserved_end_time: created.reservedEndTime || created.reserved_end_time,
+        status: created.status,
+        created_at: created.createdAt || created.created_at
       };
 
-      // Add to current reservations
       setReservations(prev => [newReservation, ...prev]);
-      
       setSuccess('Tạo booking thành công!');
       setShowCreateModal(false);
       setCreateForm({
@@ -261,25 +253,7 @@ const ReservationsPage = () => {
         reserved_end_time: ''
       });
 
-      /* 
-      // Real API call (enable when API is available):
-      const response = await fetch('/api/renter/reservations', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${user.token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(bookingData)
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Không thể tạo booking');
-      }
-
-      const data = await response.json();
-      loadReservations(); // Refresh the list
-      */
+      // Using renterService.reservations.create to call the real API (above block was a raw fetch example)
 
     } catch (err) {
       console.error('Error creating booking:', err);
@@ -294,53 +268,56 @@ const ReservationsPage = () => {
     return station ? station.name : `Trạm #${stationId}`;
   };
 
-  const getVehicleInfo = (vehicleId, vehicleType) => {
-    if (vehicleId) {
-      const vehicle = vehicles.find(v => v.id === vehicleId);
-      return vehicle ? `${vehicle.brand} ${vehicle.model} - ${vehicle.license_plate}` : `Xe #${vehicleId}`;
-    }
-    return vehicleType === 'motorbike' ? 'Xe máy điện' : 'Ô tô điện';
+  const getVehicleInfo = (vehicle) => {
+    if (!vehicle) return 'Xe điện';
+    return `${vehicle.brand || ''} ${vehicle.model || ''} - ${vehicle.licensePlate || ''}`.trim();
   };
 
   const getAvailableVehicles = () => {
-    if (!createForm.station_id) return [];
-    return vehicles.filter(v => v.station_id === parseInt(createForm.station_id));
+    if (!createForm.stationid) return [];
+    return vehicles.filter(v => v.station_id === parseInt(createForm.stationid));
   };
 
-  const handleViewDetail = (reservation) => {
-    setSelectedReservation(reservation);
-    setShowDetailModal(true);
+  const handleViewDetail = async (reservation) => {
+    try {
+      // Lấy chi tiết mới nhất từ API theo ID
+      const res = await renterService.reservations.getById(reservation.id);
+      const r = res?.data || res;
+      setReservationDetail(r);
+      const normalized = {
+        id: r.id,
+        vehicle_id: r.vehicle?.id || r.vehicleId || null,
+        vehicle_type: (r.vehicle?.type || r.vehicleType || r.vehicle_type || reservation.vehicle_type || '').toLowerCase(),
+        station_id: r.vehicle?.station?.id || r.stationId || r.station_id || reservation.station_id || null,
+        reserved_start_time: r.reservedStartTime || r.reserved_start_time || reservation.reserved_start_time,
+        reserved_end_time: r.reservedEndTime || r.reserved_end_time || reservation.reserved_end_time,
+        status: (r.status || reservation.status || '').toLowerCase(),
+        notes: r.notes || reservation.notes || undefined
+      };
+      setSelectedReservation(normalized);
+    } catch (e) {
+      // Fallback dùng dữ liệu từ danh sách nếu API lỗi
+      setSelectedReservation(reservation);
+      setReservationDetail(null);
+    } finally {
+      setShowDetailModal(true);
+    }
   };
 
   const handleCancelReservation = async (reservationId) => {
     if (!confirm('Bạn có chắc muốn hủy đặt chỗ này?')) return;
+    const reason = prompt('Vui lòng nhập lý do hủy (tuỳ chọn):', '');
 
     setLoading(true);
     setError('');
     setSuccess('');
 
     try {
-      // Mock cancellation - update status locally
-      setReservations(prev => 
-        prev.map(reservation => 
-          reservation.id === reservationId 
-            ? { ...reservation, status: 'cancelled' }
-            : reservation
-        )
-      );
-      
+      // Call real API to cancel reservation with optional reason
+      await renterService.reservations.cancel(reservationId, reason || undefined);
+      // Loại bỏ ngay trong danh sách để UI phản hồi tức thời
+      setReservations(prev => prev.filter(r => r.id !== reservationId));
       setSuccess('Hủy đặt chỗ thành công!');
-
-      /* 
-      // Real API call (enable when API is available):
-      const response = await apiClient.delete(`/renter/reservations/${reservationId}`);
-      if (response.success) {
-        setSuccess('Hủy đặt chỗ thành công!');
-        loadReservations();
-      } else {
-        setError(response.message || 'Không thể hủy đặt chỗ. Vui lòng thử lại.');
-      }
-      */
     } catch (error) {
       console.error('Error canceling reservation:', error);
       setError('Có lỗi xảy ra khi hủy đặt chỗ.');
@@ -385,17 +362,17 @@ const ReservationsPage = () => {
 
   const canEdit = (reservation) => {
     return ['pending', 'confirmed'].includes(reservation.status) &&
-      new Date(reservation.reserved_start_time) > new Date();
+      new Date(reservation.reservedStartTime) > new Date();
   };
 
   const canCancel = (reservation) => {
     return ['pending', 'confirmed'].includes(reservation.status) &&
-      new Date(reservation.reserved_start_time) > new Date();
+      new Date(reservation.reservedStartTime) > new Date();
   };
 
   const canStart = (reservation) => {
     const now = new Date();
-    const startDate = new Date(reservation.reserved_start_time);
+    const startDate = new Date(reservation.reservedStartTime);
     const timeDiff = startDate - now;
     const hoursDiff = timeDiff / (1000 * 60 * 60);
 
@@ -602,18 +579,18 @@ const ReservationsPage = () => {
                       <div className="flex-1">
                         <div className="flex items-center space-x-2 mb-2">
                           <h3 className="text-lg font-semibold text-gray-900">
-                            {getVehicleInfo(reservation.vehicle_id, reservation.vehicle_type)}
+                            {getVehicleInfo(reservation.vehicle)}
                           </h3>
                           {getStatusBadge(reservation.status)}
                         </div>
                         <div className="space-y-1 text-sm text-gray-600">
                           <div className="flex items-center">
                             <Calendar className="h-4 w-4 mr-2" />
-                            <span>{formatDate(reservation.reserved_start_time)} - {formatDate(reservation.reserved_end_time)}</span>
+                            <span>{formatDate(reservation.reservedStartTime)} - {formatDate(reservation.reservedEndTime)}</span>
                           </div>
                           <div className="flex items-center">
                             <MapPin className="h-4 w-4 mr-2" />
-                            <span>{getStationName(reservation.station_id)}</span>
+                            <span>{reservation.vehicle?.station?.name || getStationName(reservation.vehicle?.station?.id)}</span>
                           </div>
                           <div className="flex items-center">
                             <CreditCard className="h-4 w-4 mr-2" />
@@ -665,11 +642,11 @@ const ReservationsPage = () => {
             <DialogHeader>
               <DialogTitle>Chi tiết đặt chỗ</DialogTitle>
               <DialogDescription>
-                Thông tin chi tiết về đặt chỗ #{selectedReservation?.reservation_id}
+                Thông tin chi tiết về đặt chỗ #{reservationDetail?.id}
               </DialogDescription>
             </DialogHeader>
 
-            {selectedReservation && (
+            {reservationDetail && (
               <div className="space-y-6">
                 {/* Vehicle Info */}
                 <Card>
@@ -679,24 +656,28 @@ const ReservationsPage = () => {
                   <CardContent className="space-y-3">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <p className="text-sm font-medium text-gray-600">Tên xe</p>
-                        <p className="font-semibold">{getVehicleInfo(selectedReservation.vehicle_id, selectedReservation.vehicle_type)}</p>
-                      </div>
-                      <div>
                         <p className="text-sm font-medium text-gray-600">Biển số</p>
-                        <p className="font-semibold">
-                          {selectedReservation.vehicle_id ? 
-                            vehicles.find(v => v.id === selectedReservation.vehicle_id)?.license_plate || 'N/A' 
-                            : 'Chưa xác định'}
-                        </p>
+                        <p className="font-semibold">{reservationDetail.vehicle?.licensePlate}</p>
                       </div>
                       <div>
                         <p className="text-sm font-medium text-gray-600">Loại xe</p>
-                        <p className="font-semibold">{selectedReservation.vehicle_type === 'motorbike' ? 'Xe máy' : 'Ô tô'}</p>
+                        <p className="font-semibold">{reservationDetail.vehicle?.type === 'MOTORBIKE' ? 'Xe máy' : 'Ô tô'}</p>
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-600">Số chỗ</p>
-                        <p className="font-semibold">{selectedReservation.vehicle_type === 'motorbike' ? '1 người' : '4 người'}</p>
+                        <p className="text-sm font-medium text-gray-600">Hãng/Model</p>
+                        <p className="font-semibold">{reservationDetail.vehicle?.brand} {reservationDetail.vehicle?.model}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Dung lượng pin</p>
+                        <p className="font-semibold">{reservationDetail.vehicle?.capacity}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Quãng đường/1 lần sạc</p>
+                        <p className="font-semibold">{reservationDetail.vehicle?.rangePerFullCharge}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Giá/giờ</p>
+                        <p className="font-semibold">{reservationDetail.vehicle?.pricePerHour?.toLocaleString('vi-VN')} ₫</p>
                       </div>
                     </div>
                   </CardContent>
@@ -711,27 +692,40 @@ const ReservationsPage = () => {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <p className="text-sm font-medium text-gray-600">Thời gian nhận</p>
-                        <p className="font-semibold">{formatDate(selectedReservation.reserved_start_time)}</p>
+                        <p className="font-semibold">{formatDate(reservationDetail.reservedStartTime)}</p>
                       </div>
                       <div>
                         <p className="text-sm font-medium text-gray-600">Thời gian trả</p>
-                        <p className="font-semibold">{formatDate(selectedReservation.reserved_end_time)}</p>
+                        <p className="font-semibold">{formatDate(reservationDetail.reservedEndTime)}</p>
                       </div>
                       <div>
                         <p className="text-sm font-medium text-gray-600">Điểm nhận</p>
-                        <p className="font-semibold">{getStationName(selectedReservation.station_id)}</p>
+                        <p className="font-semibold">{reservationDetail.vehicle?.station?.name}</p>
                       </div>
                       <div>
                         <p className="text-sm font-medium text-gray-600">Điểm trả</p>
-                        <p className="font-semibold">{getStationName(selectedReservation.station_id)}</p>
+                        <p className="font-semibold">{reservationDetail.vehicle?.station?.name}</p>
                       </div>
+                      {reservationDetail && (
+                        <>
+                          <div>
+                            <p className="text-sm font-medium text-gray-600">Trạng thái</p>
+                            <p className="font-semibold">{reservationDetail.status}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-600">Tạo lúc</p>
+                            <p className="font-semibold">{formatDate(reservationDetail.createdAt)}</p>
+                          </div>
+                          {reservationDetail.cancelledBy && (
+                            <div className="col-span-2">
+                              <p className="text-sm font-medium text-gray-600">Hủy bởi</p>
+                              <p className="font-semibold">{reservationDetail.cancelledBy} — {reservationDetail.cancelledReason || 'Không rõ lý do'}</p>
+                            </div>
+                          )}
+                        </>
+                      )}
                     </div>
-                    {selectedReservation.notes && (
-                      <div>
-                        <p className="text-sm font-medium text-gray-600">Ghi chú</p>
-                        <p className="font-semibold">{selectedReservation.notes}</p>
-                      </div>
-                    )}
+
                   </CardContent>
                 </Card>
 
@@ -826,7 +820,7 @@ const ReservationsPage = () => {
                   <Select
                     value={createForm.vehicle_id || undefined}
                     onValueChange={(value) => setCreateForm({ ...createForm, vehicle_id: value || '' })}
-                    disabled={!createForm.station_id}
+                    disabled={!createForm.station_id || getAvailableVehicles().length === 0}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Chọn xe cụ thể" />
@@ -867,21 +861,6 @@ const ReservationsPage = () => {
                     onChange={(e) => setCreateForm({ ...createForm, reserved_end_time: e.target.value })}
                     min={createForm.reserved_start_time || new Date().toISOString().slice(0, 16)}
                   />
-                </div>
-              </div>
-
-              {/* Info */}
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <div className="flex">
-                  <AlertCircle className="h-5 w-5 text-blue-600 mr-2 mt-0.5" />
-                  <div className="text-sm text-blue-700">
-                    <p className="font-medium mb-1">Lưu ý:</p>
-                    <ul className="list-disc list-inside space-y-1">
-                      <li>Bạn có thể chọn loại xe hoặc xe cụ thể</li>
-                      <li>Booking sẽ được xác nhận sau khi tạo thành công</li>
-                      <li>Vui lòng đến đúng thời gian để nhận xe</li>
-                    </ul>
-                  </div>
                 </div>
               </div>
 

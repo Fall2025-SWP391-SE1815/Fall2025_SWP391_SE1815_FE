@@ -57,12 +57,12 @@ const RentalManagement = () => {
   const [loading, setLoading] = useState(false);
   const [pendingRentals, setPendingRentals] = useState([]);
   const [returningRentals, setReturningRentals] = useState([]);
-  
+
   // Dialog states
   const [pickupDialogOpen, setPickupDialogOpen] = useState(false);
   const [returnDialogOpen, setReturnDialogOpen] = useState(false);
   const [selectedRental, setSelectedRental] = useState(null);
-  
+
   // Form states
   const [pickupForm, setPickupForm] = useState({
     condition_report: '',
@@ -70,7 +70,7 @@ const RentalManagement = () => {
     customer_signature_url: '',
     staff_signature_url: ''
   });
-  
+
   const [returnForm, setReturnForm] = useState({
     condition_report: '',
     photo_url: '',
@@ -111,7 +111,7 @@ const RentalManagement = () => {
         id: 2,
         license_plate: "29A1-67890",
         type: "Electric Bike",
-        brand: "VinFast", 
+        brand: "VinFast",
         model: "Feliz S"
       },
       renter: {
@@ -145,7 +145,7 @@ const RentalManagement = () => {
       },
       pickup_station: {
         id: 1,
-        name: "Trạm Quận 1", 
+        name: "Trạm Quận 1",
         address: "123 Nguyễn Huệ, Quận 1, TP.HCM"
       },
       start_time: "2025-09-23T14:00:00Z",
@@ -207,10 +207,10 @@ const RentalManagement = () => {
       // TODO: Replace with actual API call
       // const response = await apiClient.get('/api/staff/rentals/pending');
       // setPendingRentals(response.data.data);
-      
+
       // Using mock data for now
       setPendingRentals(mockPendingRentals);
-      
+
     } catch (error) {
       console.error('Error fetching pending rentals:', error);
       if (error.response?.status === 403) {
@@ -237,10 +237,10 @@ const RentalManagement = () => {
       // TODO: Replace with actual API call
       // const response = await apiClient.get('/api/staff/rentals/returning');
       // setReturningRentals(response.data.data);
-      
+
       // Using mock data for now
       setReturningRentals(mockReturningRentals);
-      
+
     } catch (error) {
       console.error('Error fetching returning rentals:', error);
       toast({
@@ -277,8 +277,8 @@ const RentalManagement = () => {
 
   const submitPickupCheck = async () => {
     try {
-      if (!pickupForm.condition_report || !pickupForm.photo_url || 
-          !pickupForm.customer_signature_url || !pickupForm.staff_signature_url) {
+      if (!pickupForm.condition_report || !pickupForm.photo_url ||
+        !pickupForm.customer_signature_url || !pickupForm.staff_signature_url) {
         toast({
           title: "Thiếu thông tin",
           description: "Vui lòng điền đầy đủ thông tin biên bản",
@@ -288,10 +288,10 @@ const RentalManagement = () => {
       }
 
       setLoading(true);
-      
+
       // TODO: Replace with actual API call
       // const response = await apiClient.post(`/api/staff/rentals/${selectedRental.rental_id}/pickup-check`, pickupForm);
-      
+
       // Mock success response
       const mockResponse = {
         success: true,
@@ -313,7 +313,7 @@ const RentalManagement = () => {
 
       setPickupDialogOpen(false);
       fetchPendingRentals(); // Refresh the list
-      
+
     } catch (error) {
       console.error('Error submitting pickup check:', error);
       if (error.response?.status === 400) {
@@ -336,8 +336,8 @@ const RentalManagement = () => {
 
   const submitReturnCheck = async () => {
     try {
-      if (!returnForm.condition_report || !returnForm.photo_url || 
-          !returnForm.customer_signature_url || !returnForm.staff_signature_url) {
+      if (!returnForm.condition_report || !returnForm.photo_url ||
+        !returnForm.customer_signature_url || !returnForm.staff_signature_url) {
         toast({
           title: "Thiếu thông tin",
           description: "Vui lòng điền đầy đủ thông tin biên bản",
@@ -347,10 +347,10 @@ const RentalManagement = () => {
       }
 
       setLoading(true);
-      
+
       // TODO: Replace with actual API call
       // const response = await apiClient.post(`/api/staff/rentals/${selectedRental.rental_id}/return-check`, returnForm);
-      
+
       // Mock success response
       const mockResponse = {
         success: true,
@@ -372,12 +372,12 @@ const RentalManagement = () => {
 
       setReturnDialogOpen(false);
       fetchReturningRentals(); // Refresh the list
-      
+
     } catch (error) {
       console.error('Error submitting return check:', error);
       if (error.response?.status === 400) {
         toast({
-          title: "Lỗi", 
+          title: "Lỗi",
           description: "Lượt thuê không hợp lệ để lập biên bản return",
           variant: "destructive",
         });
@@ -396,10 +396,10 @@ const RentalManagement = () => {
   const confirmPickup = async (rentalId) => {
     try {
       setLoading(true);
-      
+
       // TODO: Replace with actual API call
       // const response = await apiClient.post(`/api/staff/rentals/${rentalId}/confirm-pickup`);
-      
+
       // Mock success response
       const mockResponse = {
         success: true,
@@ -412,7 +412,7 @@ const RentalManagement = () => {
       });
 
       fetchPendingRentals(); // Refresh the list
-      
+
     } catch (error) {
       console.error('Error confirming pickup:', error);
       if (error.response?.status === 400) {
@@ -436,10 +436,10 @@ const RentalManagement = () => {
   const confirmReturn = async (rentalId) => {
     try {
       setLoading(true);
-      
+
       // TODO: Replace with actual API call
       // const response = await apiClient.post(`/api/staff/rentals/${rentalId}/confirm-return`);
-      
+
       // Mock success response
       const mockResponse = {
         success: true,
@@ -452,7 +452,7 @@ const RentalManagement = () => {
       });
 
       fetchReturningRentals(); // Refresh the list
-      
+
     } catch (error) {
       console.error('Error confirming return:', error);
       if (error.response?.status === 400) {
@@ -496,7 +496,7 @@ const RentalManagement = () => {
       pending: { label: 'Chờ thanh toán', variant: 'destructive' },
       refunded: { label: 'Đã hoàn', variant: 'secondary' }
     };
-    
+
     const config = statusConfig[status] || { label: status, variant: 'outline' };
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
@@ -759,7 +759,7 @@ const RentalManagement = () => {
               Lập biên bản giao xe cho: {selectedRental?.renter.full_name} - {selectedRental?.vehicle.license_plate}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             {/* Vehicle Info */}
             <Card>
@@ -866,7 +866,7 @@ const RentalManagement = () => {
               Lập biên bản nhận xe từ: {selectedRental?.renter.full_name} - {selectedRental?.vehicle.license_plate}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             {/* Vehicle Info */}
             <Card>

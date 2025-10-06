@@ -102,7 +102,7 @@ const LoginPage = () => {
   const handleDemoLogin = async (role) => {
     const demoCredentials = {
       admin: { phone: '0123456789', password: 'Admin@123' },
-      staff: { phone: '0910000000', password: 'staff123' },
+      staff: { phone: '0123456781', password: 'Abc@1234' },
       renter: { phone: '0999999999', password: 'User1@123' }
     };
 
