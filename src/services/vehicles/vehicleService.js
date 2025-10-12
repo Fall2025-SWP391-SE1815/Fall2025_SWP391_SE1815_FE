@@ -34,9 +34,9 @@ const remove = async (id) => {
 };
 
 const updateStatus = async (id, statusData) => {
-  // staff endpoint often: PUT /api/staff/vehicles/:id/status
+  // staff endpoint: PUT /api/staff/vehicle/:id
   try {
-    return await apiPut(`${API_ENDPOINTS.STAFF.VEHICLE_STATUS(id)}`, statusData, 'Không thể cập nhật trạng thái phương tiện');
+    return await apiPut(`${API_ENDPOINTS.STAFF.VEHICLE_BY_ID(id)}`, statusData, 'Không thể cập nhật trạng thái phương tiện');
   } catch (e) {
     // fallback to admin path if staff path not available
     return apiPut(`${adminBase}/${id}`, statusData, 'Không thể cập nhật trạng thái phương tiện');
@@ -68,10 +68,9 @@ export default {
   },
 
   staff: {
-    getStationVehicles: async (stationId) => apiGet(`${API_ENDPOINTS.STAFF.STATION_VEHICLES(stationId)}`, 'Không thể lấy phương tiện tại trạm'),
-    updateVehicleStatus: async (vehicleId, statusData) => apiPut(`${API_ENDPOINTS.STAFF.VEHICLE_STATUS(vehicleId)}`, statusData, 'Không thể cập nhật trạng thái phương tiện'),
     getAllStaffVehicles: async (params = {}) => apiGet(`${API_ENDPOINTS.STAFF.VEHICLES}${buildQuery(params)}`, 'Không thể lấy danh sách xe cho staff'),
-    getStaffVehicleById: async (id) => apiGet(`${API_ENDPOINTS.STAFF.VEHICLE_BY_ID(id)}`, 'Không thể lấy thông tin xe cho staff')
+    getStaffVehicleById: async (id) => apiGet(`${API_ENDPOINTS.STAFF.VEHICLE_BY_ID(id)}`, 'Không thể lấy thông tin xe cho staff'),
+    updateVehicleStatus: async (vehicleId, statusData) => apiPut(`${API_ENDPOINTS.STAFF.VEHICLE_BY_ID(vehicleId)}`, statusData, 'Không thể cập nhật trạng thái phương tiện')
   },
 
   admin: {

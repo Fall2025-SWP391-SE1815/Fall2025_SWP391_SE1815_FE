@@ -21,7 +21,7 @@ const getAll = async (params = {}) => {
  * @returns {Promise} API response with complaint details
  */
 const getById = async (id) => {
-  return apiGet(`${API_ENDPOINTS.ADMIN.COMPLAINT_BY_ID(id)}`, 'Không thể lấy chi tiết khiếu nại');
+  return apiGet(`${adminBase}/${id}`, 'Không thể lấy chi tiết khiếu nại');
 };
 
 /**

@@ -11,8 +11,7 @@ export const API_ENDPOINTS = {
     // Swagger backend uses /api/auth/* paths (see backend swagger UI)
     LOGIN: '/api/auth/sign-in',
     REGISTER: '/api/auth/register',
-    LOGOUT: '/api/auth/sign-out',
-    REFRESH_TOKEN: '/api/auth/refresh-token'
+    LOGOUT: '/api/auth/sign-out'
   },
 
   // Renter endpoints
@@ -31,82 +30,54 @@ export const API_ENDPOINTS = {
     RESERVATION_CANCEL: (id) => `/api/renter/booking/reservations/${id}/cancel`,
     
     // Rentals
-    RENTALS: '/api/renter/rentals',
     RENTALS_ALL: '/api/renter/rentals/all',
-    RENTAL_BY_ID: (id) => `/api/renter/rentals/${id}`,
-    RENTAL_CHECKIN: '/api/renter/rentals/checkin',
-    RENTAL_CURRENT: '/api/renter/rentals/current',
-    RENTAL_CHECKS: (id) => `/api/renter/rentals/${id}/checks`,
-    RENTAL_RETURN: (id) => `/api/renter/rentals/${id}/return`,
-    RENTAL_PAYMENT: (id) => `/api/renter/rentals/${id}/payment`,
-    RENTAL_SUMMARY: (id) => `/api/renter/rentals/${id}/summary`,
-    
-    // Payments
-    PAYMENTS: '/api/renter/payments',
-    PAYMENT_BY_ID: (id) => `/api/renter/payments/${id}`,
     
     // Ratings and feedback
     RATING_TRIP: '/api/renter/rating/trip',
     RATING_STAFF: '/api/renter/rating/staff',
     
     // Support
-    COMPLAINT: '/api/renter/complaint',
-    INCIDENTS: '/api/renter/incidents'
+    COMPLAINT: '/api/renter/complaint'
   },
 
   // Staff endpoints
   STAFF: {
-    // Rental management
-    RENTALS_PENDING: '/api/staff/rentals/pending',
-    RENTALS_RETURNING: '/api/staff/rentals/returning',
-    RENTALS_CURRENT: '/api/staff/rentals/current',
-    RENTALS: '/api/staff/rentals',
-    RESERVATIONS: '/api/staff/rentals/reservations',
+    // Vehicle management
+    VEHICLES: '/api/staff/vehicle',
+    VEHICLE_BY_ID: (id) => `/api/staff/vehicle/${id}`,
     
-    RENTAL_PICKUP_CHECK: (id) => `/api/staff/rentals/${id}/pickup-check`,
-    RENTAL_RETURN_CHECK: (id) => `/api/staff/rentals/${id}/return-check`,
-    RENTAL_CONFIRM_PICKUP: '/api/staff/rentals/confirm-pickup',
-    RENTAL_CONFIRM_RETURN: '/api/staff/rentals/confirm-return',
+    // Document verification
+    RENTER_DOCUMENTS_BY_STAFF: (renterId) => `/api/staff/renter-document/${renterId}`,
+    RENTER_DOCUMENT_VERIFY: (documentId) => `/api/staff/renter-document/verify/${documentId}`,
+    
+    // Rental management
+    RENTALS: '/api/staff/rentals',
     RENTAL_PAYMENT: (id) => `/api/staff/rentals/${id}/payment`,
     RENTAL_BILL: (id) => `/api/staff/rentals/${id}/bill`,
     RENTAL_RETURN_DEPOSIT: (id) => `/api/staff/rentals/${id}/return-deposit`,
     RENTAL_HOLD_DEPOSIT: (id) => `/api/staff/rentals/${id}/hold-deposit`,
     RENTAL_CANCEL: (id) => `/api/staff/rentals/${id}/cancel`,
+    RENTAL_CONFIRM_RETURN: '/api/staff/rentals/confirm-return',
+    RENTAL_CONFIRM_PICKUP: '/api/staff/rentals/confirm-pickup',
     RENTAL_CHECK_IN: '/api/staff/rentals/check-in',
     RENTAL_ADD_VIOLATION: '/api/staff/rentals/add-violation',
     RENTAL_VIOLATIONS: (id) => `/api/staff/rentals/${id}/violations`,
+    RESERVATIONS: '/api/staff/rentals/reservations',
     
-    // Document verification
-    VERIFY_DOCUMENTS: (id) => `/api/staff/renters/${id}/verify-documents`,
-    RENTER_DOCUMENTS: (id) => `/api/staff/renters/${id}/documents`,
-    RENTER_DOCUMENTS_BY_STAFF: (renterId) => `/api/staff/renter-document/${renterId}`,
-    RENTER_DOCUMENT_VERIFY: (documentId) => `/api/staff/renter-document/verify/${documentId}`,
-    
-    // Payment management
-    PAYMENTS_PENDING: '/api/staff/payments/pending',
-    
-    // Station and vehicle management
-    STATION_VEHICLES: (id) => `/api/staff/stations/${id}/vehicles`,
-    VEHICLES: '/api/staff/vehicle',
-    VEHICLE_BY_ID: (id) => `/api/staff/vehicles/${id}`,
-    VEHICLE_STATUS: (id) => `/api/staff/vehicles/${id}/status`,
-    
-    // Violations and incidents
-    VIOLATIONS: '/api/staff/violations',
-    INCIDENTS: '/api/staff/incidents',
+    // Incident reporting
     INCIDENT_REPORT: '/api/staff/incident-report'
   },
 
   // Admin endpoints
   ADMIN: {
-    // Station management
-    STATIONS: '/api/admin/stations',
-    STATION_BY_ID: (id) => `/api/admin/stations/${id}`,
-    
     // Vehicle management
     VEHICLES: '/api/admin/vehicles',
     VEHICLE_BY_ID: (id) => `/api/admin/vehicles/${id}`,
     VEHICLES_STATUS: '/api/admin/vehicles/status',
+    
+    // Station management
+    STATIONS: '/api/admin/stations',
+    STATION_BY_ID: (id) => `/api/admin/stations/${id}`,
     
     // User management
     USERS: '/api/admin/users',
@@ -117,35 +88,18 @@ export const API_ENDPOINTS = {
     STAFF_STATIONS: '/api/admin/staff-stations',
     STAFF_STATION_DEACTIVATE: (id) => `/api/admin/staff-stations/${id}/deactivate`,
     
-    // Rental oversight
-    RENTALS: '/api/admin/rentals',
-    RENTAL_BY_ID: (id) => `/api/admin/rentals/${id}`,
-    
-    // Payment management
-    PAYMENTS: '/api/admin/payments',
-    PAYMENTS_STATS: '/api/admin/payments/stats',
-    
-    // Violations and incidents
-    VIOLATIONS: '/api/admin/violations',
-    INCIDENTS: '/api/admin/incidents',
-    INCIDENT_BY_ID: (id) => `/api/admin/incidents/${id}`,
-    
-    // Renter management
-    RENTERS: '/api/admin/renters',
-    RENTER_HISTORY: (id) => `/api/admin/renters/${id}/history`,
-    RENTER_VIOLATIONS: (id) => `/api/admin/renters/${id}/violations`,
-    RENTER_INCIDENTS: (id) => `/api/admin/renters/${id}/incidents`,
+    // Rental management
+    RENTALS: '/api/admin/rental',
     
     // Complaint management
-    COMPLAINTS: '/api/admin/complaints',
-    COMPLAINT_BY_ID: (id) => `/api/admin/complaints/${id}`,
+    COMPLAINTS: '/api/admin/complaint',
     COMPLAINT_RESOLVE: '/api/admin/complaint/resolve',
     
-    // Dashboard and analytics
-    DASHBOARD: '/api/admin/dashboard',
-    STATS_RENTALS: '/api/admin/statistics/rentals',
-    STATS_REVENUE: '/api/admin/statistics/revenue',
-    STATS_COMPLAINTS: '/api/admin/statistics/complaints'
+    // Violation management
+    VIOLATIONS: '/api/admin/violation',
+    
+    // Performance management
+    PERFORMANCE: '/api/admin/performance'
   }
 };
 

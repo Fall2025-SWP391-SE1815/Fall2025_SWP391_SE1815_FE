@@ -94,23 +94,6 @@ export const authService = {
         }
     },
 
-    // Refresh token
-    refreshToken: async (refreshToken) => {
-        try {
-            const res = await apiClient.post(API_ENDPOINTS.AUTH.REFRESH_TOKEN, { refreshToken });
-            const payload = res || {};
-            const accessToken = payload.accessToken || payload.data?.accessToken || null;
-            if (accessToken) {
-                authToken = accessToken;
-                localStorage.setItem('accessToken', accessToken);
-            }
-            return createResponse({ accessToken }, true, 'Token refreshed');
-        } catch (error) {
-            const msg = error?.data?.message || error?.message || 'Refresh token failed';
-            const status = error?.status || 401;
-            return createErrorResponse(msg, status);
-        }
-    },
 
     // Logout
     logout: async () => {

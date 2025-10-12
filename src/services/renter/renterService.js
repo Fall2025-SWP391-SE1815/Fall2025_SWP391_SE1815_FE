@@ -78,62 +78,9 @@ export const renterService = {
 
   // Rental Management
   rentals: {
-    // Check-in nhận xe (theo booking hoặc walk-in)
-    checkIn: async (checkInData) => {
-      return await apiClient.post(API_ENDPOINTS.RENTER.RENTAL_CHECKIN, checkInData);
-    },
-    
     // Lấy tất cả rental với filter (status, từ ngày, đến ngày)
     getAll: async (params = {}) => {
       return await apiClient.get(API_ENDPOINTS.RENTER.RENTALS_ALL, params);
-    },
-    
-    // Xem lượt thuê đang hoạt động
-    getCurrent: async (userId) => {
-      return await apiClient.get(API_ENDPOINTS.RENTER.RENTAL_CURRENT, { userId });
-    },
-    
-    // Xem biên bản giao xe (ảnh, tình trạng)
-    getChecks: async (rentalId) => {
-      return await apiClient.get(API_ENDPOINTS.RENTER.RENTAL_CHECKS(rentalId));
-    },
-    
-    // Trả xe tại trạm
-    returnVehicle: async (rentalId, returnData) => {
-      return await apiClient.post(API_ENDPOINTS.RENTER.RENTAL_RETURN(rentalId), returnData);
-    },
-    
-    // Thanh toán chi phí phát sinh (tiền thuê, phụ phí, vi phạm)
-    processPayment: async (rentalId, paymentData) => {
-      return await apiClient.post(API_ENDPOINTS.RENTER.RENTAL_PAYMENT(rentalId), paymentData);
-    },
-    
-    // Xem tóm tắt lượt thuê (thời gian, chi phí, quãng đường, tình trạng xe)
-    getSummary: async (rentalId) => {
-      return await apiClient.get(API_ENDPOINTS.RENTER.RENTAL_SUMMARY(rentalId));
-    },
-    
-    // Xem lịch sử thuê xe
-    getHistory: async (userId, params = {}) => {
-      return await apiClient.get(API_ENDPOINTS.RENTER.RENTALS, { userId, ...params });
-    },
-    
-    // Chi tiết lượt thuê cụ thể
-    getById: async (rentalId) => {
-      return await apiClient.get(API_ENDPOINTS.RENTER.RENTAL_BY_ID(rentalId));
-    }
-  },
-
-  // Payment Management
-  payments: {
-    // Danh sách giao dịch thanh toán
-    getAll: async (userId, params = {}) => {
-      return await apiClient.get(API_ENDPOINTS.RENTER.PAYMENTS, { userId, ...params });
-    },
-    
-    // Chi tiết 1 giao dịch
-    getById: async (paymentId) => {
-      return await apiClient.get(API_ENDPOINTS.RENTER.PAYMENT_BY_ID(paymentId));
     }
   },
 
@@ -158,18 +105,6 @@ export const renterService = {
     }
   },
 
-  // Incident Management
-  incidents: {
-    // Gửi báo cáo sự cố về xe trong lúc thuê
-    report: async (incidentData) => {
-      return await apiClient.post(API_ENDPOINTS.RENTER.INCIDENTS, incidentData);
-    },
-    
-    // Xem các báo cáo sự cố
-    getAll: async (userId) => {
-      return await apiClient.get(API_ENDPOINTS.RENTER.INCIDENTS, { userId });
-    }
-  },
 
 };
 
