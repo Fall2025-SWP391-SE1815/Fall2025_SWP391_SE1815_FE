@@ -13,6 +13,7 @@ import {
   MessageSquare, Edit, Search, Eye, Clock, CheckCircle, AlertTriangle, 
   X, Filter, RefreshCw, Users, Calendar, FileText
 } from 'lucide-react';
+import complaintsService from '@/services/complaints/complaintsService';
 
 const ComplaintsManagement = () => {
   const [complaints, setComplaints] = useState([]);
@@ -28,156 +29,37 @@ const ComplaintsManagement = () => {
   const [complaintDetail, setComplaintDetail] = useState(null);
   const [resolutionData, setResolutionData] = useState({ status: '', resolution: '' });
 
-  // Mock data for complaints
-  const mockComplaints = [
-    {
-      id: 1,
-      renter_id: 101,
-      message: 'Xe đạp điện bị hỏng phanh trong quá trình sử dụng, rất nguy hiểm',
-      status: 'pending',
-      created_at: '2024-01-15T14:30:00Z',
-      renter_name: 'Nguyễn Văn An',
-      rental_id: 201
-    },
-    {
-      id: 2,
-      renter_id: 102,
-      message: 'Pin xe yếu, không đủ để di chuyển quãng đường đã cam kết',
-      status: 'in_progress',
-      created_at: '2024-01-15T10:20:00Z',
-      renter_name: 'Trần Thị Bình',
-      rental_id: 202
-    },
-    {
-      id: 3,
-      renter_id: 103,
-      message: 'Trạm sạc không hoạt động, không thể trả xe đúng giờ',
-      status: 'resolved',
-      created_at: '2024-01-14T16:45:00Z',
-      renter_name: 'Lê Minh Cường',
-      rental_id: null
-    },
-    {
-      id: 4,
-      renter_id: 104,
-      message: 'Bị tính phí sai, yêu cầu hoàn lại tiền thừa',
-      status: 'pending',
-      created_at: '2024-01-15T09:15:00Z',
-      renter_name: 'Phạm Thu Dung',
-      rental_id: 204
-    },
-    {
-      id: 5,
-      renter_id: 105,
-      message: 'Xe bị trầy xước từ trước, không phải do tôi gây ra',
-      status: 'rejected',
-      created_at: '2024-01-13T18:30:00Z',
-      renter_name: 'Hoàng Văn Em',
-      rental_id: 205
-    },
-    {
-      id: 6,
-      renter_id: 106,
-      message: 'Nhân viên trạm không hỗ trợ khi xe gặp sự cố',
-      status: 'in_progress',
-      created_at: '2024-01-15T12:00:00Z',
-      renter_name: 'Nguyễn Thị Phương',
-      rental_id: 206
-    }
-  ];
 
-  // Mock detailed complaint data
-  const mockComplaintDetails = {
-    1: {
-      id: 1,
-      renter_id: 101,
-      rental_id: 201,
-      message: 'Xe đạp điện bị hỏng phanh trong quá trình sử dụng, rất nguy hiểm. Tôi đã phải dừng xe khẩn cấp và suýt gây tai nạn.',
-      status: 'pending',
-      resolution: null,
-      created_at: '2024-01-15T14:30:00Z',
-      updated_at: '2024-01-15T14:30:00Z',
-      renter_name: 'Nguyễn Văn An',
-      renter_phone: '0901234567',
-      vehicle_name: 'Xe đạp điện VinFast Klara'
-    },
-    2: {
-      id: 2,
-      renter_id: 102,
-      rental_id: 202,
-      message: 'Pin xe yếu, không đủ để di chuyển quãng đường đã cam kết. Xe chỉ chạy được 15km thay vì 40km như quảng cáo.',
-      status: 'in_progress',
-      resolution: 'Đang kiểm tra và thay thế pin xe',
-      created_at: '2024-01-15T10:20:00Z',
-      updated_at: '2024-01-15T15:45:00Z',
-      renter_name: 'Trần Thị Bình',
-      renter_phone: '0902345678',
-      vehicle_name: 'Xe đạp điện Yadea'
-    },
-    3: {
-      id: 3,
-      renter_id: 103,
-      rental_id: null,
-      message: 'Trạm sạc không hoạt động, không thể trả xe đúng giờ. Đã liên hệ nhiều lần nhưng không có hỗ trợ kịp thời.',
-      status: 'resolved',
-      resolution: 'Đã sửa chữa trạm sạc và miễn phí thêm giờ cho khách hàng. Xin lỗi vì sự bất tiện.',
-      created_at: '2024-01-14T16:45:00Z',
-      updated_at: '2024-01-15T08:30:00Z',
-      renter_name: 'Lê Minh Cường',
-      renter_phone: '0903456789',
-      vehicle_name: null
-    },
-    4: {
-      id: 4,
-      renter_id: 104,
-      rental_id: 204,
-      message: 'Bị tính phí sai, yêu cầu hoàn lại tiền thừa. Thực tế chỉ thuê 2 tiếng nhưng bị tính 3 tiếng.',
-      status: 'pending',
-      resolution: null,
-      created_at: '2024-01-15T09:15:00Z',
-      updated_at: '2024-01-15T09:15:00Z',
-      renter_name: 'Phạm Thu Dung',
-      renter_phone: '0904567890',
-      vehicle_name: 'Xe đạp điện Giant'
-    },
-    5: {
-      id: 5,
-      renter_id: 105,
-      rental_id: 205,
-      message: 'Xe bị trầy xước từ trước, không phải do tôi gây ra. Yêu cầu không tính phí sửa chữa.',
-      status: 'rejected',
-      resolution: 'Sau khi kiểm tra camera an ninh, xác định xe bị trầy xước trong quá trình sử dụng. Phí sửa chữa là hợp lý.',
-      created_at: '2024-01-13T18:30:00Z',
-      updated_at: '2024-01-14T14:20:00Z',
-      renter_name: 'Hoàng Văn Em',
-      renter_phone: '0905678901',
-      vehicle_name: 'Xe máy điện VinFast Impes'
-    },
-    6: {
-      id: 6,
-      renter_id: 106,
-      rental_id: 206,
-      message: 'Nhân viên trạm không hỗ trợ khi xe gặp sự cố. Thái độ không chuyên nghiệp và thiếu trách nhiệm.',
-      status: 'in_progress',
-      resolution: 'Đang trao đổi với nhân viên và sẽ có biện pháp xử lý phù hợp',
-      created_at: '2024-01-15T12:00:00Z',
-      updated_at: '2024-01-15T16:30:00Z',
-      renter_name: 'Nguyễn Thị Phương',
-      renter_phone: '0906789012',
-      vehicle_name: 'Xe đạp điện Pega'
-    }
-  };
 
-  // Fetch functions (using mock data)
+  // Fetch functions
   const fetchComplaints = async () => {
     setLoading(true);
     try {
-      // TODO: Replace with actual API call
-      // const response = await fetch('/api/admin/complaints');
-      // const data = await response.json();
+      const params = {};
+      if (statusFilter && statusFilter !== 'all') {
+        params.status = statusFilter.toUpperCase();
+      }
       
-      await new Promise(resolve => setTimeout(resolve, 800)); // Simulate API delay
-      setComplaints(mockComplaints);
+      const response = await complaintsService.getAll(params);
+      
+      // Map API response to component data structure
+      const mappedComplaints = response.map(complaint => ({
+        id: complaint.id,
+        renter_id: complaint.renter?.id,
+        renter_name: complaint.renter?.fullName,
+        renter_phone: complaint.renter?.phone,
+        message: complaint.description,
+        status: complaint.status?.toLowerCase(),
+        created_at: complaint.createdAt,
+        updated_at: complaint.resolvedAt || complaint.createdAt,
+        rental_id: complaint.rental?.id,
+        resolution: complaint.resolution,
+        vehicle_name: complaint.rental?.vehicle ? 
+          `${complaint.rental.vehicle.brand} ${complaint.rental.vehicle.model}` : null,
+        station_name: complaint.rental?.stationPickup?.name
+      }));
+      
+      setComplaints(mappedComplaints);
     } catch (error) {
       console.error('Error fetching complaints:', error);
       toast.error('Không thể tải danh sách khiếu nại');
@@ -188,15 +70,30 @@ const ComplaintsManagement = () => {
 
   const fetchComplaintDetail = async (complaintId) => {
     try {
-      // TODO: Replace with actual API call
-      // const response = await fetch(`/api/admin/complaints/${complaintId}`);
-      // const data = await response.json();
+      const response = await complaintsService.getById(complaintId);
       
-      await new Promise(resolve => setTimeout(resolve, 300));
-      setComplaintDetail(mockComplaintDetails[complaintId] || null);
+      // Map API response to detail structure
+      const mappedDetail = {
+        id: response.id,
+        renter_id: response.renter?.id,
+        renter_name: response.renter?.fullName,
+        renter_phone: response.renter?.phone,
+        rental_id: response.rental?.id,
+        message: response.description,
+        status: response.status?.toLowerCase(),
+        resolution: response.resolution,
+        created_at: response.createdAt,
+        updated_at: response.resolvedAt || response.createdAt,
+        vehicle_name: response.rental?.vehicle ? 
+          `${response.rental.vehicle.brand} ${response.rental.vehicle.model}` : null,
+        station_name: response.rental?.stationPickup?.name
+      };
+      
+      setComplaintDetail(mappedDetail);
     } catch (error) {
       console.error('Error fetching complaint detail:', error);
       toast.error('Không thể tải chi tiết khiếu nại');
+      setComplaintDetail(null);
     }
   };
 
@@ -207,25 +104,22 @@ const ComplaintsManagement = () => {
     }
 
     try {
-      // TODO: Replace with actual API call
-      // const response = await fetch(`/api/admin/complaints/${selectedComplaint.id}`, {
-      //   method: 'PUT',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({
-      //     status: resolutionData.status,
-      //     resolution: resolutionData.resolution
-      //   })
-      // });
+      const requestData = {
+        complaintId: selectedComplaint.id,
+        status: resolutionData.status,
+        resolution: resolutionData.resolution
+      };
 
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const response = await complaintsService.resolve(requestData);
       
-      // Update local state
+      // Update local state with response data
       setComplaints(prev => prev.map(complaint => 
         complaint.id === selectedComplaint.id 
           ? { 
               ...complaint, 
-              status: resolutionData.status,
-              updated_at: new Date().toISOString()
+              status: response.status?.toLowerCase(),
+              resolution: response.resolution,
+              updated_at: response.resolvedAt || new Date().toISOString()
             }
           : complaint
       ));
@@ -254,6 +148,7 @@ const ComplaintsManagement = () => {
 
   // Helper functions
   const getStatusBadge = (status) => {
+    const normalizedStatus = status?.toLowerCase();
     const statusMap = {
       'pending': { label: 'Chờ xử lý', variant: 'destructive', icon: Clock },
       'in_progress': { label: 'Đang xử lý', variant: 'default', icon: AlertTriangle },
@@ -261,7 +156,7 @@ const ComplaintsManagement = () => {
       'rejected': { label: 'Từ chối', variant: 'outline', icon: X }
     };
     
-    const statusInfo = statusMap[status] || { label: status, variant: 'secondary', icon: Clock };
+    const statusInfo = statusMap[normalizedStatus] || { label: status, variant: 'secondary', icon: Clock };
     const Icon = statusInfo.icon;
     
     return (
@@ -278,8 +173,8 @@ const ComplaintsManagement = () => {
       complaint.message?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       complaint.renter_name?.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesStatus = statusFilter === 'all' || complaint.status === statusFilter;
-    const matchesRenter = !renterFilter || complaint.renter_id.toString().includes(renterFilter);
+    const matchesStatus = statusFilter === 'all' || complaint.status?.toLowerCase() === statusFilter;
+    const matchesRenter = !renterFilter || complaint.renter_id?.toString().includes(renterFilter);
     
     return matchesSearch && matchesStatus && matchesRenter;
   });
@@ -287,10 +182,10 @@ const ComplaintsManagement = () => {
   // Calculate statistics
   const complaintStats = {
     total: complaints.length,
-    pending: complaints.filter(c => c.status === 'pending').length,
-    inProgress: complaints.filter(c => c.status === 'in_progress').length,
-    resolved: complaints.filter(c => c.status === 'resolved').length,
-    rejected: complaints.filter(c => c.status === 'rejected').length,
+    pending: complaints.filter(c => c.status?.toLowerCase() === 'pending').length,
+    inProgress: complaints.filter(c => c.status?.toLowerCase() === 'in_progress').length,
+    resolved: complaints.filter(c => c.status?.toLowerCase() === 'resolved').length,
+    rejected: complaints.filter(c => c.status?.toLowerCase() === 'rejected').length,
     todayComplaints: complaints.filter(c => 
       new Date(c.created_at).toDateString() === new Date().toDateString()).length
   };
@@ -299,10 +194,10 @@ const ComplaintsManagement = () => {
     fetchComplaints();
   }, []);
 
-  // Re-fetch data when filters change
+  // Re-fetch data when status filter changes
   useEffect(() => {
     fetchComplaints();
-  }, [statusFilter, renterFilter]);
+  }, [statusFilter]);
 
   if (loading && complaints.length === 0) {
     return (
@@ -442,7 +337,7 @@ const ComplaintsManagement = () => {
                     <div>
                       <div className="font-medium">{complaint.renter_name}</div>
                       <div className="text-sm text-muted-foreground">
-                        ID: {complaint.renter_id}
+                        {complaint.renter_phone}
                       </div>
                     </div>
                   </TableCell>
@@ -473,7 +368,7 @@ const ComplaintsManagement = () => {
                       >
                         <Eye className='h-4 w-4' />
                       </Button>
-                      {(complaint.status === 'pending' || complaint.status === 'in_progress') && (
+                      {complaint.status?.toLowerCase() === 'pending' && (
                         <Button 
                           variant='ghost' 
                           size='sm'
@@ -544,6 +439,13 @@ const ComplaintsManagement = () => {
                 </div>
               )}
 
+              {complaintDetail.station_name && (
+                <div>
+                  <Label className='text-sm font-medium text-muted-foreground'>Trạm liên quan</Label>
+                  <p className='text-lg'>{complaintDetail.station_name}</p>
+                </div>
+              )}
+
               <div>
                 <Label className='text-sm font-medium text-muted-foreground'>Nội dung khiếu nại</Label>
                 <div className='mt-2 p-4 bg-muted rounded-lg'>
@@ -577,7 +479,7 @@ const ComplaintsManagement = () => {
             <Button variant='outline' onClick={() => setShowDetailDialog(false)}>
               Đóng
             </Button>
-            {selectedComplaint && (selectedComplaint.status === 'pending' || selectedComplaint.status === 'in_progress') && (
+            {selectedComplaint && selectedComplaint.status?.toLowerCase() === 'pending' && (
               <Button onClick={() => {
                 setShowDetailDialog(false);
                 handleResolveComplaint(selectedComplaint);
@@ -623,7 +525,6 @@ const ComplaintsManagement = () => {
                     <SelectValue placeholder='Chọn trạng thái' />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value='in_progress'>Đang xử lý</SelectItem>
                     <SelectItem value='resolved'>Đã giải quyết</SelectItem>
                     <SelectItem value='rejected'>Từ chối</SelectItem>
                   </SelectContent>

@@ -127,6 +127,7 @@ export const API_ENDPOINTS = {
     // Complaint management
     COMPLAINTS: '/api/admin/complaints',
     COMPLAINT_BY_ID: (id) => `/api/admin/complaints/${id}`,
+    COMPLAINT_RESOLVE: '/api/admin/complaint/resolve',
     
     // Dashboard and analytics
     DASHBOARD: '/api/admin/dashboard',
