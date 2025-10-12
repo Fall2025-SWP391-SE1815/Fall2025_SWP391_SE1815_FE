@@ -4,10 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import VehicleStatsCard from './vehicles/VehicleStatsCard';
-import VehicleForm from './vehicles/VehicleForm';
-import VehicleTable from './vehicles/VehicleTable';
-import VehicleDetailDialog from './vehicles/VehicleDetailDialog';
+import VehicleStatsCard from './VehicleStatsCard';
+import VehicleForm from './VehicleForm';
+import VehicleTable from './VehicleTable';
+import VehicleDetailDialog from './VehicleDetailDialog';
 import vehicleService from '@/services/vehicles/vehicleService.js';
 import stationService from '@/services/stations/stationService.js';
 

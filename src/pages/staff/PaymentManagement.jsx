@@ -34,6 +34,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import staffRentalService from '@/services/staff/staffRentalService';
 import {
   CreditCard,
   Banknote,
@@ -61,75 +62,12 @@ const PaymentManagement = () => {
     amount: '',
     method: ''
   });
+  
+  // Filter states
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
 
-  // Mock data for pending payments
-  const mockPendingPayments = [
-    {
-      payment_id: 1,
-      rental_id: 101,
-      renter_name: "Nguyễn Văn Minh",
-      renter_phone: "0909123456",
-      vehicle_license: "29A1-12345",
-      amount: 150000,
-      method: "cash",
-      status: "pending",
-      payment_type: "rental_fee",
-      created_at: "2025-09-23T09:30:00Z",
-      due_date: "2025-09-23T18:00:00Z"
-    },
-    {
-      payment_id: 2,
-      rental_id: 102,
-      renter_name: "Trần Thị Lan",
-      renter_phone: "0912345678",
-      vehicle_license: "29A1-67890",
-      amount: 75000,
-      method: "card",
-      status: "pending",
-      payment_type: "deposit",
-      created_at: "2025-09-23T10:15:00Z",
-      due_date: "2025-09-23T19:00:00Z"
-    },
-    {
-      payment_id: 3,
-      rental_id: 103,
-      renter_name: "Lê Hoàng Nam",
-      renter_phone: "0987654321",
-      vehicle_license: "29A1-11111",
-      amount: 200000,
-      method: "e-wallet",
-      status: "pending",
-      payment_type: "rental_fee",
-      created_at: "2025-09-23T11:45:00Z",
-      due_date: "2025-09-23T20:30:00Z"
-    },
-    {
-      payment_id: 4,
-      rental_id: 104,
-      renter_name: "Phạm Văn Đức",
-      renter_phone: "0901234567",
-      vehicle_license: "29A1-22222",
-      amount: 300000,
-      method: "cash",
-      status: "pending",
-      payment_type: "overtime_fee",
-      created_at: "2025-09-23T13:20:00Z",
-      due_date: "2025-09-23T21:00:00Z"
-    },
-    {
-      payment_id: 5,
-      rental_id: 105,
-      renter_name: "Võ Thị Mai",
-      renter_phone: "0913456789",
-      vehicle_license: "29A1-33333",
-      amount: 120000,
-      method: "card",
-      status: "pending",
-      payment_type: "rental_fee",
-      created_at: "2025-09-23T14:10:00Z",
-      due_date: "2025-09-23T22:00:00Z"
-    }
-  ];
+  // All payment data now comes from real API calls
 
   useEffect(() => {
     fetchPendingPayments();
@@ -138,18 +76,33 @@ const PaymentManagement = () => {
   const fetchPendingPayments = async () => {
     try {
       setLoading(true);
-      // TODO: Replace with actual API call
-      // const response = await apiClient.get('/api/staff/payments/pending');
-      // setPendingPayments(response.data.data);
+      // Call real API to get rentals that need payment processing
+      // We can use status filter to get rentals waiting for payment
+      const response = await staffRentalService.getRentals({ status: 'waiting_for_payment' });
+      console.log('Pending payments response:', response);
       
-      // Using mock data for now
-      setPendingPayments(mockPendingPayments);
+      // Transform rental data to payment format for UI
+      const paymentsData = response?.map(rental => ({
+        payment_id: `PAY-${rental.id}`,
+        rental_id: rental.id,
+        renter_name: rental.renter.fullName,
+        renter_phone: rental.renter.phone,
+        vehicle_license: rental.vehicle.licensePlate,
+        amount: rental.totalCost || rental.depositAmount,
+        method: 'cash', // Default method, can be changed in dialog
+        status: 'pending',
+        payment_type: rental.depositStatus === 'pending' ? 'deposit' : 'rental_fee',
+        created_at: rental.createdAt,
+        due_date: rental.endTime // Use end time as due date
+      })) || [];
+      
+      setPendingPayments(paymentsData);
       
     } catch (error) {
       console.error('Error fetching pending payments:', error);
       toast({
         title: "Lỗi",
-        description: "Không thể tải danh sách thanh toán chưa hoàn tất",
+        description: error.message || "Không thể tải danh sách thanh toán chưa hoàn tất",
         variant: "destructive",
       });
     } finally {
@@ -189,29 +142,16 @@ const PaymentManagement = () => {
 
       setLoading(true);
       
-      // TODO: Replace with actual API call
-      // const response = await apiClient.post(`/api/staff/rentals/${selectedPayment.rental_id}/payment`, {
-      //   amount: amount,
-      //   method: paymentForm.method
-      // });
-      
-      // Mock success response
-      const mockResponse = {
-        success: true,
-        message: "Thanh toán đã được ghi nhận.",
-        data: {
-          payment_id: Date.now(),
-          rental_id: selectedPayment.rental_id,
-          amount: amount,
-          method: paymentForm.method,
-          status: "completed",
-          created_at: new Date().toISOString()
-        }
-      };
+      // Call real API to process payment
+      const response = await staffRentalService.processPayment(selectedPayment.rental_id, {
+        amount: amount,
+        method: paymentForm.method,
+        payment_type: selectedPayment.payment_type
+      });
 
       toast({
         title: "Thành công",
-        description: mockResponse.message,
+        description: "Thanh toán đã được ghi nhận thành công",
       });
 
       setPaymentDialogOpen(false);
@@ -307,6 +247,19 @@ const PaymentManagement = () => {
     return pendingPayments.filter(p => p.method === method).length;
   };
 
+  // Filter payments based on search and status
+  const filteredPayments = pendingPayments.filter(payment => {
+    const matchesSearch = !searchTerm || 
+      payment.renter_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      payment.renter_phone.includes(searchTerm) ||
+      payment.vehicle_license.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      payment.rental_id.toString().includes(searchTerm);
+    
+    const matchesStatus = statusFilter === 'all' || payment.status === statusFilter;
+    
+    return matchesSearch && matchesStatus;
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -316,10 +269,20 @@ const PaymentManagement = () => {
             Ghi nhận thanh toán trực tiếp từ khách hàng (tiền mặt, thẻ, ví điện tử)
           </p>
         </div>
-        <Button onClick={fetchPendingPayments} disabled={loading}>
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Làm mới
-        </Button>
+        <div className="flex gap-2">
+          <div className="relative">
+            <Input
+              placeholder="Tìm kiếm tên, SĐT, biển số..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-64"
+            />
+          </div>
+          <Button onClick={fetchPendingPayments} disabled={loading}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Làm mới
+          </Button>
+        </div>
       </div>
 
       {/* Payment Statistics */}
@@ -382,17 +345,19 @@ const PaymentManagement = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Clock className="h-5 w-5" />
-            Danh sách thanh toán chờ xử lý ({pendingPayments.length})
+            Danh sách thanh toán chờ xử lý ({filteredPayments.length}/{pendingPayments.length})
           </CardTitle>
           <CardDescription>
             Các khoản thanh toán cần được ghi nhận tại trạm
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {pendingPayments.length === 0 ? (
+          {filteredPayments.length === 0 ? (
             <div className="text-center py-8">
               <CheckCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">Không có thanh toán nào chờ xử lý</p>
+              <p className="text-muted-foreground">
+                {searchTerm ? 'Không tìm thấy thanh toán nào phù hợp' : 'Không có thanh toán nào chờ xử lý'}
+              </p>
             </div>
           ) : (
             <Table>
@@ -407,7 +372,7 @@ const PaymentManagement = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {pendingPayments.map((payment) => (
+                {filteredPayments.map((payment) => (
                   <TableRow key={payment.payment_id} className={isOverdue(payment.due_date) ? 'bg-red-50' : ''}>
                     <TableCell>
                       <div className="flex flex-col space-y-1">

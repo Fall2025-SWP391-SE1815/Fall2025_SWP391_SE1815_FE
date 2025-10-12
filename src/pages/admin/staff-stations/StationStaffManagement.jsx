@@ -5,10 +5,10 @@ import staffStationService from '@/services/staffStations/staffStationService.js
 import userService from '@/services/users/userService.js';
 import stationService from '@/services/stations/stationService.js';
 import { useToast } from '@/hooks/use-toast';
-import StationStaffStatsCard from './staff-stations/StationStaffStatsCard';
-import StationStaffTable from './staff-stations/StationStaffTable';
-import StationStaffForm from './staff-stations/StationStaffForm';
-import StationStaffDetailDialog from './staff-stations/StationStaffDetailDialog';
+import StationStaffStatsCard from './StationStaffStatsCard';
+import StationStaffTable from './StationStaffTable';
+import StationStaffForm from './StationStaffForm';
+import StationStaffDetailDialog from './StationStaffDetailDialog';
 
 const StationStaffManagement = () => {
   const [assignments, setAssignments] = useState([]);

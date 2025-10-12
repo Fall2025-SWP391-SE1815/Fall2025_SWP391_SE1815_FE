@@ -4,10 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import StationStatsCard from './stations/StationStatsCard';
-import StationForm from './stations/StationForm';
-import StationTable from './stations/StationTable';
-import StationDetailDialog from './stations/StationDetailDialog';
+import StationStatsCard from './StationStatsCard';
+import StationForm from './StationForm';
+import StationTable from './StationTable';
+import StationDetailDialog from './StationDetailDialog';
 import stationService from '@/services/stations/stationService.js';
 
 export default function StationsManagement() {

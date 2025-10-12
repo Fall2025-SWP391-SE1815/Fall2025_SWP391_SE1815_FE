@@ -59,16 +59,27 @@ export const API_ENDPOINTS = {
     RENTALS_PENDING: '/api/staff/rentals/pending',
     RENTALS_RETURNING: '/api/staff/rentals/returning',
     RENTALS_CURRENT: '/api/staff/rentals/current',
+    RENTALS: '/api/staff/rentals',
+    RESERVATIONS: '/api/staff/rentals/reservations',
+    
     RENTAL_PICKUP_CHECK: (id) => `/api/staff/rentals/${id}/pickup-check`,
     RENTAL_RETURN_CHECK: (id) => `/api/staff/rentals/${id}/return-check`,
-    RENTAL_CONFIRM_PICKUP: (id) => `/api/staff/rentals/${id}/confirm-pickup`,
-    RENTAL_CONFIRM_RETURN: (id) => `/api/staff/rentals/${id}/confirm-return`,
+    RENTAL_CONFIRM_PICKUP: '/api/staff/rentals/confirm-pickup',
+    RENTAL_CONFIRM_RETURN: '/api/staff/rentals/confirm-return',
     RENTAL_PAYMENT: (id) => `/api/staff/rentals/${id}/payment`,
+    RENTAL_BILL: (id) => `/api/staff/rentals/${id}/bill`,
+    RENTAL_RETURN_DEPOSIT: (id) => `/api/staff/rentals/${id}/return-deposit`,
+    RENTAL_HOLD_DEPOSIT: (id) => `/api/staff/rentals/${id}/hold-deposit`,
+    RENTAL_CANCEL: (id) => `/api/staff/rentals/${id}/cancel`,
+    RENTAL_CHECK_IN: '/api/staff/rentals/check-in',
+    RENTAL_ADD_VIOLATION: '/api/staff/rentals/add-violation',
+    RENTAL_VIOLATIONS: (id) => `/api/staff/rentals/${id}/violations`,
     
     // Document verification
     VERIFY_DOCUMENTS: (id) => `/api/staff/renters/${id}/verify-documents`,
     RENTER_DOCUMENTS: (id) => `/api/staff/renters/${id}/documents`,
     RENTER_DOCUMENTS_BY_STAFF: (renterId) => `/api/staff/renter-document/${renterId}`,
+    RENTER_DOCUMENT_VERIFY: (documentId) => `/api/staff/renter-document/verify/${documentId}`,
     
     // Payment management
     PAYMENTS_PENDING: '/api/staff/payments/pending',
@@ -81,7 +92,8 @@ export const API_ENDPOINTS = {
     
     // Violations and incidents
     VIOLATIONS: '/api/staff/violations',
-    INCIDENTS: '/api/staff/incidents'
+    INCIDENTS: '/api/staff/incidents',
+    INCIDENT_REPORT: '/api/staff/incident-report'
   },
 
   // Admin endpoints

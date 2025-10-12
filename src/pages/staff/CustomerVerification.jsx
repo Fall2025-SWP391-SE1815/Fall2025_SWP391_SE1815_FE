@@ -27,6 +27,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import staffRentalService from '@/services/staff/staffRentalService';
 import {
   FileText,
   Shield,
@@ -38,295 +39,186 @@ import {
   User,
   CreditCard,
   Car,
-  RefreshCw,
   AlertTriangle,
-  Calendar,
   Image
 } from 'lucide-react';
 
 const CustomerVerification = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [customers, setCustomers] = useState([]);
+  const [renterIdSearch, setRenterIdSearch] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [customerDocuments, setCustomerDocuments] = useState([]);
   const [documentsDialogOpen, setDocumentsDialogOpen] = useState(false);
   const [viewImageDialogOpen, setViewImageDialogOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
 
-  // Mock data for customers needing verification
-  const mockCustomers = [
-    {
-      id: 1,
-      full_name: "Nguyễn Văn Minh",
-      phone: "0909123456",
-      email: "minh.nguyen@email.com",
-      registration_date: "2025-09-20T10:30:00Z",
-      verification_status: "pending",
-      total_documents: 2,
-      verified_documents: 0
-    },
-    {
-      id: 2,
-      full_name: "Trần Thị Lan",
-      phone: "0912345678",
-      email: "lan.tran@email.com",
-      registration_date: "2025-09-21T14:15:00Z",
-      verification_status: "partial",
-      total_documents: 2,
-      verified_documents: 1
-    },
-    {
-      id: 3,
-      full_name: "Lê Hoàng Nam",
-      phone: "0987654321",
-      email: "nam.le@email.com",
-      registration_date: "2025-09-22T09:45:00Z",
-      verification_status: "pending",
-      total_documents: 3,
-      verified_documents: 0
-    },
-    {
-      id: 4,
-      full_name: "Phạm Văn Đức",
-      phone: "0901234567",
-      email: "duc.pham@email.com",
-      registration_date: "2025-09-18T16:20:00Z",
-      verification_status: "verified",
-      total_documents: 2,
-      verified_documents: 2
-    },
-    {
-      id: 5,
-      full_name: "Võ Thị Mai",
-      phone: "0913456789",
-      email: "mai.vo@email.com",
-      registration_date: "2025-09-19T11:10:00Z",
-      verification_status: "partial",
-      total_documents: 3,
-      verified_documents: 2
-    }
-  ];
+  // All data now comes from real API calls
 
-  // Mock documents data
-  const mockDocuments = {
-    1: [
-      {
-        id: 101,
-        type: "CCCD",
-        document_number: "024123456789",
-        document_url: "https://example.com/cccd1.jpg",
-        verified: false,
-        verified_by: null,
-        upload_date: "2025-09-20T10:35:00Z"
-      },
-      {
-        id: 102,
-        type: "GPLX",
-        document_number: "B124567890",
-        document_url: "https://example.com/gplx1.jpg",
-        verified: false,
-        verified_by: null,
-        upload_date: "2025-09-20T10:40:00Z"
+  // No useEffect needed since we only use API calls on demand
+
+  // Function to refresh documents without showing toast/dialog (for after verification)
+  const refreshDocuments = async (renterId) => {
+    try {
+      const documentsData = await staffRentalService.getRenterDocuments(renterId);
+      
+      if (documentsData && Array.isArray(documentsData) && documentsData.length > 0) {
+        // Update customer verification status based on verified field
+        const verifiedCount = documentsData.filter(doc => doc.verified).length;
+        const totalCount = documentsData.length;
+        
+        let verificationStatus;
+        if (verifiedCount === 0) {
+          verificationStatus = 'pending'; // Chưa xác thực tài liệu nào
+        } else if (verifiedCount === totalCount) {
+          verificationStatus = 'verified'; // Đã xác thực tất cả
+        } else {
+          verificationStatus = 'partial'; // Xác thực một phần
+        }
+
+        const tempCustomer = {
+          ...selectedCustomer,
+          verification_status: verificationStatus,
+          verified_documents: verifiedCount,
+          total_documents: totalCount
+        };
+        
+        setSelectedCustomer(tempCustomer);
+        
+        // Transform documents to component format
+        const documents = documentsData.map(doc => ({
+          id: doc.id,
+          type: doc.type,
+          document_number: doc.documentNumber,
+          document_url: doc.documentUrl,
+          verified: doc.verified,
+          verified_by: doc.verifiedBy?.id || null,
+          upload_date: doc.createdAt
+        }));
+        
+        setCustomerDocuments(documents);
       }
-    ],
-    2: [
-      {
-        id: 103,
-        type: "CCCD",
-        document_number: "024987654321",
-        document_url: "https://example.com/cccd2.jpg",
-        verified: true,
-        verified_by: 1,
-        upload_date: "2025-09-21T14:20:00Z"
-      },
-      {
-        id: 104,
-        type: "GPLX",
-        document_number: "A234567890",
-        document_url: "https://example.com/gplx2.jpg",
-        verified: false,
-        verified_by: null,
-        upload_date: "2025-09-21T14:25:00Z"
-      }
-    ],
-    3: [
-      {
-        id: 105,
-        type: "CCCD",
-        document_number: "024555666777",
-        document_url: "https://example.com/cccd3.jpg",
-        verified: false,
-        verified_by: null,
-        upload_date: "2025-09-22T09:50:00Z"
-      },
-      {
-        id: 106,
-        type: "GPLX",
-        document_number: "B345678901",
-        document_url: "https://example.com/gplx3.jpg",
-        verified: false,
-        verified_by: null,
-        upload_date: "2025-09-22T09:55:00Z"
-      },
-      {
-        id: 107,
-        type: "Passport",
-        document_number: "P123456789",
-        document_url: "https://example.com/passport3.jpg",
-        verified: false,
-        verified_by: null,
-        upload_date: "2025-09-22T10:00:00Z"
-      }
-    ],
-    4: [
-      {
-        id: 108,
-        type: "CCCD",
-        document_number: "024111222333",
-        document_url: "https://example.com/cccd4.jpg",
-        verified: true,
-        verified_by: 1,
-        upload_date: "2025-09-18T16:25:00Z"
-      },
-      {
-        id: 109,
-        type: "GPLX",
-        document_number: "A456789012",
-        document_url: "https://example.com/gplx4.jpg",
-        verified: true,
-        verified_by: 1,
-        upload_date: "2025-09-18T16:30:00Z"
-      }
-    ],
-    5: [
-      {
-        id: 110,
-        type: "CCCD",
-        document_number: "024444555666",
-        document_url: "https://example.com/cccd5.jpg",
-        verified: true,
-        verified_by: 1,
-        upload_date: "2025-09-19T11:15:00Z"
-      },
-      {
-        id: 111,
-        type: "GPLX",
-        document_number: "B567890123",
-        document_url: "https://example.com/gplx5.jpg",
-        verified: true,
-        verified_by: 1,
-        upload_date: "2025-09-19T11:20:00Z"
-      },
-      {
-        id: 112,
-        type: "Passport",
-        document_number: "P987654321",
-        document_url: "https://example.com/passport5.jpg",
-        verified: false,
-        verified_by: null,
-        upload_date: "2025-09-19T11:25:00Z"
-      }
-    ]
+    } catch (error) {
+      console.error('Error refreshing documents:', error);
+    }
   };
 
-  useEffect(() => {
-    fetchCustomers();
-  }, []);
-
-  const fetchCustomers = async () => {
-    try {
-      setLoading(true);
-      // TODO: Replace with actual API call
-      // const response = await apiClient.get('/api/staff/customers/verification-pending');
-      
-      // Using mock data for now
-      setCustomers(mockCustomers);
-      
-    } catch (error) {
-      console.error('Error fetching customers:', error);
+  const handleSearchByRenterId = async (renterId) => {
+    if (!renterId) {
       toast({
         title: "Lỗi",
-        description: "Không thể tải danh sách khách hàng",
+        description: "Vui lòng nhập Renter ID",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      // Call API to get documents for this specific renter
+      const documentsData = await staffRentalService.getRenterDocuments(renterId);
+      
+      if (documentsData && Array.isArray(documentsData) && documentsData.length > 0) {
+        // Create a temporary customer object from the first document's user info
+        const firstDoc = documentsData[0];
+        const verifiedCount = documentsData.filter(doc => doc.verified).length;
+        const totalCount = documentsData.length;
+        
+        let verificationStatus;
+        if (verifiedCount === 0) {
+          verificationStatus = 'pending'; // Chưa xác thực tài liệu nào
+        } else if (verifiedCount === totalCount) {
+          verificationStatus = 'verified'; // Đã xác thực tất cả
+        } else {
+          verificationStatus = 'partial'; // Xác thực một phần
+        }
+
+        const tempCustomer = {
+          id: firstDoc.user.id,
+          full_name: firstDoc.user.fullName,
+          phone: firstDoc.user.phone,
+          email: firstDoc.user.email,
+          registration_date: firstDoc.user.createdAt || new Date().toISOString(),
+          verification_status: verificationStatus,
+          total_documents: totalCount,
+          verified_documents: verifiedCount
+        };
+        
+        setSelectedCustomer(tempCustomer);
+        
+        // Transform documents to component format
+        const documents = documentsData.map(doc => ({
+          id: doc.id,
+          type: doc.type,
+          document_number: doc.documentNumber,
+          document_url: doc.documentUrl,
+          verified: doc.verified,
+          verified_by: doc.verifiedBy?.id || null,
+          upload_date: doc.createdAt
+        }));
+        
+        setCustomerDocuments(documents);
+        setDocumentsDialogOpen(true);
+        
+        toast({
+          title: "Thành công",
+          description: `Tìm thấy ${documents.length} tài liệu của ${tempCustomer.full_name}`,
+        });
+      } else {
+        console.log('No documents found or invalid response:', documentsData);
+        toast({
+          title: "Không tìm thấy",
+          description: "Không tìm thấy tài liệu nào cho Renter ID này",
+          variant: "destructive",
+        });
+      }
+      
+    } catch (error) {
+      console.error('Error searching by renter ID:', error);
+      toast({
+        title: "Lỗi", 
+        description: error.message || "Không thể tìm kiếm tài liệu",
         variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
-  };
-
-  const fetchCustomerDocuments = async (customerId) => {
-    try {
-      setLoading(true);
-      // TODO: Replace with actual API call
-      // const response = await apiClient.get(`/api/staff/renters/${customerId}/documents`);
-      // setCustomerDocuments(response.data.documents);
-      
-      // Using mock data for now
-      const documents = mockDocuments[customerId] || [];
-      setCustomerDocuments(documents);
-      
-    } catch (error) {
-      console.error('Error fetching customer documents:', error);
-      toast({
-        title: "Lỗi",
-        description: "Không thể tải tài liệu khách hàng",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleViewDocuments = async (customer) => {
-    setSelectedCustomer(customer);
-    await fetchCustomerDocuments(customer.id);
-    setDocumentsDialogOpen(true);
   };
 
   const verifyDocument = async (documentId, verified) => {
     try {
       setLoading(true);
       
-      // TODO: Replace with actual API call
-      // const response = await apiClient.post(`/api/staff/renters/${selectedCustomer.id}/verify-documents`, {
-      //   document_id: documentId,
-      //   verified: verified
-      // });
+      // Call real API to verify document
+      // Only send PUT request if verified is true (staff confirms verification)
+      if (verified) {
+        const response = await staffRentalService.verifyDocument(documentId);
+        
+        toast({
+          title: "Xác thực thành công",
+          description: `Tài liệu ${response.type || 'CMND'} đã được xác thực thành công`,
+          variant: "default",
+        });
+        
+        // Documents already refreshed above
+      } else {
+        // For "Từ chối", we don't call API since there's no "reject" endpoint
+        // Just show a message to user
+        toast({
+          title: "Từ chối tài liệu",
+          description: "Tài liệu không được xác thực. Vui lòng liên hệ khách hàng để cung cấp tài liệu hợp lệ.",
+          variant: "destructive",
+        });
+      }
       
-      // Mock success response
-      const mockResponse = {
-        success: true,
-        message: "Tài liệu đã được xác thực.",
-        data: {
-          document_id: documentId,
-          user_id: selectedCustomer.id,
-          type: "CCCD", // This would come from the actual document
-          document_number: "024123456789",
-          document_url: "https://example.com/document.jpg",
-          verified: verified,
-          verified_by: 1 // Current staff ID
-        }
-      };
-
-      toast({
-        title: verified ? "Xác thực thành công" : "Từ chối tài liệu",
-        description: mockResponse.message,
-        variant: verified ? "default" : "destructive",
-      });
-
-      // Refresh documents
-      await fetchCustomerDocuments(selectedCustomer.id);
-      
-      // Refresh customers list to update verification status
-      fetchCustomers();
+      // Keep dialog open to see updated status
       
     } catch (error) {
       console.error('Error verifying document:', error);
       toast({
         title: "Lỗi",
-        description: "Không thể xác thực tài liệu",
+        description: error.message || "Không thể xác thực tài liệu",
         variant: "destructive",
       });
     } finally {
@@ -345,9 +237,9 @@ const CustomerVerification = () => {
 
   const getVerificationStatusBadge = (status) => {
     const statusConfig = {
-      pending: { label: 'Chờ xác thực', variant: 'destructive', icon: AlertTriangle },
-      partial: { label: 'Một phần', variant: 'outline', icon: Shield },
-      verified: { label: 'Đã xác thực', variant: 'default', icon: ShieldCheck }
+      pending: { label: 'Chưa xác thực', variant: 'destructive', icon: AlertTriangle },
+      partial: { label: 'Xác thực một phần', variant: 'secondary', icon: Shield },
+      verified: { label: 'Đã xác thực hoàn tất', variant: 'default', icon: ShieldCheck }
     };
     
     const config = statusConfig[status] || { label: status, variant: 'outline', icon: AlertTriangle };
@@ -364,6 +256,7 @@ const CustomerVerification = () => {
   const getDocumentTypeBadge = (type) => {
     const typeConfig = {
       CCCD: { label: 'CCCD', variant: 'default', icon: CreditCard },
+      CMND: { label: 'CMND', variant: 'default', icon: CreditCard },
       GPLX: { label: 'GPLX', variant: 'secondary', icon: Car },
       Passport: { label: 'Hộ chiếu', variant: 'outline', icon: FileText }
     };
@@ -389,133 +282,65 @@ const CustomerVerification = () => {
     });
   };
 
-  const filteredCustomers = customers.filter(customer =>
-    customer.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.phone.includes(searchTerm) ||
-    customer.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Xác thực khách hàng</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Xác thực tài liệu khách hàng</h1>
           <p className="text-muted-foreground">
-            Xem và xác thực tài liệu CCCD/GPLX của khách hàng
+            Tìm kiếm và xác thực tài liệu CCCD/CMND/GPLX của khách hàng theo ID
           </p>
         </div>
-        <Button onClick={fetchCustomers} disabled={loading}>
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Làm mới
-        </Button>
       </div>
 
-      {/* Search Bar */}
+      {/* Search by Renter ID */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Search className="h-5 w-5" />
-            Tìm kiếm khách hàng
+            Tìm kiếm tài liệu theo Renter ID
           </CardTitle>
+          <CardDescription>
+            Nhập ID của renter để xem tài liệu cần xác thực
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex gap-4">
             <div className="flex-1">
               <Input
-                placeholder="Tìm theo tên, số điện thoại hoặc email..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Nhập Renter ID (ví dụ: 2)"
+                value={renterIdSearch}
+                onChange={(e) => setRenterIdSearch(e.target.value)}
+                type="number"
                 className="w-full"
               />
             </div>
+            <Button 
+              onClick={() => handleSearchByRenterId(renterIdSearch)}
+              disabled={loading || !renterIdSearch}
+            >
+              <Search className="h-4 w-4 mr-2" />
+              Tìm kiếm
+            </Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* Customers List */}
+      {/* Instructions */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
-            Danh sách khách hàng ({filteredCustomers.length})
+            <FileText className="h-5 w-5" />
+            Hướng dẫn sử dụng
           </CardTitle>
-          <CardDescription>
-            Khách hàng cần xác thực tài liệu hoặc đã hoàn thành xác thực
-          </CardDescription>
         </CardHeader>
         <CardContent>
-          {filteredCustomers.length === 0 ? (
-            <div className="text-center py-8">
-              <User className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">
-                {searchTerm ? 'Không tìm thấy khách hàng phù hợp' : 'Không có khách hàng nào'}
-              </p>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Thông tin khách hàng</TableHead>
-                  <TableHead>Ngày đăng ký</TableHead>
-                  <TableHead>Tài liệu</TableHead>
-                  <TableHead>Trạng thái</TableHead>
-                  <TableHead>Thao tác</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredCustomers.map((customer) => (
-                  <TableRow key={customer.id}>
-                    <TableCell>
-                      <div className="flex flex-col space-y-1">
-                        <div className="font-medium flex items-center gap-2">
-                          <User className="h-4 w-4" />
-                          {customer.full_name}
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {customer.phone}
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {customer.email}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4" />
-                        <span className="text-sm">
-                          {formatDateTime(customer.registration_date)}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col space-y-1">
-                        <div className="text-sm">
-                          Tổng: {customer.total_documents} tài liệu
-                        </div>
-                        <div className="text-sm text-green-600">
-                          Đã xác thực: {customer.verified_documents}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {getVerificationStatusBadge(customer.verification_status)}
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleViewDocuments(customer)}
-                        className="w-full"
-                      >
-                        <Eye className="h-4 w-4 mr-2" />
-                        Xem tài liệu
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
+          <div className="space-y-2 text-sm text-muted-foreground">
+            <p>• Nhập Renter ID vào ô tìm kiếm phía trên</p>
+            <p>• Nhấn "Tìm kiếm" để xem tài liệu của khách hàng</p>
+            <p>• Xem và xác thực từng tài liệu một cách cẩn thận</p>
+            <p>• Chỉ nhấn "Xác thực" khi tài liệu hợp lệ và chính xác</p>
+          </div>
         </CardContent>
       </Card>
 

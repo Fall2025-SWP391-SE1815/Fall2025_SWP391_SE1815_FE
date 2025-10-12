@@ -8,10 +8,10 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Plus, Search, Filter } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import userService from '@/services/users/userService.js';
-import PersonnelStatsCard from './personnel/PersonnelStatsCard';
-import PersonnelTable from './personnel/PersonnelTable';
-import PersonnelForm from './personnel/PersonnelForm';
-import PersonnelDetailDialog from './personnel/PersonnelDetailDialog';
+import PersonnelStatsCard from './PersonnelStatsCard';
+import PersonnelTable from './PersonnelTable';
+import PersonnelForm from './PersonnelForm';
+import PersonnelDetailDialog from './PersonnelDetailDialog';
 
 export default function PersonnelManagement() {
   const [users, setUsers] = useState([]);
