@@ -21,14 +21,14 @@ export const API_ENDPOINTS = {
     DOCUMENTS: '/api/renter/documents',
     DOCUMENT_BY_ID: (id) => `/api/renter/documents/${id}`,
     
-    // Station and vehicle discovery
-    STATIONS: '/api/renter/stations',
-    VEHICLES: '/api/renter/vehicles',
+    // Station and vehicle discovery  
+    STATIONS: '/api/renter/booking/stations',
+    VEHICLES: '/api/renter/booking/vehicles',
     
-    // Reservations
-    RESERVATIONS: '/api/renter/reservations',
-    RESERVATION_BY_ID: (id) => `/api/renter/reservations/${id}`,
-    RESERVATION_CANCEL: (id) => `/api/renter/reservations/${id}/cancel`,
+    // Booking/Reservations
+    RESERVATIONS: '/api/renter/booking/reservations',
+    RESERVATION_BY_ID: (id) => `/api/renter/booking/reservations/${id}`,
+    RESERVATION_CANCEL: (id) => `/api/renter/booking/reservations/${id}/cancel`,
     
     // Rentals
     RENTALS: '/api/renter/rentals',
@@ -45,12 +45,11 @@ export const API_ENDPOINTS = {
     PAYMENT_BY_ID: (id) => `/api/renter/payments/${id}`,
     
     // Ratings and feedback
-    RATINGS: '/api/renter/ratings',
-    STAFF_RATINGS: '/api/renter/staff-ratings',
+    RATING_TRIP: '/api/renter/rating/trip',
+    RATING_STAFF: '/api/renter/rating/staff',
     
     // Support
-    COMPLAINTS: '/api/renter/complaints',
-    COMPLAINT_BY_ID: (id) => `/api/renter/complaints/${id}`,
+    COMPLAINT: '/api/renter/complaint',
     INCIDENTS: '/api/renter/incidents'
   },
 

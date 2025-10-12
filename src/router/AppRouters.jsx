@@ -30,16 +30,13 @@ import RentalPage from "../pages/renter/RentalPage.jsx";
 import HistoryPage from "../pages/renter/HistoryPage.jsx";
 import PaymentPage from "../pages/renter/PaymentPage.jsx";
 import ProfilePage from "../pages/renter/ProfilePage.jsx";
-import ReservationsPage from "../pages/renter/ReservationsPage.jsx";
-import StationsPage from "../pages/renter/StationsPage.jsx";
-import VehiclesPage from "../pages/renter/VehiclesPage.jsx";
+import ReservationsPage from "../pages/renter/booking/ReservationsPage.jsx";
+import StationsPage from "../pages/renter/booking/StationsPage.jsx";
+import VehiclesPage from "../pages/renter/booking/VehiclesPage.jsx";
 import ComplaintsPage from "../pages/renter/ComplaintsPage.jsx";
 import IncidentsPage from "../pages/renter/IncidentsPage.jsx";
-import AnalyticsPage from "../pages/renter/AnalyticsPage.jsx";
-import DocumentsPage from "../pages/renter/DocumentsPage.jsx";
 
 // New Rental Workflow Components
-import RentalCheckinPage from "../pages/renter/RentalCheckinPage.jsx";
 import RentalCurrentPage from "../pages/renter/RentalCurrentPage.jsx";
 import RentalChecksPage from "../pages/renter/RentalChecksPage.jsx";
 import RentalReturnPage from "../pages/renter/RentalReturnPage.jsx";
@@ -68,19 +65,19 @@ export const paths = {
   home: "/",
   login: "/login",
   register: "/register",
-  
+
   // Admin routes
   admin: {
     dashboard: "/admin",
     stations: "stations",
-    vehicles: "vehicles", 
+    vehicles: "vehicles",
     personnel: "personnel",
     stationStaff: "station-staff",
     monitoring: "monitoring",
     complaints: "complaints",
     reports: "reports"
   },
-  
+
   // Renter routes
   renter: {
     dashboard: "/dashboard",
@@ -91,10 +88,8 @@ export const paths = {
     history: "history",
     locations: "locations",
     payments: "payments",
-    documents: "documents",
     complaints: "complaints",
     incidents: "incidents",
-    analytics: "analytics",
     // New rental workflow routes
     rental: {
       checkin: "/rentals/checkin",
@@ -105,16 +100,16 @@ export const paths = {
       summary: "/rentals/:id/summary"
     }
   },
-  
+
   // Staff routes  
   staff: {
     dashboard: "/staff",
     rentalManagement: "rental-management",
-    customerVerification: "customer-verification", 
+    customerVerification: "customer-verification",
     paymentManagement: "payment-management",
     stationManagement: "station-management"
   },
-  
+
   notFound: "*",
 };
 
@@ -142,7 +137,7 @@ const router = createBrowserRouter([
       { index: true, element: <Home /> }
     ],
   },
-  
+
   // Auth routes (public)
   {
     path: "/login",
@@ -153,14 +148,14 @@ const router = createBrowserRouter([
     ),
   },
   {
-    path: "/register", 
+    path: "/register",
     element: (
       <PublicRoute>
         <RegisterPage />
       </PublicRoute>
     ),
   },
-  
+
   // Admin routes
   {
     path: "/admin",
@@ -180,7 +175,7 @@ const router = createBrowserRouter([
       { path: "reports", element: <ReportsAndStatistics /> },
     ],
   },
-  
+
   // Staff routes
   {
     path: "/staff",
@@ -197,7 +192,7 @@ const router = createBrowserRouter([
       { path: "station-management", element: <StationManagement /> },
     ],
   },
-  
+
   // Renter protected pages (using MainLayout for consistency)
   {
     path: "/profile",
@@ -310,18 +305,7 @@ const router = createBrowserRouter([
     ]
   },
   {
-    path: "/documents",
-    element: (
-      <ProtectedRoute requiredRole="renter">
-        <MainLayout />
-      </ProtectedRoute>
-    ),
-    children: [
-      { index: true, element: <DocumentsPage /> }
-    ]
-  },
-  {
-    path: "/complaints", 
+    path: "/complaints",
     element: (
       <ProtectedRoute requiredRole="renter">
         <MainLayout />
@@ -342,17 +326,6 @@ const router = createBrowserRouter([
       { index: true, element: <IncidentsPage /> }
     ]
   },
-  {
-    path: "/analytics",
-    element: (
-      <ProtectedRoute requiredRole="renter">
-        <MainLayout />
-      </ProtectedRoute>
-    ),
-    children: [
-      { index: true, element: <AnalyticsPage /> }
-    ]
-  },
 
   // Rental Workflow Routes (alternative paths for compatibility)
   {
@@ -363,7 +336,6 @@ const router = createBrowserRouter([
       </ProtectedRoute>
     ),
     children: [
-      { path: "checkin", element: <RentalCheckinPage /> },
       { path: "current", element: <RentalCurrentPage /> },
       { path: "checks", element: <RentalChecksPage /> },
       { path: "checks/:id", element: <RentalChecksPage /> },
@@ -372,7 +344,7 @@ const router = createBrowserRouter([
       { path: "summary", element: <RentalSummaryPage /> }
     ]
   },
-  
+
   // Not found
   { path: "*", element: <NotFoundPage /> },
 ]);

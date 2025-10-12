@@ -1,4 +1,3 @@
-// Reservations Page - Booking management for viewing, modifying, canceling reservations
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -46,11 +45,11 @@ const ReservationsPage = () => {
 
   // Create booking form
   const [createForm, setCreateForm] = useState({
-    id: '',
-    type: '',
+    vehicle_id: '',
+    vehicle_type: '',
     station_id: '',
-    resreservedStartTime: '',
-    reservedEndTime: ''
+    reserved_start_time: '',
+    reserved_end_time: ''
   });
   const [stations, setStations] = useState([]);
   const [vehicles, setVehicles] = useState([]);
@@ -78,19 +77,21 @@ const ReservationsPage = () => {
       // Find the selected vehicle to get its type
       const selectedVehicle = vehicles.find(v => v.id === parseInt(vehicleId));
 
-      // Pre-fill form with vehicle selection
-      setCreateForm(prev => ({
-        ...prev,
-        vehicle_id: vehicleId,
-        station_id: stationId,
-        vehicle_type: selectedVehicle ? selectedVehicle.type : ''
-      }));
+      if (selectedVehicle) {
+        // Pre-fill form with vehicle selection
+        setCreateForm(prev => ({
+          ...prev,
+          vehicle_id: vehicleId,
+          station_id: stationId,
+          vehicle_type: selectedVehicle.type?.toLowerCase() || ''
+        }));
 
-      // Auto-open create modal
-      setShowCreateModal(true);
+        // Auto-open create modal
+        setShowCreateModal(true);
 
-      // Clear query parameters from URL after processing
-      navigate('/reservations', { replace: true });
+        // Clear query parameters from URL after processing
+        navigate('/reservations', { replace: true });
+      }
     }
   }, [searchParams, navigate, vehicles]); // Add vehicles dependency
 
@@ -274,8 +275,13 @@ const ReservationsPage = () => {
   };
 
   const getAvailableVehicles = () => {
-    if (!createForm.stationid) return [];
-    return vehicles.filter(v => v.station_id === parseInt(createForm.stationid));
+    if (!createForm.station_id) return [];
+    return vehicles.filter(v => v.station_id === parseInt(createForm.station_id));
+  };
+
+  const getSelectedVehicleInfo = () => {
+    if (!createForm.vehicle_id) return null;
+    return vehicles.find(v => v.id === parseInt(createForm.vehicle_id));
   };
 
   const handleViewDetail = async (reservation) => {
@@ -284,18 +290,26 @@ const ReservationsPage = () => {
       const res = await renterService.reservations.getById(reservation.id);
       const r = res?.data || res;
       setReservationDetail(r);
+      
+      // Map API response to normalized format
       const normalized = {
         id: r.id,
-        vehicle_id: r.vehicle?.id || r.vehicleId || null,
-        vehicle_type: (r.vehicle?.type || r.vehicleType || r.vehicle_type || reservation.vehicle_type || '').toLowerCase(),
-        station_id: r.vehicle?.station?.id || r.stationId || r.station_id || reservation.station_id || null,
-        reserved_start_time: r.reservedStartTime || r.reserved_start_time || reservation.reserved_start_time,
-        reserved_end_time: r.reservedEndTime || r.reserved_end_time || reservation.reserved_end_time,
-        status: (r.status || reservation.status || '').toLowerCase(),
-        notes: r.notes || reservation.notes || undefined
+        vehicle_id: r.vehicle?.id,
+        vehicle_type: r.vehicle?.type?.toLowerCase() || '',
+        station_id: r.vehicle?.station?.id,
+        reservedStartTime: r.reservedStartTime,
+        reservedEndTime: r.reservedEndTime,
+        status: r.status?.toLowerCase() || '',
+        createdAt: r.createdAt,
+        cancelledBy: r.cancelledBy,
+        cancelledReason: r.cancelledReason,
+        // Keep vehicle and renter info for display
+        vehicle: r.vehicle,
+        renter: r.renter
       };
       setSelectedReservation(normalized);
     } catch (e) {
+      console.error('Error loading reservation detail:', e);
       // Fallback dùng dữ liệu từ danh sách nếu API lỗi
       setSelectedReservation(reservation);
       setReservationDetail(null);
@@ -362,17 +376,17 @@ const ReservationsPage = () => {
 
   const canEdit = (reservation) => {
     return ['pending', 'confirmed'].includes(reservation.status) &&
-      new Date(reservation.reservedStartTime) > new Date();
+      new Date(reservation.reservedStartTime || reservation.reserved_start_time) > new Date();
   };
 
   const canCancel = (reservation) => {
     return ['pending', 'confirmed'].includes(reservation.status) &&
-      new Date(reservation.reservedStartTime) > new Date();
+      new Date(reservation.reservedStartTime || reservation.reserved_start_time) > new Date();
   };
 
   const canStart = (reservation) => {
     const now = new Date();
-    const startDate = new Date(reservation.reservedStartTime);
+    const startDate = new Date(reservation.reservedStartTime || reservation.reserved_start_time);
     const timeDiff = startDate - now;
     const hoursDiff = timeDiff / (1000 * 60 * 60);
 
@@ -452,7 +466,7 @@ const ReservationsPage = () => {
                 <div>
                   <p className="text-sm font-medium text-gray-600">Sắp tới</p>
                   <p className="text-2xl font-bold text-gray-900">
-                    {reservations.filter(r => new Date(r.start_date) > new Date()).length}
+                    {reservations.filter(r => new Date(r.reservedStartTime || r.reserved_start_time) > new Date()).length}
                   </p>
                 </div>
                 <div className="p-3 bg-green-100 rounded-full">
@@ -642,11 +656,11 @@ const ReservationsPage = () => {
             <DialogHeader>
               <DialogTitle>Chi tiết đặt chỗ</DialogTitle>
               <DialogDescription>
-                Thông tin chi tiết về đặt chỗ #{reservationDetail?.id}
+                Thông tin chi tiết về đặt chỗ #{selectedReservation?.id}
               </DialogDescription>
             </DialogHeader>
 
-            {reservationDetail && (
+            {selectedReservation && (
               <div className="space-y-6">
                 {/* Vehicle Info */}
                 <Card>
@@ -657,27 +671,36 @@ const ReservationsPage = () => {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <p className="text-sm font-medium text-gray-600">Biển số</p>
-                        <p className="font-semibold">{reservationDetail.vehicle?.licensePlate}</p>
+                        <p className="font-semibold">{selectedReservation.vehicle?.licensePlate || 'N/A'}</p>
                       </div>
                       <div>
                         <p className="text-sm font-medium text-gray-600">Loại xe</p>
-                        <p className="font-semibold">{reservationDetail.vehicle?.type === 'MOTORBIKE' ? 'Xe máy' : 'Ô tô'}</p>
+                        <p className="font-semibold">
+                          {selectedReservation.vehicle?.type === 'MOTORBIKE' ? 'Xe máy điện' : 
+                           selectedReservation.vehicle?.type === 'CAR' ? 'Ô tô điện' : 
+                           selectedReservation.vehicle?.type || 'N/A'}
+                        </p>
                       </div>
                       <div>
                         <p className="text-sm font-medium text-gray-600">Hãng/Model</p>
-                        <p className="font-semibold">{reservationDetail.vehicle?.brand} {reservationDetail.vehicle?.model}</p>
+                        <p className="font-semibold">
+                          {selectedReservation.vehicle?.brand} {selectedReservation.vehicle?.model}
+                        </p>
                       </div>
                       <div>
                         <p className="text-sm font-medium text-gray-600">Dung lượng pin</p>
-                        <p className="font-semibold">{reservationDetail.vehicle?.capacity}</p>
+                        <p className="font-semibold">{selectedReservation.vehicle?.capacity || 'N/A'}</p>
                       </div>
                       <div>
                         <p className="text-sm font-medium text-gray-600">Quãng đường/1 lần sạc</p>
-                        <p className="font-semibold">{reservationDetail.vehicle?.rangePerFullCharge}</p>
+                        <p className="font-semibold">{selectedReservation.vehicle?.rangePerFullCharge || 'N/A'} km</p>
                       </div>
                       <div>
                         <p className="text-sm font-medium text-gray-600">Giá/giờ</p>
-                        <p className="font-semibold">{reservationDetail.vehicle?.pricePerHour?.toLocaleString('vi-VN')} ₫</p>
+                        <p className="font-semibold">
+                          {selectedReservation.vehicle?.pricePerHour ? 
+                            `${selectedReservation.vehicle.pricePerHour.toLocaleString('vi-VN')} ₫` : 'N/A'}
+                        </p>
                       </div>
                     </div>
                   </CardContent>
@@ -692,62 +715,83 @@ const ReservationsPage = () => {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <p className="text-sm font-medium text-gray-600">Thời gian nhận</p>
-                        <p className="font-semibold">{formatDate(reservationDetail.reservedStartTime)}</p>
+                        <p className="font-semibold">{formatDate(selectedReservation.reservedStartTime)}</p>
                       </div>
                       <div>
                         <p className="text-sm font-medium text-gray-600">Thời gian trả</p>
-                        <p className="font-semibold">{formatDate(reservationDetail.reservedEndTime)}</p>
+                        <p className="font-semibold">{formatDate(selectedReservation.reservedEndTime)}</p>
                       </div>
                       <div>
                         <p className="text-sm font-medium text-gray-600">Điểm nhận</p>
-                        <p className="font-semibold">{reservationDetail.vehicle?.station?.name}</p>
+                        <p className="font-semibold">{selectedReservation.vehicle?.station?.name || 'N/A'}</p>
                       </div>
                       <div>
                         <p className="text-sm font-medium text-gray-600">Điểm trả</p>
-                        <p className="font-semibold">{reservationDetail.vehicle?.station?.name}</p>
+                        <p className="font-semibold">{selectedReservation.vehicle?.station?.name || 'N/A'}</p>
                       </div>
-                      {reservationDetail && (
-                        <>
-                          <div>
-                            <p className="text-sm font-medium text-gray-600">Trạng thái</p>
-                            <p className="font-semibold">{reservationDetail.status}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-gray-600">Tạo lúc</p>
-                            <p className="font-semibold">{formatDate(reservationDetail.createdAt)}</p>
-                          </div>
-                          {reservationDetail.cancelledBy && (
-                            <div className="col-span-2">
-                              <p className="text-sm font-medium text-gray-600">Hủy bởi</p>
-                              <p className="font-semibold">{reservationDetail.cancelledBy} — {reservationDetail.cancelledReason || 'Không rõ lý do'}</p>
-                            </div>
-                          )}
-                        </>
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Trạng thái</p>
+                        <div className="font-semibold">{getStatusBadge(selectedReservation.status)}</div>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Tạo lúc</p>
+                        <p className="font-semibold">{formatDate(selectedReservation.createdAt)}</p>
+                      </div>
+                      {selectedReservation.cancelledBy && (
+                        <div className="col-span-2">
+                          <p className="text-sm font-medium text-gray-600">Hủy bởi</p>
+                          <p className="font-semibold text-red-600">
+                            {selectedReservation.cancelledBy} 
+                            {selectedReservation.cancelledReason && ` — ${selectedReservation.cancelledReason}`}
+                          </p>
+                        </div>
+                      )}
+                      {selectedReservation.renter && (
+                        <div className="col-span-2">
+                          <p className="text-sm font-medium text-gray-600">Thông tin người đặt</p>
+                          <p className="font-semibold">
+                            {selectedReservation.renter.fullName} - {selectedReservation.renter.phone}
+                          </p>
+                        </div>
                       )}
                     </div>
-
                   </CardContent>
                 </Card>
 
                 {/* Cost Breakdown */}
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg">Chi phí</CardTitle>
+                    <CardTitle className="text-lg">Chi phí dự tính</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span>Phí thuê xe</span>
-                        <span>Chưa tính toán</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Phí dịch vụ</span>
-                        <span>0 ₫</span>
-                      </div>
-                      <div className="border-t pt-2 flex justify-between font-bold text-lg">
-                        <span>Tổng cộng</span>
-                        <span className="text-green-600">Sẽ tính khi thuê xe</span>
-                      </div>
+                      {(() => {
+                        const startTime = new Date(selectedReservation.reservedStartTime);
+                        const endTime = new Date(selectedReservation.reservedEndTime);
+                        const hours = Math.ceil((endTime - startTime) / (1000 * 60 * 60));
+                        const pricePerHour = selectedReservation.vehicle?.pricePerHour || 0;
+                        const totalCost = hours * pricePerHour;
+                        
+                        return (
+                          <>
+                            <div className="flex justify-between">
+                              <span>Giá thuê ({hours} giờ × {pricePerHour.toLocaleString('vi-VN')} ₫/giờ)</span>
+                              <span>{totalCost.toLocaleString('vi-VN')} ₫</span>
+                            </div>
+                            <div className="flex justify-between text-sm text-gray-500">
+                              <span>Phí dịch vụ</span>
+                              <span>0 ₫</span>
+                            </div>
+                            <div className="border-t pt-2 flex justify-between font-bold text-lg">
+                              <span>Tổng cộng (dự tính)</span>
+                              <span className="text-green-600">{totalCost.toLocaleString('vi-VN')} ₫</span>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-2">
+                              * Chi phí thực tế sẽ được tính dựa trên thời gian sử dụng thực tế
+                            </p>
+                          </>
+                        );
+                      })()}
                     </div>
                   </CardContent>
                 </Card>
@@ -770,6 +814,17 @@ const ReservationsPage = () => {
             </DialogHeader>
 
             <div className="space-y-6">
+              {/* Selected Vehicle Info (if pre-selected from VehiclesPage) */}
+              {createForm.vehicle_id && getSelectedVehicleInfo() && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <h4 className="font-medium text-green-800 mb-2">Xe đã chọn:</h4>
+                  <div className="text-sm text-green-700">
+                    <p><strong>Biển số:</strong> {getSelectedVehicleInfo().license_plate}</p>
+                    <p><strong>Loại xe:</strong> {getSelectedVehicleInfo().brand} {getSelectedVehicleInfo().model}</p>
+                  </div>
+                </div>
+              )}
+
               {/* Station Selection */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">

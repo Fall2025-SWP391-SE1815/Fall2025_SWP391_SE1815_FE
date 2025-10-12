@@ -152,6 +152,9 @@ const VehiclesPage = () => {
     // Navigate to booking page with vehicle pre-selected
     const bookingUrl = `/reservations?vehicle_id=${vehicle.id}&station_id=${vehicle.station_id}`;
     window.location.href = bookingUrl;
+    
+    // Show feedback to user
+    toast.success(`Chuyển đến trang đặt chỗ cho xe ${vehicle.license_plate}`);
   };
 
   return (

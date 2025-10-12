@@ -53,9 +53,8 @@ const Header = () => {
     {
       name: 'Nhận xe',
       icon: KeyRound,
-      href: '/rentals/checkin',
+      href: '/rentals/current',
       dropdownItems: [
-        { name: 'Check-in nhận xe', icon: KeyRound, href: '/rentals/checkin' },
         { name: 'Xe đang thuê', icon: Clock, href: '/rentals/current' },
         { name: 'Biên bản giao xe', icon: FileText, href: '/rentals/checks' }
       ]
@@ -91,10 +90,8 @@ const Header = () => {
   ];
 
   const userMenuItems = [
-    { name: 'Tài liệu cá nhân', icon: FileText, href: '/documents' },
     { name: 'Hồ sơ cá nhân', icon: User, href: '/profile' },
     { name: 'Thanh toán', icon: CreditCard, href: '/payments' },
-    { name: 'Phân tích', icon: Settings, href: '/analytics' }
   ];
 
   const handleLogout = async () => {

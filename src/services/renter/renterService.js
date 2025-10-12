@@ -134,27 +134,14 @@ export const renterService = {
 
   // Rating Management
   ratings: {
-    // Gửi đánh giá dịch vụ (xe, trải nghiệm)
-    submit: async (ratingData) => {
-      return await apiClient.post(API_ENDPOINTS.RENTER.RATINGS, ratingData);
+    // Gửi đánh giá chuyến đi (xe, trải nghiệm)
+    submitTrip: async (ratingData) => {
+      return await apiClient.post(API_ENDPOINTS.RENTER.RATING_TRIP, ratingData);
     },
     
-    // Xem đánh giá đã gửi
-    getAll: async (userId) => {
-      return await apiClient.get(API_ENDPOINTS.RENTER.RATINGS, { userId });
-    }
-  },
-
-  // Staff Rating Management
-  staffRatings: {
-    // Gửi đánh giá nhân viên giao/nhận
-    submit: async (ratingData) => {
-      return await apiClient.post(API_ENDPOINTS.RENTER.STAFF_RATINGS, ratingData);
-    },
-    
-    // Xem đánh giá nhân viên đã gửi
-    getAll: async (userId) => {
-      return await apiClient.get(API_ENDPOINTS.RENTER.STAFF_RATINGS, { userId });
+    // Gửi đánh giá nhân viên
+    submitStaff: async (ratingData) => {
+      return await apiClient.post(API_ENDPOINTS.RENTER.RATING_STAFF, ratingData);
     }
   },
 
@@ -162,17 +149,7 @@ export const renterService = {
   complaints: {
     // Gửi khiếu nại
     submit: async (complaintData) => {
-      return await apiClient.post(API_ENDPOINTS.RENTER.COMPLAINTS, complaintData);
-    },
-    
-    // Xem danh sách khiếu nại mình đã gửi
-    getAll: async (userId) => {
-      return await apiClient.get(API_ENDPOINTS.RENTER.COMPLAINTS, { userId });
-    },
-    
-    // Chi tiết khiếu nại
-    getById: async (complaintId) => {
-      return await apiClient.get(API_ENDPOINTS.RENTER.COMPLAINT_BY_ID(complaintId));
+      return await apiClient.post(API_ENDPOINTS.RENTER.COMPLAINT, complaintData);
     }
   },
 
