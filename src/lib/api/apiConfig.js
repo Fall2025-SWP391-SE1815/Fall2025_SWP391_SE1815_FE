@@ -32,6 +32,7 @@ export const API_ENDPOINTS = {
     
     // Rentals
     RENTALS: '/api/renter/rentals',
+    RENTALS_ALL: '/api/renter/rentals/all',
     RENTAL_BY_ID: (id) => `/api/renter/rentals/${id}`,
     RENTAL_CHECKIN: '/api/renter/rentals/checkin',
     RENTAL_CURRENT: '/api/renter/rentals/current',

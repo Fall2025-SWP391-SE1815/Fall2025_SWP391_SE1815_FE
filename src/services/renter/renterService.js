@@ -83,6 +83,11 @@ export const renterService = {
       return await apiClient.post(API_ENDPOINTS.RENTER.RENTAL_CHECKIN, checkInData);
     },
     
+    // Lấy tất cả rental với filter (status, từ ngày, đến ngày)
+    getAll: async (params = {}) => {
+      return await apiClient.get(API_ENDPOINTS.RENTER.RENTALS_ALL, params);
+    },
+    
     // Xem lượt thuê đang hoạt động
     getCurrent: async (userId) => {
       return await apiClient.get(API_ENDPOINTS.RENTER.RENTAL_CURRENT, { userId });

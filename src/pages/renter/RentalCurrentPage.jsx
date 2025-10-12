@@ -25,6 +25,7 @@ import {
   Timer,
   Activity
 } from 'lucide-react';
+import { renterService } from '../../services/renter/renterService';
 
 const RentalCurrentPage = () => {
   const navigate = useNavigate();
@@ -44,36 +45,71 @@ const RentalCurrentPage = () => {
     setError('');
 
     try {
-      // Mock API call to GET /api/renter/rentals/current
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Simulate API response
-      const mockResponse = {
-        rental: {
-          id: 123,
-          vehicle_id: 1,
-          station_pickup_id: 1,
-          start_time: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
-          deposit_amount: 500000,
-          status: 'in_use',
-          // Additional mock data for UI
+      // Call API to get all rentals with status 'in_use'
+      const response = await renterService.rentals.getAll({ status: 'in_use' });
+      
+      // Get the first rental if available (user can have multiple active rentals)
+      const rentals = response.data || response;
+      const currentRental = Array.isArray(rentals) && rentals.length > 0 ? rentals[0] : null;
+      
+      if (currentRental) {
+        // Transform API response to match expected format
+        const transformedRental = {
+          id: currentRental.id,
+          vehicle_id: currentRental.vehicle?.id,
+          station_pickup_id: currentRental.stationPickup?.id,
+          start_time: currentRental.startTime,
+          end_time: currentRental.endTime,
+          deposit_amount: currentRental.depositAmount,
+          total_cost: currentRental.totalCost,
+          status: currentRental.status,
+          rental_type: currentRental.rentalType,
+          deposit_status: currentRental.depositStatus,
           vehicle: {
-            model: 'VinFast Klara S',
-            license_plate: '51F-12345',
-            battery_level: 75
+            id: currentRental.vehicle?.id,
+            model: currentRental.vehicle?.model,
+            brand: currentRental.vehicle?.brand,
+            license_plate: currentRental.vehicle?.licensePlate,
+            type: currentRental.vehicle?.type,
+            battery_level: 75, // API doesn't provide this, using default
+            capacity: currentRental.vehicle?.capacity,
+            range_per_full_charge: currentRental.vehicle?.rangePerFullCharge,
+            price_per_hour: currentRental.vehicle?.pricePerHour
           },
           station_pickup: {
-            name: 'Trạm Quận 1',
-            address: '123 Nguyễn Huệ, Quận 1'
-          }
-        }
-      };
-
-      setCurrentRental(mockResponse.rental);
+            id: currentRental.stationPickup?.id,
+            name: currentRental.stationPickup?.name,
+            address: currentRental.stationPickup?.address,
+            latitude: currentRental.stationPickup?.latitude,
+            longitude: currentRental.stationPickup?.longitude
+          },
+          station_return: currentRental.stationReturn ? {
+            id: currentRental.stationReturn.id,
+            name: currentRental.stationReturn.name,
+            address: currentRental.stationReturn.address
+          } : null,
+          staff_pickup: currentRental.staffPickup ? {
+            id: currentRental.staffPickup.id,
+            fullName: currentRental.staffPickup.fullName,
+            email: currentRental.staffPickup.email,
+            phone: currentRental.staffPickup.phone
+          } : null,
+          renter: currentRental.renter ? {
+            id: currentRental.renter.id,
+            fullName: currentRental.renter.fullName,
+            email: currentRental.renter.email,
+            phone: currentRental.renter.phone
+          } : null
+        };
+        
+        setCurrentRental(transformedRental);
+      } else {
+        setCurrentRental(null);
+      }
     } catch (err) {
       console.error('Error loading current rental:', err);
-      // If error status is 404, it means no active rental
-      if (err.status === 404) {
+      // If error status is 404 or no data, it means no active rental
+      if (err.response?.status === 404 || err.status === 404) {
         setCurrentRental(null);
       } else {
         setError('Có lỗi xảy ra khi tải thông tin thuê xe');
@@ -84,6 +120,8 @@ const RentalCurrentPage = () => {
   };
 
   const calculateRentalDuration = (startTime) => {
+    if (!startTime) return '0h 0m';
+    
     const start = new Date(startTime);
     const now = new Date();
     const diffMs = now - start;
@@ -212,7 +250,9 @@ const RentalCurrentPage = () => {
                 <div className="text-2xl font-bold text-blue-900">
                   {formatPrice(currentRental.deposit_amount)}
                 </div>
-                <div className="text-sm text-blue-700">Tiền cọc đã giữ</div>
+                <div className="text-sm text-blue-700">
+                  Tiền cọc ({currentRental.deposit_status === 'held' ? 'Đã giữ' : 'Đã trả'})
+                </div>
               </CardContent>
             </Card>
 
@@ -248,8 +288,16 @@ const RentalCurrentPage = () => {
                   <h4 className="font-semibold text-gray-900">Thông tin xe</h4>
                   <div className="space-y-3">
                     <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <span className="text-gray-600">Loại xe</span>
+                      <Badge variant="outline">
+                        {currentRental.vehicle.type === 'motorbike' ? 'Xe máy' : 'Ô tô'}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <span className="text-gray-600">Model</span>
-                      <span className="font-medium">{currentRental.vehicle.model}</span>
+                      <span className="font-medium">
+                        {currentRental.vehicle.brand} {currentRental.vehicle.model}
+                      </span>
                     </div>
                     <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <span className="text-gray-600">Biển số</span>
@@ -274,11 +322,25 @@ const RentalCurrentPage = () => {
                       <span className="font-medium">#{currentRental.id}</span>
                     </div>
                     <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <span className="text-gray-600">Loại thuê</span>
+                      <Badge variant={currentRental.rental_type === 'booking' ? 'default' : 'secondary'}>
+                        {currentRental.rental_type === 'booking' ? 'Đặt trước' : 'Walk-in'}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <span className="text-gray-600">Bắt đầu</span>
                       <span className="font-medium">
                         {new Date(currentRental.start_time).toLocaleString('vi-VN')}
                       </span>
                     </div>
+                    {currentRental.end_time && (
+                      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <span className="text-gray-600">Dự kiến kết thúc</span>
+                        <span className="font-medium">
+                          {new Date(currentRental.end_time).toLocaleString('vi-VN')}
+                        </span>
+                      </div>
+                    )}
                     <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <span className="text-gray-600">Trạm nhận</span>
                       <div className="text-right">
