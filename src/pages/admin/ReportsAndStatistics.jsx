@@ -8,99 +8,26 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { 
-  BarChart3, TrendingUp, Download, Calendar, DollarSign, Users, Car, MapPin,
-  Activity, RefreshCw, FileText, PieChart, LineChart, TrendingDown,
+  Download, Calendar, Car, Activity, RefreshCw, 
   Clock, CheckCircle, AlertTriangle, X, MessageSquare
 } from 'lucide-react';
+import adminService from '@/services/admin/adminService';
+import complaintsService from '@/services/complaints/complaintsService';
 
 const ReportsAndStatistics = () => {
   const [loading, setLoading] = useState(false);
-  const [selectedTab, setSelectedTab] = useState('overview');
+  const [selectedTab, setSelectedTab] = useState('rentals');
   const [dateRange, setDateRange] = useState('this_month');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
   
   // State for different statistics
-  const [dashboardStats, setDashboardStats] = useState({});
   const [rentalStats, setRentalStats] = useState({});
-  const [revenueStats, setRevenueStats] = useState({});
   const [complaintStats, setComplaintStats] = useState({});
 
-  // Mock data for dashboard overview
-  const mockDashboardStats = {
-    startTime: '2024-01-01T00:00:00Z',
-    endTime: '2024-01-31T23:59:59Z',
-    total_users: 2543,
-    total_renters: 2156,
-    total_staff: 87,
-    total_stations: 25,
-    total_vehicles: 320,
-    active_rentals: 45,
-    revenue: 2450000000
-  };
 
-  // Mock data for rental statistics
-  const mockRentalStats = {
-    startTime: '2024-01-01T00:00:00Z',
-    endTime: '2024-01-31T23:59:59Z',
-    total_rentals: 1234,
-    completed: 1156,
-    cancelled: 78
-  };
 
-  // Mock data for revenue statistics
-  const mockRevenueStats = {
-    startTime: '2024-01-01T00:00:00Z',
-    endTime: '2024-01-31T23:59:59Z',
-    total_revenue: 2450000000,
-    rentals_count: 1234
-  };
 
-  // Mock data for complaint statistics
-  const mockComplaintStats = {
-    total_complaints: 67,
-    pending: 12,
-    in_progress: 18,
-    resolved: 32,
-    rejected: 5
-  };
-
-  // Mock historical data for charts
-  const mockHistoricalData = {
-    daily_revenue: [
-      { date: '2024-01-01', revenue: 78000000, rentals: 45 },
-      { date: '2024-01-02', revenue: 82000000, rentals: 52 },
-      { date: '2024-01-03', revenue: 76000000, rentals: 48 },
-      { date: '2024-01-04', revenue: 89000000, rentals: 56 },
-      { date: '2024-01-05', revenue: 95000000, rentals: 61 },
-      { date: '2024-01-06', revenue: 105000000, rentals: 68 },
-      { date: '2024-01-07', revenue: 98000000, rentals: 62 }
-    ],
-    station_performance: [
-      { station: 'Trạm Quận 1', rentals: 234, revenue: 450000000, utilization: 87 },
-      { station: 'Trạm Quận 2', rentals: 198, revenue: 380000000, utilization: 76 },
-      { station: 'Trạm Quận 3', rentals: 156, revenue: 290000000, utilization: 65 },
-      { station: 'Trạm Quận 4', rentals: 189, revenue: 360000000, utilization: 82 },
-      { station: 'Trạm Quận 5', rentals: 145, revenue: 270000000, utilization: 71 }
-    ],
-    vehicle_stats: {
-      active: 285,
-      maintenance: 23,
-      repair: 8,
-      out_of_service: 4,
-      avg_usage_hours: 8.2,
-      avg_battery_life: 92.5
-    }
-  };
-
-  // Helper functions
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND',
-      minimumFractionDigits: 0
-    }).format(amount);
-  };
 
   const getDateRange = () => {
     const now = new Date();
@@ -139,80 +66,46 @@ const ReportsAndStatistics = () => {
     };
   };
 
-  // Fetch functions (using mock data)
-  const fetchDashboardStats = async () => {
-    setLoading(true);
-    try {
-      const { startTime, endTime } = getDateRange();
-      
-      // TODO: Replace with actual API call
-      // const response = await fetch(`/api/admin/dashboard?startTime=${startTime}&endTime=${endTime}`);
-      // const data = await response.json();
-      
-      await new Promise(resolve => setTimeout(resolve, 800)); // Simulate API delay
-      setDashboardStats({
-        ...mockDashboardStats,
-        startTime,
-        endTime
-      });
-    } catch (error) {
-      console.error('Error fetching dashboard stats:', error);
-      toast.error('Không thể tải thống kê tổng quan');
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Fetch functions using real APIs
   const fetchRentalStats = async () => {
     try {
       const { startTime, endTime } = getDateRange();
+      const params = { startTime, endTime };
       
-      // TODO: Replace with actual API call
-      // const response = await fetch(`/api/admin/statistics/rentals?startTime=${startTime}&endTime=${endTime}`);
-      // const data = await response.json();
-      
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setRentalStats({
-        ...mockRentalStats,
-        startTime,
-        endTime
-      });
+      const response = await adminService.getRentals(params);
+      if (response?.data) {
+        // Process rental data to create statistics
+        const rentals = response.data;
+        const stats = {
+          total_rentals: rentals.length,
+          completed: rentals.filter(r => r.status === 'completed').length,
+          cancelled: rentals.filter(r => r.status === 'cancelled').length,
+          active: rentals.filter(r => r.status === 'active').length,
+          startTime,
+          endTime
+        };
+        setRentalStats(stats);
+      }
     } catch (error) {
       console.error('Error fetching rental stats:', error);
       toast.error('Không thể tải thống kê thuê xe');
     }
   };
 
-  const fetchRevenueStats = async () => {
-    try {
-      const { startTime, endTime } = getDateRange();
-      
-      // TODO: Replace with actual API call
-      // const response = await fetch(`/api/admin/statistics/revenue?startTime=${startTime}&endTime=${endTime}`);
-      // const data = await response.json();
-      
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setRevenueStats({
-        ...mockRevenueStats,
-        startTime,
-        endTime
-      });
-    } catch (error) {
-      console.error('Error fetching revenue stats:', error);
-      toast.error('Không thể tải thống kê doanh thu');
-    }
-  };
-
   const fetchComplaintStats = async () => {
     try {
-      const { startTime, endTime } = getDateRange();
-      
-      // TODO: Replace with actual API call
-      // const response = await fetch(`/api/admin/statistics/complaints?startTime=${startTime}&endTime=${endTime}`);
-      // const data = await response.json();
-      
-      await new Promise(resolve => setTimeout(resolve, 300));
-      setComplaintStats(mockComplaintStats);
+      const response = await complaintsService.getAll();
+      if (response?.data) {
+        const complaints = response.data;
+        const stats = {
+          total_complaints: complaints.length,
+          pending: complaints.filter(c => c.status === 'pending').length,
+          in_progress: complaints.filter(c => c.status === 'in_progress').length,
+          resolved: complaints.filter(c => c.status === 'resolved').length,
+          rejected: complaints.filter(c => c.status === 'rejected').length
+        };
+        setComplaintStats(stats);
+      }
     } catch (error) {
       console.error('Error fetching complaint stats:', error);
       toast.error('Không thể tải thống kê khiếu nại');
@@ -220,29 +113,61 @@ const ReportsAndStatistics = () => {
   };
 
   const fetchAllStats = async () => {
-    await Promise.all([
-      fetchDashboardStats(),
-      fetchRentalStats(),
-      fetchRevenueStats(),
-      fetchComplaintStats()
-    ]);
+    setLoading(true);
+    try {
+      await Promise.all([
+        fetchRentalStats(),
+        fetchComplaintStats()
+      ]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleExportReport = () => {
-    // TODO: Implement export functionality
-    toast.success('Đang chuẩn bị xuất báo cáo...');
+    if (!rentalStats.total_rentals && !complaintStats.total_complaints) {
+      toast.error('Không có dữ liệu để xuất báo cáo');
+      return;
+    }
+    
+    // Create CSV content
+    let csvContent = "data:text/csv;charset=utf-8,";
+    csvContent += "Loại thống kê,Giá trị\n";
+    
+    if (rentalStats.total_rentals) {
+      csvContent += `Tổng lượt thuê,${rentalStats.total_rentals}\n`;
+      csvContent += `Hoàn thành,${rentalStats.completed || 0}\n`;
+      csvContent += `Đang hoạt động,${rentalStats.active || 0}\n`;
+      csvContent += `Đã hủy,${rentalStats.cancelled || 0}\n`;
+      csvContent += `Tỷ lệ thành công,${performanceMetrics.rentalSuccessRate}%\n`;
+    }
+    
+    if (complaintStats.total_complaints) {
+      csvContent += `Tổng khiếu nại,${complaintStats.total_complaints}\n`;
+      csvContent += `Chờ xử lý,${complaintStats.pending || 0}\n`;
+      csvContent += `Đang xử lý,${complaintStats.in_progress || 0}\n`;
+      csvContent += `Đã giải quyết,${complaintStats.resolved || 0}\n`;
+      csvContent += `Đã từ chối,${complaintStats.rejected || 0}\n`;
+      csvContent += `Tỷ lệ giải quyết,${performanceMetrics.complaintResolutionRate}%\n`;
+    }
+    
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `bao-cao-thong-ke-${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast.success('Đã xuất báo cáo thành công');
   };
 
   // Calculate performance metrics
   const performanceMetrics = {
     rentalSuccessRate: rentalStats.total_rentals ? 
       Math.round((rentalStats.completed / rentalStats.total_rentals) * 100) : 0,
-    avgRevenuePerRental: revenueStats.rentals_count ? 
-      Math.round(revenueStats.total_revenue / revenueStats.rentals_count) : 0,
     complaintResolutionRate: complaintStats.total_complaints ? 
-      Math.round(((complaintStats.resolved + complaintStats.rejected) / complaintStats.total_complaints) * 100) : 0,
-    vehicleUtilizationRate: dashboardStats.total_vehicles ? 
-      Math.round((dashboardStats.active_rentals / dashboardStats.total_vehicles) * 100) : 0
+      Math.round(((complaintStats.resolved + complaintStats.rejected) / complaintStats.total_complaints) * 100) : 0
   };
 
   useEffect(() => {
@@ -256,7 +181,7 @@ const ReportsAndStatistics = () => {
     }
   }, [dateRange, customStartDate, customEndDate]);
 
-  if (loading && Object.keys(dashboardStats).length === 0) {
+  if (loading) {
     return (
       <div className='flex items-center justify-center h-64'>
         <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-primary'></div>
@@ -333,169 +258,23 @@ const ReportsAndStatistics = () => {
 
       {/* Tab Navigation */}
       <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview">Tổng quan</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="rentals">Thuê xe</TabsTrigger>
-          <TabsTrigger value="revenue">Doanh thu</TabsTrigger>
           <TabsTrigger value="complaints">Khiếu nại</TabsTrigger>
         </TabsList>
 
-        {/* Overview Tab */}
-        <TabsContent value="overview" className="space-y-6">
-          {/* System Overview Statistics */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Tổng người dùng</CardTitle>
-                <Users className="h-4 w-4 text-blue-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{dashboardStats.total_users}</div>
-                <p className="text-xs text-muted-foreground">
-                  {dashboardStats.total_renters} khách thuê, {dashboardStats.total_staff} nhân viên
-                </p>
-              </CardContent>
-            </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Hệ thống</CardTitle>
-                <Activity className="h-4 w-4 text-green-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{dashboardStats.total_stations}</div>
-                <p className="text-xs text-muted-foreground">
-                  Trạm với {dashboardStats.total_vehicles} xe
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Đang hoạt động</CardTitle>
-                <Car className="h-4 w-4 text-orange-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{dashboardStats.active_rentals}</div>
-                <p className="text-xs text-muted-foreground">
-                  Lượt thuê đang diễn ra
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Doanh thu</CardTitle>
-                <DollarSign className="h-4 w-4 text-green-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{formatCurrency(dashboardStats.revenue)}</div>
-                <p className="text-xs text-muted-foreground">
-                  Trong khoảng thời gian đã chọn
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Performance Metrics */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Tỷ lệ thành công</CardTitle>
-                <TrendingUp className="h-4 w-4 text-green-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{performanceMetrics.rentalSuccessRate}%</div>
-                <p className="text-xs text-muted-foreground">
-                  Lượt thuê hoàn thành
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Doanh thu TB/lượt</CardTitle>
-                <DollarSign className="h-4 w-4 text-blue-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{formatCurrency(performanceMetrics.avgRevenuePerRental)}</div>
-                <p className="text-xs text-muted-foreground">
-                  Trung bình mỗi lượt thuê
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Giải quyết khiếu nại</CardTitle>
-                <CheckCircle className="h-4 w-4 text-green-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{performanceMetrics.complaintResolutionRate}%</div>
-                <p className="text-xs text-muted-foreground">
-                  Tỷ lệ xử lý thành công
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Sử dụng xe</CardTitle>
-                <BarChart3 className="h-4 w-4 text-purple-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{performanceMetrics.vehicleUtilizationRate}%</div>
-                <p className="text-xs text-muted-foreground">
-                  Tỷ lệ xe đang hoạt động
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Station Performance */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Hiệu suất theo trạm</CardTitle>
-              <CardDescription>
-                Thống kê lượt thuê và doanh thu theo từng trạm
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {mockHistoricalData.station_performance.map((station, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <MapPin className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <div className="font-medium">{station.station}</div>
-                        <div className="text-sm text-muted-foreground">
-                          Sử dụng {station.utilization}%
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-medium">{station.rentals} lượt thuê</div>
-                      <div className="text-sm text-muted-foreground">
-                        {formatCurrency(station.revenue)}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
         {/* Rentals Tab */}
         <TabsContent value="rentals" className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Tổng lượt thuê</CardTitle>
                 <Car className="h-4 w-4 text-blue-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{rentalStats.total_rentals}</div>
+                <div className="text-2xl font-bold">{rentalStats.total_rentals || 0}</div>
                 <p className="text-xs text-muted-foreground">
                   Trong khoảng thời gian đã chọn
                 </p>
@@ -508,9 +287,22 @@ const ReportsAndStatistics = () => {
                 <CheckCircle className="h-4 w-4 text-green-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{rentalStats.completed}</div>
+                <div className="text-2xl font-bold">{rentalStats.completed || 0}</div>
                 <p className="text-xs text-muted-foreground">
                   {rentalStats.total_rentals ? Math.round((rentalStats.completed / rentalStats.total_rentals) * 100) : 0}% tổng số
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Đang hoạt động</CardTitle>
+                <Activity className="h-4 w-4 text-orange-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{rentalStats.active || 0}</div>
+                <p className="text-xs text-muted-foreground">
+                  {rentalStats.total_rentals ? Math.round((rentalStats.active / rentalStats.total_rentals) * 100) : 0}% tổng số
                 </p>
               </CardContent>
             </Card>
@@ -521,7 +313,7 @@ const ReportsAndStatistics = () => {
                 <X className="h-4 w-4 text-red-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{rentalStats.cancelled}</div>
+                <div className="text-2xl font-bold">{rentalStats.cancelled || 0}</div>
                 <p className="text-xs text-muted-foreground">
                   {rentalStats.total_rentals ? Math.round((rentalStats.cancelled / rentalStats.total_rentals) * 100) : 0}% tổng số
                 </p>
@@ -531,23 +323,29 @@ const ReportsAndStatistics = () => {
 
           <Card>
             <CardHeader>
-              <CardTitle>Xu hướng thuê xe theo ngày</CardTitle>
+              <CardTitle>Thống kê hiệu suất</CardTitle>
               <CardDescription>
-                Biểu đồ lượt thuê và doanh thu 7 ngày gần đây
+                Tỷ lệ thành công của các lượt thuê xe
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="h-64 flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg">
-                <div className="text-center">
-                  <LineChart className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">Biểu đồ xu hướng sẽ hiển thị ở đây</p>
-                  <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
-                    {mockHistoricalData.daily_revenue.slice(0, 3).map((day, index) => (
-                      <div key={index} className="text-center">
-                        <div className="font-medium">{new Date(day.date).toLocaleDateString('vi-VN')}</div>
-                        <div className="text-muted-foreground">{day.rentals} lượt</div>
-                      </div>
-                    ))}
+              <div className="text-center p-6">
+                <div className="text-4xl font-bold text-green-600 mb-2">
+                  {performanceMetrics.rentalSuccessRate}%
+                </div>
+                <div className="text-muted-foreground">Tỷ lệ hoàn thành thành công</div>
+                <div className="mt-4 grid grid-cols-3 gap-4 text-sm">
+                  <div className="text-center p-3 bg-green-50 rounded-lg">
+                    <div className="font-bold text-green-700">{rentalStats.completed || 0}</div>
+                    <div className="text-green-600">Hoàn thành</div>
+                  </div>
+                  <div className="text-center p-3 bg-orange-50 rounded-lg">
+                    <div className="font-bold text-orange-700">{rentalStats.active || 0}</div>
+                    <div className="text-orange-600">Đang thuê</div>
+                  </div>
+                  <div className="text-center p-3 bg-red-50 rounded-lg">
+                    <div className="font-bold text-red-700">{rentalStats.cancelled || 0}</div>
+                    <div className="text-red-600">Đã hủy</div>
                   </div>
                 </div>
               </div>
@@ -555,72 +353,7 @@ const ReportsAndStatistics = () => {
           </Card>
         </TabsContent>
 
-        {/* Revenue Tab */}
-        <TabsContent value="revenue" className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Tổng doanh thu</CardTitle>
-                <DollarSign className="h-4 w-4 text-green-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{formatCurrency(revenueStats.total_revenue)}</div>
-                <p className="text-xs text-muted-foreground">
-                  Từ {revenueStats.rentals_count} lượt thuê
-                </p>
-              </CardContent>
-            </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Doanh thu trung bình</CardTitle>
-                <TrendingUp className="h-4 w-4 text-blue-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {formatCurrency(revenueStats.rentals_count ? revenueStats.total_revenue / revenueStats.rentals_count : 0)}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Mỗi lượt thuê
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Phân tích doanh thu</CardTitle>
-              <CardDescription>
-                Chi tiết doanh thu theo thời gian và khu vực
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="text-center p-4 border rounded-lg">
-                    <div className="text-2xl font-bold text-green-600">
-                      {formatCurrency(mockHistoricalData.daily_revenue.reduce((sum, day) => sum + day.revenue, 0) / 7)}
-                    </div>
-                    <div className="text-sm text-muted-foreground">Doanh thu TB/ngày</div>
-                  </div>
-                  <div className="text-center p-4 border rounded-lg">
-                    <div className="text-2xl font-bold text-blue-600">
-                      {Math.round(mockHistoricalData.daily_revenue.reduce((sum, day) => sum + day.rentals, 0) / 7)}
-                    </div>
-                    <div className="text-sm text-muted-foreground">Lượt thuê TB/ngày</div>
-                  </div>
-                </div>
-                
-                <div className="h-48 flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg">
-                  <div className="text-center">
-                    <BarChart3 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                    <p className="text-muted-foreground">Biểu đồ doanh thu sẽ hiển thị ở đây</p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
         {/* Complaints Tab */}
         <TabsContent value="complaints" className="space-y-6">

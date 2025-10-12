@@ -21,7 +21,7 @@ import StationsManagement from "../pages/admin/stations/StationsManagement.jsx";
 import VehiclesManagement from "../pages/admin/vehicles/VehiclesManagement.jsx";
 import PersonnelManagement from "../pages/admin/personnel/PersonnelManagement.jsx";
 import StationStaffManagement from "../pages/admin/staff-stations/StationStaffManagement.jsx";
-import SystemMonitoring from "../pages/admin/SystemMonitoring.jsx";
+import SystemMonitoring from "../pages/admin/rentals/SystemMonitoring.jsx";
 import ComplaintsManagement from "../pages/admin/ComplaintsManagement.jsx";
 import ReportsAndStatistics from "../pages/admin/ReportsAndStatistics.jsx";
 
