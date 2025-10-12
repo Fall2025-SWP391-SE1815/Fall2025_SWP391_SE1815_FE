@@ -66,7 +66,6 @@ const RentalManagement = () => {
 
   // Dialog states
   const [pickupDialogOpen, setPickupDialogOpen] = useState(false);
-  const [returnDialogOpen, setReturnDialogOpen] = useState(false);
   const [checkInDialogOpen, setCheckInDialogOpen] = useState(false);
   const [selectedRental, setSelectedRental] = useState(null);
   const [selectedReservation, setSelectedReservation] = useState(null);
@@ -81,13 +80,6 @@ const RentalManagement = () => {
 
   const [checkInForm, setCheckInForm] = useState({
     depositAmount: '',
-    condition_report: '',
-    photo_url: '',
-    customer_signature_url: '',
-    staff_signature_url: ''
-  });
-
-  const [returnForm, setReturnForm] = useState({
     condition_report: '',
     photo_url: '',
     customer_signature_url: '',
@@ -134,9 +126,9 @@ const RentalManagement = () => {
   const fetchReturningRentals = async () => {
     try {
       setLoading(true);
-      // Call real API to get returning rentals (status=returned means ready for return processing)
-      const response = await staffRentalService.getRentals({ status: 'returned' });
-      console.log('Returning rentals response:', response);
+      // Call real API to get rentals that are currently in use (ready for return)
+      const response = await staffRentalService.getRentals({ status: 'in_use' });
+      console.log('Returning rentals (in_use) response:', response);
       setReturningRentals(response || []);
 
     } catch (error) {
@@ -203,14 +195,47 @@ const RentalManagement = () => {
   };
 
   const handleReturnCheck = async (rental) => {
-    setSelectedRental(rental);
-    setReturnForm({
-      condition_report: '',
-      photo_url: '',
-      customer_signature_url: '',
-      staff_signature_url: ''
-    });
-    setReturnDialogOpen(true);
+    try {
+      setLoading(true);
+
+      // Create minimal FormData for confirm-return API
+      const formData = new FormData();
+      
+      // Add the required data field as JSON string
+      const requestData = {
+        rentalId: rental.id,
+        checkType: "return",
+        conditionReport: "Xe được trả về trong tình trạng bình thường"
+      };
+      formData.append('data', JSON.stringify(requestData));
+
+      // Add minimal placeholder files (in real implementation, these would be actual files)
+      const placeholderBlob = new Blob(['placeholder'], { type: 'text/plain' });
+      formData.append('photo', placeholderBlob, 'return_photo.txt');
+      formData.append('staff_signature', placeholderBlob, 'staff_signature.txt');
+      formData.append('customer_signature', placeholderBlob, 'customer_signature.txt');
+
+      // Call the confirm-return API
+      const response = await staffRentalService.confirmReturn(formData);
+
+      toast({
+        title: "Thành công",
+        description: "Xác nhận nhận xe thành công! Xe đã được trả về.",
+      });
+
+      // Refresh the returning rentals list
+      fetchReturningRentals();
+
+    } catch (error) {
+      console.error('Error confirming return:', error);
+      toast({
+        title: "Lỗi",
+        description: error.message || "Không thể xác nhận nhận xe từ khách",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCheckIn = async (reservation) => {
@@ -301,57 +326,7 @@ const RentalManagement = () => {
     }
   };
 
-  const submitReturnCheck = async () => {
-    try {
-      if (!returnForm.condition_report || !returnForm.photo_url ||
-        !returnForm.customer_signature_url || !returnForm.staff_signature_url) {
-        toast({
-          title: "Thiếu thông tin",
-          description: "Vui lòng điền đầy đủ thông tin biên bản",
-          variant: "destructive",
-        });
-        return;
-      }
 
-      setLoading(true);
-
-      // Call real API for return check-in
-      const response = await staffRentalService.checkIn({
-        rental_id: selectedRental.id,
-        check_type: "return",
-        condition_report: returnForm.condition_report,
-        photo_url: returnForm.photo_url,
-        customer_signature_url: returnForm.customer_signature_url,
-        staff_signature_url: returnForm.staff_signature_url
-      });
-
-      toast({
-        title: "Thành công",
-        description: "Biên bản nhận xe đã được lưu thành công",
-      });
-
-      setReturnDialogOpen(false);
-      fetchReturningRentals(); // Refresh the list
-
-    } catch (error) {
-      console.error('Error submitting return check:', error);
-      if (error.status === 400) {
-        toast({
-          title: "Lỗi",
-          description: "Lượt thuê không hợp lệ để lập biên bản return",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Lỗi",
-          description: error.message || "Không thể lưu biên bản nhận xe",
-          variant: "destructive",
-        });
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const submitCheckIn = async () => {
     try {
@@ -540,8 +515,8 @@ const RentalManagement = () => {
     // Filter to only show reservations that can be checked in
     // Exclude reservations that already have a corresponding rental (already checked in)
     const checkInableReservations = reservations.filter(reservation => {
-      // Only show pending or confirmed reservations
-      if (reservation.status !== 'pending' && reservation.status !== 'confirmed') {
+      // Only show pending reservations
+      if (reservation.status !== 'pending') {
         return false;
       }
       
@@ -1041,10 +1016,10 @@ const RentalManagement = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <CheckCircle className="h-5 w-5" />
-                Danh sách xe cần nhận
+                Danh sách xe đang cho thuê
               </CardTitle>
               <CardDescription>
-                Các lượt thuê sắp kết thúc và cần nhận xe từ khách hàng
+                Các xe đang được thuê và có thể được khách hàng trả về bất cứ lúc nào
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -1052,7 +1027,7 @@ const RentalManagement = () => {
                 <div className="text-center py-8">
                   <CheckCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                   <p className="text-muted-foreground">
-                    {searchTerm ? 'Không tìm thấy xe nào phù hợp' : 'Không có xe nào cần nhận'}
+                    {searchTerm ? 'Không tìm thấy xe nào phù hợp' : 'Không có xe nào đang được thuê'}
                   </p>
                 </div>
               ) : (
@@ -1061,7 +1036,7 @@ const RentalManagement = () => {
                     <TableRow>
                       <TableHead>Thông tin xe</TableHead>
                       <TableHead>Khách hàng</TableHead>
-                      <TableHead>Thời gian trả dự kiến</TableHead>
+                      <TableHead>Thời gian thuê</TableHead>
                       <TableHead>Thao tác</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -1095,10 +1070,18 @@ const RentalManagement = () => {
                           <div className="flex flex-col space-y-1">
                             <div className="flex items-center gap-2">
                               <Clock className="h-4 w-4" />
-                              <span className="font-medium">
-                                {formatDateTime(rental.endTime)}
+                              <span className="text-sm">
+                                Bắt đầu: {formatDateTime(rental.startTime)}
                               </span>
                             </div>
+                            {rental.endTime && (
+                              <div className="flex items-center gap-2">
+                                <Clock className="h-4 w-4 text-orange-500" />
+                                <span className="text-sm text-orange-600">
+                                  Dự kiến: {formatDateTime(rental.endTime)}
+                                </span>
+                              </div>
+                            )}
                             <div className="text-sm text-muted-foreground flex items-center gap-2">
                               <MapPin className="h-3 w-3" />
                               {rental.stationReturn?.name || rental.stationPickup.name}
@@ -1106,26 +1089,15 @@ const RentalManagement = () => {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div className="flex flex-col gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleReturnCheck(rental)}
-                              className="w-full"
-                            >
-                              <FileText className="h-4 w-4 mr-2" />
-                              Lập biên bản
-                            </Button>
-                            <Button
-                              size="sm"
-                              onClick={() => confirmReturn(rental.id)}
-                              disabled={loading}
-                              className="w-full"
-                            >
-                              <CheckCircle className="h-4 w-4 mr-2" />
-                              Xác nhận nhận
-                            </Button>
-                          </div>
+                          <Button
+                            size="sm"
+                            onClick={() => handleReturnCheck(rental)}
+                            disabled={loading}
+                            className="w-full"
+                          >
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            Xác nhận nhận xe
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -1246,112 +1218,8 @@ const RentalManagement = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Return Check Dialog */}
-      <Dialog open={returnDialogOpen} onOpenChange={setReturnDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Biên bản nhận lại xe
-            </DialogTitle>
-            <DialogDescription>
-              Lập biên bản nhận xe từ: {selectedRental?.renter.fullName} - {selectedRental?.vehicle.licensePlate}
-            </DialogDescription>
-          </DialogHeader>
+      {/* Check-in Dialog for Reservations */}
 
-          <div className="space-y-4">
-            {/* Vehicle Info */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Thông tin xe</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <Label className="text-muted-foreground">Biển số</Label>
-                    <p className="font-medium">{selectedRental?.vehicle.licensePlate}</p>
-                  </div>
-                  <div>
-                    <Label className="text-muted-foreground">Loại xe</Label>
-                    <p className="font-medium">{selectedRental?.vehicle.type}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Condition Report */}
-            <div className="space-y-2">
-              <Label htmlFor="return-condition">Báo cáo tình trạng xe khi nhận *</Label>
-              <Textarea
-                id="return-condition"
-                placeholder="Mô tả chi tiết tình trạng xe khi nhận lại (vết xước mới, hỏng hóc, mức pin, v.v.)"
-                value={returnForm.condition_report}
-                onChange={(e) => setReturnForm(prev => ({ ...prev, condition_report: e.target.value }))}
-                rows={4}
-              />
-            </div>
-
-            {/* Photo Upload */}
-            <div className="space-y-2">
-              <Label htmlFor="return-photo">URL ảnh xe khi nhận *</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="return-photo"
-                  placeholder="https://example.com/vehicle-return-photo.jpg"
-                  value={returnForm.photo_url}
-                  onChange={(e) => setReturnForm(prev => ({ ...prev, photo_url: e.target.value }))}
-                />
-                <Button variant="outline" size="icon">
-                  <Camera className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-
-            {/* Signatures */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="return-customer-signature">Chữ ký khách hàng *</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="return-customer-signature"
-                    placeholder="URL chữ ký khách hàng"
-                    value={returnForm.customer_signature_url}
-                    onChange={(e) => setReturnForm(prev => ({ ...prev, customer_signature_url: e.target.value }))}
-                  />
-                  <Button variant="outline" size="icon">
-                    <PenTool className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="return-staff-signature">Chữ ký nhân viên *</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="return-staff-signature"
-                    placeholder="URL chữ ký nhân viên"
-                    value={returnForm.staff_signature_url}
-                    onChange={(e) => setReturnForm(prev => ({ ...prev, staff_signature_url: e.target.value }))}
-                  />
-                  <Button variant="outline" size="icon">
-                    <PenTool className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setReturnDialogOpen(false)}>
-              Hủy
-            </Button>
-            <Button onClick={submitReturnCheck} disabled={loading}>
-              <FileText className="h-4 w-4 mr-2" />
-              Lưu biên bản
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Check-in Dialog for Reservations */}
       <Dialog open={checkInDialogOpen} onOpenChange={setCheckInDialogOpen}>

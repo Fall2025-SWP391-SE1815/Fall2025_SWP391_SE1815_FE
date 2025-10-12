@@ -19,8 +19,27 @@ const staffRentalService = {
   // Hủy thuê xe
   cancelRental: (id, data) => apiPost(`/api/staff/rentals/${id}/cancel`, data, 'Không thể hủy thuê xe'),
 
-  // Xác nhận xe từ khách (confirm return)
-  confirmReturn: (data) => apiPost(`/api/staff/rentals/confirm-return`, data, 'Không thể xác nhận xe trả từ khách'),
+  // Xác nhận xe từ khách (confirm return) - với FormData cho file upload
+  confirmReturn: async (formData) => {
+    const token = localStorage.getItem('token') || localStorage.getItem('accessToken');
+    
+    const response = await fetch(`${API_BASE_URL}/api/staff/rentals/confirm-return`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
+        // Don't set Content-Type, let browser set it for FormData
+      },
+      credentials: 'include'
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Không thể xác nhận xe trả từ khách');
+    }
+
+    return response.json();
+  },
 
   // Xác nhận đã giao xe cho khách (confirm pickup) - với FormData cho file upload
   confirmPickup: async (formData) => {
