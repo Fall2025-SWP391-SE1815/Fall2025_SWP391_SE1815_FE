@@ -51,10 +51,10 @@ import ComplaintDetailPage from "../pages/renter/ComplaintDetailPage.jsx";
 
 // Staff Components
 import StaffDashboard from "../pages/staff/StaffDashboard.jsx";
-import RentalManagement from "../pages/staff/RentalManagement.jsx";
-import CustomerVerification from "../pages/staff/CustomerVerification.jsx";
-import PaymentManagement from "../pages/staff/PaymentManagement.jsx";
-import StationManagement from "../pages/staff/StationManagement.jsx";
+import RentalManagement from "../pages/staff/rental-management/RentalManagement.jsx";
+import CustomerVerification from "@/pages/staff/customer-verification/CustomerVerification.jsx";
+import PaymentManagement from "../pages/staff/payment-management/PaymentManagement.jsx";
+import StationManagement from "../pages/staff/station-management/StationManagement.jsx";
 
 // Routes wrapper
 import PublicRoute from "../routes/PublicRoute.jsx";
@@ -63,24 +63,25 @@ import ProtectedRoute from "../routes/ProtectedRoute.jsx";
 // Auth Provider
 import { AuthProvider } from "../hooks/auth/useAuth.jsx";
 
+
 // Path constants
 export const paths = {
   home: "/",
   login: "/login",
   register: "/register",
-  
+
   // Admin routes
   admin: {
     dashboard: "/admin",
     stations: "stations",
-    vehicles: "vehicles", 
+    vehicles: "vehicles",
     personnel: "personnel",
     stationStaff: "station-staff",
     monitoring: "monitoring",
     complaints: "complaints",
     reports: "reports"
   },
-  
+
   // Renter routes
   renter: {
     dashboard: "/dashboard",
@@ -105,16 +106,16 @@ export const paths = {
       summary: "/rentals/:id/summary"
     }
   },
-  
+
   // Staff routes  
   staff: {
     dashboard: "/staff",
     rentalManagement: "rental-management",
-    customerVerification: "customer-verification", 
+    customerVerification: "customer-verification",
     paymentManagement: "payment-management",
     stationManagement: "station-management"
   },
-  
+
   notFound: "*",
 };
 
@@ -142,7 +143,7 @@ const router = createBrowserRouter([
       { index: true, element: <Home /> }
     ],
   },
-  
+
   // Auth routes (public)
   {
     path: "/login",
@@ -153,14 +154,14 @@ const router = createBrowserRouter([
     ),
   },
   {
-    path: "/register", 
+    path: "/register",
     element: (
       <PublicRoute>
         <RegisterPage />
       </PublicRoute>
     ),
   },
-  
+
   // Admin routes
   {
     path: "/admin",
@@ -180,7 +181,7 @@ const router = createBrowserRouter([
       { path: "reports", element: <ReportsAndStatistics /> },
     ],
   },
-  
+
   // Staff routes
   {
     path: "/staff",
@@ -197,7 +198,7 @@ const router = createBrowserRouter([
       { path: "station-management", element: <StationManagement /> },
     ],
   },
-  
+
   // Renter protected pages (using MainLayout for consistency)
   {
     path: "/profile",
@@ -321,7 +322,7 @@ const router = createBrowserRouter([
     ]
   },
   {
-    path: "/complaints", 
+    path: "/complaints",
     element: (
       <ProtectedRoute requiredRole="renter">
         <MainLayout />
@@ -372,7 +373,7 @@ const router = createBrowserRouter([
       { path: "summary", element: <RentalSummaryPage /> }
     ]
   },
-  
+
   // Not found
   { path: "*", element: <NotFoundPage /> },
 ]);
