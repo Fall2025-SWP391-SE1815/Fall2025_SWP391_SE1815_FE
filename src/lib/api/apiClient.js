@@ -113,7 +113,14 @@ export const apiGet = async (endpoint, errorMessage = 'Không thể lấy dữ l
 export const apiPost = async (endpoint, data, errorMessage = 'Không thể tạo dữ liệu') => {
   const url = getApiUrl(endpoint);
   const isForm = data instanceof FormData;
-  const headers = getAuthHeaders(isForm ? {} : {});
+  
+  // For FormData, don't set Content-Type (browser will set it with boundary)
+  const headers = isForm 
+    ? (() => { 
+        const token = getAuthToken();
+        return token ? { 'Authorization': `Bearer ${token}` } : {};
+      })()
+    : getAuthHeaders();
 
   const response = await fetch(url, {
     method: 'POST',
@@ -136,7 +143,14 @@ export const apiPost = async (endpoint, data, errorMessage = 'Không thể tạo
 export const apiPut = async (endpoint, data, errorMessage = 'Không thể cập nhật dữ liệu') => {
   const url = getApiUrl(endpoint);
   const isForm = data instanceof FormData;
-  const headers = getAuthHeaders(isForm ? {} : {});
+  
+  // For FormData, don't set Content-Type (browser will set it with boundary)
+  const headers = isForm 
+    ? (() => { 
+        const token = getAuthToken();
+        return token ? { 'Authorization': `Bearer ${token}` } : {};
+      })()
+    : getAuthHeaders();
 
   const response = await fetch(url, {
     method: 'PUT',

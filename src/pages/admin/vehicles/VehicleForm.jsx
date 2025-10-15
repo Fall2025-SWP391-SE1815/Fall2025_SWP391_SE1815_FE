@@ -4,6 +4,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { useState } from 'react';
+import { Upload, X } from 'lucide-react';
 
 const validationSchema = Yup.object({
   licensePlate: Yup.string().required('Biển số xe bắt buộc'),
@@ -14,18 +16,103 @@ const validationSchema = Yup.object({
   capacity: Yup.number().required('Dung lượng bắt buộc').min(1, 'Dung lượng phải lớn hơn 0'),
   rangePerFullCharge: Yup.number().required('Quãng đường bắt buộc').min(0),
   pricePerHour: Yup.number().required('Giá theo giờ bắt buộc').min(0),
-  stationId: Yup.number().required('Trạm bắt buộc')
+  stationId: Yup.number().required('Trạm bắt buộc'),
+  image: Yup.mixed().nullable()
 });
 
 export default function VehicleForm({ initialValues, onSubmit, onCancel, stations }) {
+  const [imagePreview, setImagePreview] = useState(initialValues?.image || null);
+  const [imageFile, setImageFile] = useState(null);
+
   const formik = useFormik({
     initialValues,
     validationSchema,
-    onSubmit
+    onSubmit: (values) => {
+      onSubmit(values, imageFile);
+    }
   });
+
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        formik.setFieldError('image', 'Vui lòng chọn file ảnh');
+        return;
+      }
+      
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        formik.setFieldError('image', 'Kích thước ảnh không được vượt quá 5MB');
+        return;
+      }
+
+      setImageFile(file);
+      formik.setFieldValue('image', file.name);
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreview(initialValues?.image || null);
+    formik.setFieldValue('image', null);
+  };
 
   return (
     <form onSubmit={formik.handleSubmit} className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium mb-1">Hình ảnh xe</label>
+        <div className="space-y-2">
+          {imagePreview && (
+            <div className="relative w-full h-48 border rounded-lg overflow-hidden bg-gray-50">
+              <img 
+                src={imagePreview} 
+                alt="Vehicle preview" 
+                className="w-full h-full object-cover"
+              />
+              <Button
+                type="button"
+                variant="destructive"
+                size="icon"
+                className="absolute top-2 right-2"
+                onClick={handleRemoveImage}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+          <div className="flex items-center gap-2">
+            <Input
+              id="image-upload"
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+              className="hidden"
+            />
+            <label
+              htmlFor="image-upload"
+              className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              {imagePreview ? 'Thay đổi ảnh' : 'Chọn ảnh'}
+            </label>
+            {imageFile && (
+              <span className="text-sm text-muted-foreground">{imageFile.name}</span>
+            )}
+          </div>
+          {formik.touched.image && formik.errors.image && (
+            <p className="text-sm text-red-500">{formik.errors.image}</p>
+          )}
+        </div>
+      </div>
+
       <div>
         <label className="block text-sm font-medium mb-1">Biển số xe</label>
         <Input {...formik.getFieldProps('licensePlate')} placeholder="VD: 30A-12345" />

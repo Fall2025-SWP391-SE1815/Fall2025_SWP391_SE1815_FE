@@ -39,6 +39,17 @@ export default function VehicleDetailDialog({ vehicle, open, onOpenChange }) {
                 </DialogHeader>
 
                 <div className="space-y-6">
+                    {/* Vehicle Image */}
+                    {vehicle.image && (
+                        <div className="w-full h-64 rounded-lg overflow-hidden bg-gray-100">
+                            <img 
+                                src={vehicle.image} 
+                                alt={vehicle.licensePlate}
+                                className="w-full h-full object-cover"
+                            />
+                        </div>
+                    )}
+
                     {/* Header với biển số và trạng thái */}
                     <div className="flex items-center justify-between pb-4 border-b">
                         <div>

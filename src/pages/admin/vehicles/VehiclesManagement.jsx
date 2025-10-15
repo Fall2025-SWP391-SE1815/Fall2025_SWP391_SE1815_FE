@@ -57,10 +57,26 @@ export default function VehiclesManagement() {
     }
   };
 
-  const handleSave = async (values) => {
+  const handleSave = async (values, imageFile) => {
     try {
-      // Format data theo API requirements
-      const payload = {
+      // Create FormData for multipart/form-data
+      const formData = new FormData();
+      formData.append('licensePlate', values.licensePlate);
+      formData.append('type', values.type);
+      formData.append('brand', values.brand);
+      formData.append('model', values.model);
+      formData.append('capacity', Number(values.capacity));
+      formData.append('rangePerFullCharge', Number(values.rangePerFullCharge));
+      formData.append('status', values.status);
+      formData.append('pricePerHour', Number(values.pricePerHour));
+      formData.append('stationId', Number(values.stationId));
+      
+      // Add image if provided
+      if (imageFile) {
+        formData.append('image', imageFile);
+      }
+
+      console.log('Sending FormData with fields:', {
         licensePlate: values.licensePlate,
         type: values.type,
         brand: values.brand,
@@ -69,16 +85,15 @@ export default function VehiclesManagement() {
         rangePerFullCharge: Number(values.rangePerFullCharge),
         status: values.status,
         pricePerHour: Number(values.pricePerHour),
-        stationId: Number(values.stationId)
-      };
-
-      console.log('Sending payload:', payload);
+        stationId: Number(values.stationId),
+        hasImage: !!imageFile
+      });
 
       if (selectedVehicle) {
-        await vehicleService.admin.updateVehicle(selectedVehicle.id, payload);
+        await vehicleService.admin.updateVehicle(selectedVehicle.id, formData);
         toast.success('Cập nhật phương tiện thành công');
       } else {
-        await vehicleService.admin.createVehicle(payload);
+        await vehicleService.admin.createVehicle(formData);
         toast.success('Thêm phương tiện thành công');
       }
       setIsDialogOpen(false);
@@ -146,7 +161,8 @@ export default function VehiclesManagement() {
               capacity: '',
               rangePerFullCharge: '',
               pricePerHour: '',
-              stationId: ''
+              stationId: '',
+              image: null
             }}
             onSubmit={handleSave}
             onCancel={() => setIsDialogOpen(false)}

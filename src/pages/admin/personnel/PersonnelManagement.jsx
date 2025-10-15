@@ -162,40 +162,38 @@ export default function PersonnelManagement() {
 
   const handleViewUser = async (user) => {
     try {
-      let response;
-      let payload;
-
-      // Use different API endpoint based on user role
+      // Gọi API để lấy chi tiết user
+      const response = await userService.admin.getUserById(user.id);
+      const userData = response?.user || response?.data || response || user;
+      
+      // Nếu là renter, gọi thêm API profile để lấy thông tin document
       if (user.role === 'renter') {
-        // For renter profiles, use the profile endpoint which includes documents and verification info
-        response = await userService.admin.getRenterProfile(user.id);
-        // API returns an array, get the first item (or find by user id)
-        const profileData = Array.isArray(response) ? response[0] : response;
-
-        if (profileData?.user) {
-          payload = {
-            ...profileData.user,
-            // Add profile-specific fields from root level
-            type: profileData.type,
-            documentNumber: profileData.documentNumber,
-            documentUrl: profileData.documentUrl,
-            verified: profileData.verified,
-            verifiedBy: profileData.verifiedBy,
-            verifiedAt: profileData.verifiedAt,
-            createdAt: profileData.createdAt || profileData.user.createdAt,
-            updatedAt: profileData.updatedAt || profileData.user.updatedAt
-          };
-          console.log('Processed renter payload:', payload);
-        } else {
-          payload = profileData || user;
+        try {
+          const profileResponse = await userService.admin.getRenterProfile(user.id);
+          
+          // API trả về array các documents
+          if (Array.isArray(profileResponse) && profileResponse.length > 0) {
+            // Lưu toàn bộ array documents
+            userData.documents = profileResponse;
+            
+            // Để tương thích với code cũ, set document đầu tiên (hoặc document đã verified) làm primary
+            const verifiedDoc = profileResponse.find(doc => doc.verified === true);
+            const primaryDoc = verifiedDoc || profileResponse[0];
+            
+            userData.type = primaryDoc.type;
+            userData.documentNumber = primaryDoc.documentNumber;
+            userData.documentUrl = primaryDoc.documentUrl;
+            userData.verified = primaryDoc.verified;
+            userData.verifiedBy = primaryDoc.verifiedBy;
+            userData.verifiedAt = primaryDoc.createdAt;
+          }
+        } catch (profileError) {
+          console.warn('Could not fetch renter profile, showing basic info only:', profileError);
+          // Không throw error, chỉ hiển thị thông tin cơ bản
         }
-      } else {
-        // For admin/staff, use the regular user endpoint
-        response = await userService.admin.getUserById(user.id);
-        payload = response?.user || response?.data || response || user;
       }
-
-      setSelectedUser(payload);
+      
+      setSelectedUser(userData);
       setShowViewDialog(true);
     } catch (error) {
       console.error('Error fetching user details:', error);

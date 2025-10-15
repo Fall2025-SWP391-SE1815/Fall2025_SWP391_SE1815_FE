@@ -1,6 +1,6 @@
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash, Eye } from 'lucide-react';
+import { Edit, Trash, Eye, Car } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 export default function VehicleTable({ vehicles, onEdit, onDelete, onView }) {
@@ -9,6 +9,7 @@ export default function VehicleTable({ vehicles, onEdit, onDelete, onView }) {
             <Table>
                 <TableHeader>
                     <TableRow>
+                        <TableHead>Hình ảnh</TableHead>
                         <TableHead>Biển số</TableHead>
                         <TableHead>Loại</TableHead>
                         <TableHead>Thương hiệu</TableHead>
@@ -21,13 +22,26 @@ export default function VehicleTable({ vehicles, onEdit, onDelete, onView }) {
                 <TableBody>
                     {vehicles.length === 0 ? (
                         <TableRow>
-                            <TableCell colSpan={7} className="text-center text-gray-500 py-4">
+                            <TableCell colSpan={8} className="text-center text-gray-500 py-4">
                                 Không có phương tiện
                             </TableCell>
                         </TableRow>
                     ) : (
                         vehicles.map((v) => (
                             <TableRow key={v.id}>
+                                <TableCell>
+                                    <div className="w-16 h-16 rounded-md overflow-hidden bg-gray-100 flex items-center justify-center">
+                                        {v.image ? (
+                                            <img 
+                                                src={v.image} 
+                                                alt={v.licensePlate}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <Car className="h-8 w-8 text-gray-400" />
+                                        )}
+                                    </div>
+                                </TableCell>
                                 <TableCell>{v.licensePlate}</TableCell>
                                 <TableCell>{v.type}</TableCell>
                                 <TableCell>{v.brand}</TableCell>
