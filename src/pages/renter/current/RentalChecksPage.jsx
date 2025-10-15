@@ -18,7 +18,6 @@ import {
   CheckCircle,
   XCircle,
   Camera,
-  Download,
   AlertCircle,
   Clock,
   Image,
@@ -26,6 +25,8 @@ import {
   RefreshCw,
   AlertTriangle
 } from 'lucide-react';
+import renterService from '@/services/renter/renterService';
+import { API_BASE_URL } from '@/lib/api/apiConfig';
 
 const RentalChecksPage = () => {
   const { id } = useParams(); // rental ID
@@ -51,28 +52,35 @@ const RentalChecksPage = () => {
     setError('');
 
     try {
-      // Mock API call to GET /api/renter/rentals/:id/checks
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Call real API: GET /api/renter/rentals/:id/checks
+      const response = await renterService.rentals.getChecks(id);
+      
+      // API returns array directly or wrapped in data
+      const checksData = Array.isArray(response) ? response : response?.data || response?.checks || [];
+      
+      // Normalize the response to match component structure
+      const normalizedChecks = checksData.map(check => ({
+        id: check.id,
+        check_type: (check.checkType || check.check_type || 'pickup').toLowerCase(),
+        condition_report: check.conditionReport || check.condition_report || '',
+        photo_url: check.photoUrl ? `${API_BASE_URL}${check.photoUrl}` : null,
+        customer_signature_url: check.customerSignatureUrl ? `${API_BASE_URL}${check.customerSignatureUrl}` : null,
+        staff_signature_url: check.staffSignatureUrl ? `${API_BASE_URL}${check.staffSignatureUrl}` : null,
+        created_at: check.createdAt || check.created_at,
+        // Additional info from API
+        rental: check.rental,
+        staff: check.staff
+      }));
 
-      // Simulate API response
-      const mockResponse = {
-        checks: [
-          {
-            id: 1,
-            check_type: 'pickup',
-            condition_report: 'Xe trong tình trạng tốt. Không có vết trầy xước. Pin đầy 100%. Tất cả đèn và còi hoạt động bình thường.',
-            photo_url: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=500',
-            customer_signature_url: 'https://via.placeholder.com/300x150/e3f2fd/1976d2?text=Customer+Signature',
-            staff_signature_url: 'https://via.placeholder.com/300x150/f3e5f5/7b1fa2?text=Staff+Signature',
-            created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() // 2 hours ago
-          }
-        ]
-      };
-
-      setChecks(mockResponse.checks);
+      setChecks(normalizedChecks);
+      
+      if (normalizedChecks.length === 0) {
+        setError('Chưa có biên bản giao xe nào cho lượt thuê này');
+      }
     } catch (err) {
       console.error('Error loading rental checks:', err);
-      setError('Có lỗi xảy ra khi tải biên bản giao xe');
+      setError('Có lỗi xảy ra khi tải biên bản giao xe. Vui lòng thử lại sau.');
+      setChecks([]);
     } finally {
       setLoading(false);
     }
@@ -84,28 +92,6 @@ const RentalChecksPage = () => {
 
   const handleViewPhoto = (photoUrl) => {
     window.open(photoUrl, '_blank');
-  };
-
-  const handleDownloadReport = (checkId) => {
-    // Mock download functionality
-    const check = checks.find(c => c.id === checkId);
-    if (check) {
-      const blob = new Blob([
-        `BIÊN BẢN GIAO XE\n\n` +
-        `Loại: ${check.check_type === 'pickup' ? 'Nhận xe' : 'Trả xe'}\n` +
-        `Thời gian: ${new Date(check.created_at).toLocaleString('vi-VN')}\n\n` +
-        `BÁO CÁO TÌNH TRẠNG:\n${check.condition_report}\n\n` +
-        `ID Biên bản: ${check.id}\n` +
-        `Rental ID: ${id}`
-      ], { type: 'text/plain' });
-      
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `bien-ban-${check.check_type}-${checkId}.txt`;
-      a.click();
-      URL.revokeObjectURL(url);
-    }
   };
 
   const getCheckTypeInfo = (checkType) => {
@@ -195,7 +181,7 @@ const RentalChecksPage = () => {
             </p>
             <div className="flex space-x-4 justify-center">
               <Button 
-                onClick={() => window.location.href = '/rental/current'}
+                onClick={() => window.location.href = '/rentals/current'}
                 className="bg-blue-600 hover:bg-blue-700"
               >
                 <Eye className="h-4 w-4 mr-2" />
@@ -266,12 +252,53 @@ const RentalChecksPage = () => {
                 </CardHeader>
 
                 <CardContent className="space-y-6">
+                  {/* Rental & Vehicle Info */}
+                  {check.rental && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
+                        <Car className="h-4 w-4 mr-2 text-blue-600" />
+                        Thông tin xe và lượt thuê
+                      </h4>
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <span className="text-gray-600">Biển số xe:</span>
+                          <p className="font-medium">{check.rental.vehicle?.licensePlate || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Loại xe:</span>
+                          <p className="font-medium">
+                            {check.rental.vehicle?.type === 'motorbike' ? 'Xe máy điện' : 
+                             check.rental.vehicle?.type === 'car' ? 'Ô tô điện' : 'N/A'}
+                          </p>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Hãng/Model:</span>
+                          <p className="font-medium">
+                            {check.rental.vehicle?.brand} {check.rental.vehicle?.model}
+                          </p>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Trạm:</span>
+                          <p className="font-medium">{check.rental.stationPickup?.name || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Nhân viên xử lý:</span>
+                          <p className="font-medium">{check.staff?.fullName || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">SĐT nhân viên:</span>
+                          <p className="font-medium">{check.staff?.phone || 'N/A'}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Condition Report */}
                   <div>
                     <h4 className="font-semibold text-gray-900 mb-3">Báo cáo tình trạng xe</h4>
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <p className="text-gray-700 leading-relaxed">
-                        {check.condition_report}
+                        {check.condition_report || 'Không có báo cáo'}
                       </p>
                     </div>
                   </div>
@@ -286,6 +313,17 @@ const RentalChecksPage = () => {
                             src={check.photo_url}
                             alt="Tình trạng xe"
                             className="w-full h-48 object-cover rounded-lg border"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.style.display = 'none';
+                              const parent = e.target.parentElement;
+                              if (parent && !parent.querySelector('.error-placeholder')) {
+                                const placeholder = document.createElement('div');
+                                placeholder.className = 'error-placeholder w-full h-48 bg-gray-100 rounded-lg border flex items-center justify-center text-gray-500';
+                                placeholder.innerHTML = '<div class="text-center"><svg class="h-12 w-12 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg><p class="text-sm">Không thể tải ảnh</p></div>';
+                                parent.appendChild(placeholder);
+                              }
+                            }}
                           />
                           <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 rounded-lg flex items-center justify-center">
                             <Button
@@ -338,26 +376,18 @@ const RentalChecksPage = () => {
                   </div>
 
                   {/* Actions */}
-                  <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 pt-4 border-t">
-                    <Button
-                      onClick={() => handleViewPhoto(check.photo_url)}
-                      variant="outline"
-                      className="flex-1"
-                      disabled={!check.photo_url}
-                    >
-                      <Image className="h-4 w-4 mr-2" />
-                      Xem ảnh gốc
-                    </Button>
-                    
-                    <Button
-                      onClick={() => handleDownloadReport(check.id)}
-                      variant="outline"
-                      className="flex-1"
-                    >
-                      <Download className="h-4 w-4 mr-2" />
-                      Tải báo cáo
-                    </Button>
-                  </div>
+                  {check.photo_url && (
+                    <div className="pt-4 border-t">
+                      <Button
+                        onClick={() => handleViewPhoto(check.photo_url)}
+                        variant="outline"
+                        className="w-full"
+                      >
+                        <Image className="h-4 w-4 mr-2" />
+                        Xem ảnh gốc
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             );

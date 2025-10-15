@@ -86,20 +86,6 @@ const StationsPage = () => {
     window.open(url, '_blank');
   };
 
-  const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    // Simple distance calculation (approximate)
-    const R = 6371; // Earth's radius in km
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = 
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-      Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    const distance = R * c;
-    return distance.toFixed(1);
-  };
-
   const getStatusBadge = (status) => {
     switch (status) {
       case 'active':
@@ -178,9 +164,6 @@ const StationsPage = () => {
                     </span>
                     <div className="flex items-center gap-2">
                       {getStatusBadge(station.status)}
-                      <Badge variant="outline" className="text-green-700 border-green-200">
-                        ID: {station.id}
-                      </Badge>
                     </div>
                   </CardTitle>
                 </CardHeader>
@@ -205,14 +188,6 @@ const StationsPage = () => {
                         {station.total_vehicles || 0}
                       </p>
                     </div>
-                  </div>
-
-                  {/* Distance (mock calculation from city center) */}
-                  <div className="text-sm text-gray-600">
-                    <p className="font-medium mb-1">Khoảng cách từ trung tâm:</p>
-                    <p>
-                      ~{calculateDistance(10.7769, 106.7009, station.latitude, station.longitude)} km
-                    </p>
                   </div>
 
                   {/* Action Buttons */}

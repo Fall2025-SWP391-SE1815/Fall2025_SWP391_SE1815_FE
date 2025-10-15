@@ -81,6 +81,11 @@ export const renterService = {
     // Lấy tất cả rental với filter (status, từ ngày, đến ngày)
     getAll: async (params = {}) => {
       return await apiClient.get(API_ENDPOINTS.RENTER.RENTALS_ALL, params);
+    },
+    
+    // Xem biên bản giao/nhận xe
+    getChecks: async (rentalId) => {
+      return await apiClient.get(API_ENDPOINTS.RENTER.RENTAL_CHECKS(rentalId));
     }
   },
 

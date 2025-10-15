@@ -11,6 +11,7 @@ import { useAuth } from '@/hooks/auth/useAuth.jsx';
 import renterService from '@/services/renter/renterService.js';
 import stationService from '@/services/stations/stationService';
 import vehicleService from '@/services/vehicles/vehicleService';
+import { API_BASE_URL } from '@/lib/api/apiConfig';
 import {
   Calendar,
   Car,
@@ -142,8 +143,6 @@ const ReservationsPage = () => {
     const serverParams = {};
     if (filters.status && filters.status !== 'all') serverParams.status = filters.status.toUpperCase();
     if (filters.search && /^[0-9]+$/.test(filters.search.trim())) serverParams.vehicleId = parseInt(filters.search.trim());
-    // date filters (startFrom/startTo) could be added via UI later
-    // Call server with selected params
     loadReservations(serverParams);
   }, [filters]);
 
@@ -365,9 +364,6 @@ const ReservationsPage = () => {
     const statusMap = {
       'pending': { text: 'Chờ xác nhận', color: 'bg-yellow-100 text-yellow-700', icon: Clock },
       'confirmed': { text: 'Đã xác nhận', color: 'bg-green-100 text-green-700', icon: CheckCircle },
-      'active': { text: 'Đang thuê', color: 'bg-blue-100 text-blue-700', icon: Car },
-      'completed': { text: 'Hoàn thành', color: 'bg-gray-100 text-gray-700', icon: CheckCircle },
-      'cancelled': { text: 'Đã hủy', color: 'bg-red-100 text-red-700', icon: XCircle }
     };
     const config = statusMap[status] || { text: status, color: 'bg-gray-100 text-gray-700', icon: AlertCircle };
     const IconComponent = config.icon;
@@ -450,7 +446,7 @@ const ReservationsPage = () => {
         )}
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -476,38 +472,6 @@ const ReservationsPage = () => {
                 </div>
                 <div className="p-3 bg-green-100 rounded-full">
                   <Clock className="h-6 w-6 text-green-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Đang thuê</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {reservations.filter(r => r.status === 'active').length}
-                  </p>
-                </div>
-                <div className="p-3 bg-purple-100 rounded-full">
-                  <Car className="h-6 w-6 text-purple-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Hoàn thành</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {reservations.filter(r => r.status === 'completed').length}
-                  </p>
-                </div>
-                <div className="p-3 bg-gray-100 rounded-full">
-                  <CheckCircle className="h-6 w-6 text-gray-600" />
                 </div>
               </div>
             </CardContent>
@@ -544,9 +508,6 @@ const ReservationsPage = () => {
                   <SelectItem value="all">Tất cả trạng thái</SelectItem>
                   <SelectItem value="pending">Chờ xác nhận</SelectItem>
                   <SelectItem value="confirmed">Đã xác nhận</SelectItem>
-                  <SelectItem value="active">Đang thuê</SelectItem>
-                  <SelectItem value="completed">Hoàn thành</SelectItem>
-                  <SelectItem value="cancelled">Đã hủy</SelectItem>
                 </SelectContent>
               </Select>
               <Select
@@ -657,7 +618,7 @@ const ReservationsPage = () => {
 
         {/* Detail Modal */}
         <Dialog open={showDetailModal} onOpenChange={setShowDetailModal}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Chi tiết đặt chỗ</DialogTitle>
               <DialogDescription>
@@ -667,6 +628,24 @@ const ReservationsPage = () => {
 
             {selectedReservation && (
               <div className="space-y-6">
+                {/* Vehicle Image */}
+                {selectedReservation.vehicle?.imageUrl && (
+                  <div className="w-full h-64 rounded-lg overflow-hidden bg-gray-100">
+                    <img 
+                      src={selectedReservation.vehicle.imageUrl.startsWith('http') 
+                        ? selectedReservation.vehicle.imageUrl 
+                        : `${API_BASE_URL}${selectedReservation.vehicle.imageUrl}`
+                      }
+                      alt={`${selectedReservation.vehicle?.brand} ${selectedReservation.vehicle?.model}`}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.style.display = 'none';
+                      }}
+                    />
+                  </div>
+                )}
+
                 {/* Vehicle Info */}
                 <Card>
                   <CardHeader>

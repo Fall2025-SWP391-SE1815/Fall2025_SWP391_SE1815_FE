@@ -22,6 +22,7 @@ import { useAuth } from '@/hooks/auth/useAuth';
 import vehicleService from '@/services/vehicles/vehicleService';
 import stationService from '@/services/stations/stationService';
 import { toast } from 'sonner';
+import { API_BASE_URL } from '@/lib/api/apiConfig';
 
 const VehiclesPage = () => {
   const { user, isAuthenticated } = useAuth();
@@ -75,18 +76,22 @@ const VehiclesPage = () => {
 
       const data = await vehicleService.renter.getAvailableVehicles(params);
       const vehiclesData = Array.isArray(data) ? data : data?.vehicles || data?.data || [];
-      const normalized = vehiclesData.map(v => ({
-        id: v.id,
-        license_plate: v.licensePlate || v.license_plate,
-        type: v.type,
-        brand: v.brand,
-        model: v.model,
-        capacity: v.capacity,
-        status: v.status,
-        price_per_hour: v.pricePerHour || v.price_per_hour,
-        station_id: v.station?.id || v.station_id || null,
-        station: v.station || null
-      }));
+      const normalized = vehiclesData.map(v => {
+        const imageUrl = v.imageUrl ? `${API_BASE_URL}${v.imageUrl}` : null;
+        return {
+          id: v.id,
+          license_plate: v.licensePlate || v.license_plate,
+          type: v.type,
+          brand: v.brand,
+          model: v.model,
+          capacity: v.capacity,
+          status: v.status,
+          price_per_hour: v.pricePerHour || v.price_per_hour,
+          station_id: v.station?.id || v.station_id || null,
+          station: v.station || null,
+          imageUrl: imageUrl
+        };
+      });
 
       setVehicles(normalized);
 
@@ -316,8 +321,32 @@ const VehiclesPage = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {/* Vehicle Image */}
+                  {vehicle.imageUrl && (
+                    <div className="w-full h-48 rounded-lg overflow-hidden bg-gray-100">
+                      <img 
+                        src={vehicle.imageUrl} 
+                        alt={`${vehicle.brand} ${vehicle.model}`}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"%3E%3Crect x="3" y="11" width="18" height="11" rx="2" ry="2"%3E%3C/rect%3E%3Cpath d="M7 11V7a5 5 0 0 1 10 0v4"%3E%3C/path%3E%3C/svg%3E';
+                        }}
+                      />
+                    </div>
+                  )}
+                  
                   {/* Vehicle Info */}
-                  <div className="space-y-2">
+                  {/* Vehicle Info */}
+                  <div className="space-y-2">{!vehicle.imageUrl && (
+                    <div className="w-full h-32 rounded-lg bg-gray-100 flex items-center justify-center">
+                      {vehicle.type === 'motorbike' ? (
+                        <Zap className="h-12 w-12 text-gray-400" />
+                      ) : (
+                        <Car className="h-12 w-12 text-gray-400" />
+                      )}
+                    </div>
+                  )}
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-medium text-gray-700">Loại xe:</span>
                       <span className="text-sm">{getVehicleTypeLabel(vehicle.type)}</span>
@@ -331,10 +360,10 @@ const VehiclesPage = () => {
                       <span className="text-sm">{vehicle.model}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium text-gray-700">Sức chứa:</span>
+                      <span className="text-sm font-medium text-gray-700">Dung lượng pin</span>
                       <span className="text-sm flex items-center">
                         <Users className="h-4 w-4 mr-1" />
-                        {vehicle.capacity} người
+                        {vehicle.capacity}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">

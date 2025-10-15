@@ -31,6 +31,7 @@ export const API_ENDPOINTS = {
 
     // Rentals
     RENTALS_ALL: '/api/renter/rentals/all',
+    RENTAL_CHECKS: (id) => `/api/renter/rentals/${id}/checks`,
 
     // Ratings and feedback
     RATING_TRIP: '/api/renter/rating/trip',

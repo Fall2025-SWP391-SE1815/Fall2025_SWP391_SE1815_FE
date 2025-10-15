@@ -147,7 +147,11 @@ const RentalCurrentPage = () => {
   };
 
   const handleViewChecks = () => {
-    navigate('/rentals/checks');
+    if (currentRental?.id) {
+      navigate(`/rentals/checks/${currentRental.id}`);
+    } else {
+      setError('Không tìm thấy thông tin lượt thuê');
+    }
   };
 
   if (loading) {
@@ -216,13 +220,6 @@ const RentalCurrentPage = () => {
               >
                 <Car className="h-4 w-4 mr-2" />
                 Đặt xe ngay
-              </Button>
-              <Button 
-                onClick={() => navigate('/rental/checkin')}
-                variant="outline"
-              >
-                <Eye className="h-4 w-4 mr-2" />
-                Check-in
               </Button>
             </div>
           </CardContent>

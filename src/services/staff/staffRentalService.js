@@ -88,6 +88,12 @@ const staffRentalService = {
   // Lấy danh sách tài liệu của Renter theo ID
   getRenterDocuments: (renterId) => apiClient.get(`/api/staff/renter-document/${renterId}`),
 
+  // Lấy danh sách tất cả user (renter) theo phone (hoặc tất cả nếu không có phone)
+  getRenters: (phone) => {
+    const params = phone ? { phone } : {};
+    return apiClient.get(`/api/staff/renter-document`, params);
+  },
+
   // ==================== INCIDENT REPORT MANAGEMENT ====================
   
   // Tạo báo cáo sự cố mới

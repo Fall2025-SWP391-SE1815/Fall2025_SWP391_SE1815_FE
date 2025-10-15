@@ -55,7 +55,6 @@ const Header = () => {
       href: '/rentals/current',
       dropdownItems: [
         { name: 'Xe đang thuê', icon: Clock, href: '/rentals/current' },
-        { name: 'Biên bản giao xe', icon: FileText, href: '/rentals/checks' }
       ]
     },
 
