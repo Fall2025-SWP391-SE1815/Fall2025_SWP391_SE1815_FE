@@ -43,23 +43,12 @@ const StationStaffManagement = () => {
   const fetchStaffList = async () => {
     try {
       const res = await userService.admin.getUsers({ role: 'staff' });
-      // response may be shaped as { users: [...] } or an array
-      const raw = res?.users || res?.data?.users || res || [];
-      let list = [];
-      if (Array.isArray(raw) && raw.length > 0) {
-        list = raw.map((u) => ({
-          id: u.id ?? u._id ?? u.userId,
-          name: u.fullName ?? u.name ?? `${u.firstName || ''} ${u.lastName || ''}`.trim(),
-          phone: u.phone ?? u.mobile ?? ''
-        }));
-      } else if (raw.users && Array.isArray(raw.users)) {
-        list = raw.users.map((u) => ({
-          id: u.id ?? u._id ?? u.userId,
-          name: u.fullName ?? u.name ?? `${u.firstName || ''} ${u.lastName || ''}`.trim(),
-          phone: u.phone ?? u.mobile ?? ''
-        }));
-      }
-
+      const staffData = Array.isArray(res) ? res : (res?.data || []);
+      const list = staffData.map((u) => ({
+        id: u.id,
+        name: u.fullName,
+        phone: u.phone
+      }));
       setStaffList(list);
     } catch (error) {
       console.error('Error fetching staff list:', error);
@@ -70,30 +59,21 @@ const StationStaffManagement = () => {
   // real data will be fetched via services
   const fetchAssignments = async () => {
     try {
-      const params = {};
-      // Note: don't send status to API (server may not support it); apply status filter client-side
-
-      const res = await staffStationService.admin.getAssignments(params);
-      const rawList = res?.assignments || res?.data || res || [];
-
-      let list = [];
-      if (Array.isArray(rawList) && rawList.length > 0) {
-        list = rawList.map((item) => ({
-          id: item.id,
-          staffId: item.staff?.id,
-          staffName: item.staff?.fullName,
-          stationId: item.station?.id,
-          stationName: item.station?.name,
-          assignedAt: item.assignedAt,
-          updatedAt: item.updatedAt ?? item.deactivatedAt,
-          status: item.isActive ? 'active' : 'inactive'
-        }));
-      }
-
+      const res = await staffStationService.admin.getAssignments();
+      const assignmentsData = Array.isArray(res) ? res : (res?.data || []);
+      const list = assignmentsData.map((item) => ({
+        id: item.id,
+        staffId: item.staff?.id,
+        staffName: item.staff?.fullName,
+        stationId: item.station?.id,
+        stationName: item.station?.name,
+        assignedAt: item.assignedAt,
+        updatedAt: item.updatedAt || item.deactivatedAt,
+        status: item.isActive ? 'active' : 'inactive'
+      }));
       setAssignments(list);
     } catch (error) {
       console.error('Error fetching assignments:', error);
-      // Set empty array on error
       setAssignments([]);
       toast({
         title: 'Lỗi',
@@ -106,16 +86,12 @@ const StationStaffManagement = () => {
   const fetchStationsList = async () => {
     try {
       const res = await stationService.admin.getStations();
-      const raw = res?.stations || res || [];
-      let list = [];
-      if (Array.isArray(raw) && raw.length > 0) {
-        list = raw.map((st) => ({
-          id: st.id ?? st._id ?? st.stationId,
-          name: st.name ?? st.stationName,
-          address: st.address ?? st.location ?? st.addr
-        }));
-      }
-
+      const stationsData = Array.isArray(res) ? res : (res?.data || []);
+      const list = stationsData.map((st) => ({
+        id: st.id,
+        name: st.name,
+        address: st.address
+      }));
       setStationsList(list);
     } catch (error) {
       console.error('Error fetching stations list:', error);
@@ -123,15 +99,12 @@ const StationStaffManagement = () => {
     }
   };
 
-  // Note: statistics removed to simplify to 3 APIs: assignments, staff, stations
-
   const handleAssignStaff = async (formData) => {
     try {
-      const payload = {
-        staffId: parseInt(formData.staffId),
-        stationId: parseInt(formData.stationId)
-      };
-      await staffStationService.admin.createAssignment(payload);
+      await staffStationService.admin.createAssignment({
+        staffId: Number(formData.staffId),
+        stationId: Number(formData.stationId)
+      });
       toast({ title: 'Thành công', description: 'Đã phân công nhân viên thành công' });
       setShowAssignDialog(false);
       await fetchAssignments();
@@ -171,12 +144,6 @@ const StationStaffManagement = () => {
     setShowViewDialog(true);
   };
 
-  const openAssignDialog = () => {
-    setShowAssignDialog(true);
-  };
-
-
-
   if (loading) {
     return (
       <div className='flex items-center justify-center h-64'>
@@ -194,7 +161,7 @@ const StationStaffManagement = () => {
             Phân công và giám sát nhân viên tại các trạm xe
           </p>
         </div>
-        <Button onClick={openAssignDialog}>
+        <Button onClick={() => setShowAssignDialog(true)}>
           <UserCheck className="h-4 w-4 mr-2" />
           Phân công nhân viên
         </Button>
