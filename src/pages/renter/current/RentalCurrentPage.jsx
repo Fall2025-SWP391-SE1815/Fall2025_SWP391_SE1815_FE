@@ -6,10 +6,10 @@ import {
   CardDescription, 
   CardHeader, 
   CardTitle 
-} from '../../components/ui/card';
-import { Button } from '../../components/ui/button';
-import { Badge } from '../../components/ui/badge';
-import { Alert, AlertDescription } from '../../components/ui/alert';
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   Clock, 
   Car,
@@ -25,7 +25,7 @@ import {
   Timer,
   Activity
 } from 'lucide-react';
-import { renterService } from '../../services/renter/renterService';
+import { renterService } from '../../../services/renter/renterService';
 
 const RentalCurrentPage = () => {
   const navigate = useNavigate();
@@ -142,8 +142,8 @@ const RentalCurrentPage = () => {
   };
 
   const handleEndRental = () => {
-    // Navigate to return process
-    navigate('/rentals/return');
+    // Navigate to rental history after ending rental
+    navigate('/history');
   };
 
   const handleViewChecks = () => {
@@ -365,16 +365,7 @@ const RentalCurrentPage = () => {
                 >
                   <Eye className="h-4 w-4 mr-2" />
                   Xem biên bản giao xe
-                </Button>
-                
-                <Button
-                  onClick={() => navigate('/support')}
-                  variant="outline"
-                  className="flex-1"
-                >
-                  <Phone className="h-4 w-4 mr-2" />
-                  Hỗ trợ khẩn cấp
-                </Button>
+                </Button>             
                 
                 <Button
                   onClick={handleEndRental}

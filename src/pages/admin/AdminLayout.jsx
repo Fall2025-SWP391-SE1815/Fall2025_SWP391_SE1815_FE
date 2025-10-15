@@ -11,7 +11,7 @@ import {
   Monitor,
   Users,
   MessageSquare,
-  BarChart3,
+  TrendingUp,
   LogOut,
   Menu,
   X
@@ -66,10 +66,10 @@ const AdminLayout = () => {
       description: 'Xử lý khiếu nại khách hàng'
     },
     {
-      title: 'Thống kê & Báo cáo',
-      icon: BarChart3,
-      path: '/admin/reports',
-      description: 'Báo cáo và thống kê'
+      title: 'Hiệu suất nhân viên',
+      icon: TrendingUp,
+      path: '/admin/performance',
+      description: 'Theo dõi hiệu suất làm việc nhân viên'
     }
   ];
 

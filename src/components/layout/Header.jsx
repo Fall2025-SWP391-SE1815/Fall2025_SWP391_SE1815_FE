@@ -22,7 +22,6 @@ import {
   MessageSquare,
   AlertTriangle,
   KeyRound,
-  CarTaxiFront,
   Star,
   ChevronDown,
   BookOpen,
@@ -39,7 +38,7 @@ const Header = () => {
   const navigate = useNavigate();
 
   // Main navigation with grouped items
-  const navigationItems = [
+  const navigationItems = isAuthenticated ? [
     {
       name: 'Đặt xe',
       icon: Car,
@@ -59,16 +58,7 @@ const Header = () => {
         { name: 'Biên bản giao xe', icon: FileText, href: '/rentals/checks' }
       ]
     },
-    {
-      name: 'Trả xe',
-      icon: CarTaxiFront,
-      href: '/rentals/return',
-      dropdownItems: [
-        { name: 'Trả xe', icon: CarTaxiFront, href: '/rentals/return' },
-        { name: 'Thanh toán', icon: Wallet, href: '/rentals/payment' },
-        { name: 'Tóm tắt thuê xe', icon: FileText, href: '/rentals/summary' }
-      ]
-    },
+
     {
       name: 'Lịch sử',
       icon: History,
@@ -86,6 +76,17 @@ const Header = () => {
         { name: 'Đánh giá & Khiếu nại', icon: Star, href: '/complaints' },
         { name: 'Báo cáo sự cố', icon: AlertTriangle, href: '/incidents' }
       ]
+    }
+  ] : [
+    {
+      name: 'Trạm xe',
+      icon: MapPin,
+      href: '/public/stations'
+    },
+    {
+      name: 'Xe có sẵn',
+      icon: Car,
+      href: '/public/vehicles'
     }
   ];
 

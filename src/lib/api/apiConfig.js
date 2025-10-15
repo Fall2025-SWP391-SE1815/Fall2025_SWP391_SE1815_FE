@@ -19,23 +19,23 @@ export const API_ENDPOINTS = {
     // Document management
     DOCUMENTS: '/api/renter/documents',
     DOCUMENT_BY_ID: (id) => `/api/renter/documents/${id}`,
-    
+
     // Station and vehicle discovery  
     STATIONS: '/api/renter/booking/stations',
     VEHICLES: '/api/renter/booking/vehicles',
-    
+
     // Booking/Reservations
     RESERVATIONS: '/api/renter/booking/reservations',
     RESERVATION_BY_ID: (id) => `/api/renter/booking/reservations/${id}`,
     RESERVATION_CANCEL: (id) => `/api/renter/booking/reservations/${id}/cancel`,
-    
+
     // Rentals
     RENTALS_ALL: '/api/renter/rentals/all',
-    
+
     // Ratings and feedback
     RATING_TRIP: '/api/renter/rating/trip',
     RATING_STAFF: '/api/renter/rating/staff',
-    
+
     // Support
     COMPLAINT: '/api/renter/complaint'
   },
@@ -45,11 +45,11 @@ export const API_ENDPOINTS = {
     // Vehicle management
     VEHICLES: '/api/staff/vehicle',
     VEHICLE_BY_ID: (id) => `/api/staff/vehicle/${id}`,
-    
+
     // Document verification
     RENTER_DOCUMENTS_BY_STAFF: (renterId) => `/api/staff/renter-document/${renterId}`,
     RENTER_DOCUMENT_VERIFY: (documentId) => `/api/staff/renter-document/verify/${documentId}`,
-    
+
     // Rental management
     RENTALS: '/api/staff/rentals',
     RENTAL_PAYMENT: (id) => `/api/staff/rentals/${id}/payment`,
@@ -63,7 +63,7 @@ export const API_ENDPOINTS = {
     RENTAL_ADD_VIOLATION: '/api/staff/rentals/add-violation',
     RENTAL_VIOLATIONS: (id) => `/api/staff/rentals/${id}/violations`,
     RESERVATIONS: '/api/staff/rentals/reservations',
-    
+
     // Incident reporting
     INCIDENT_REPORT: '/api/staff/incident-report'
   },
@@ -74,30 +74,30 @@ export const API_ENDPOINTS = {
     VEHICLES: '/api/admin/vehicles',
     VEHICLE_BY_ID: (id) => `/api/admin/vehicles/${id}`,
     VEHICLES_STATUS: '/api/admin/vehicles/status',
-    
+
     // Station management
     STATIONS: '/api/admin/stations',
     STATION_BY_ID: (id) => `/api/admin/stations/${id}`,
-    
+
     // User management
     USERS: '/api/admin/users',
     USER_BY_ID: (id) => `/api/admin/users/${id}`,
     USER_PROFILE: (id) => `/api/admin/users/profile/${id}`,
-    
+
     // Staff station assignments
     STAFF_STATIONS: '/api/admin/staff-stations',
     STAFF_STATION_DEACTIVATE: (id) => `/api/admin/staff-stations/${id}/deactivate`,
-    
+
     // Rental management
     RENTALS: '/api/admin/rental',
-    
+
     // Complaint management
     COMPLAINTS: '/api/admin/complaint',
     COMPLAINT_RESOLVE: '/api/admin/complaint/resolve',
-    
+
     // Violation management
     VIOLATIONS: '/api/admin/violation',
-    
+
     // Performance management
     PERFORMANCE: '/api/admin/performance'
   }

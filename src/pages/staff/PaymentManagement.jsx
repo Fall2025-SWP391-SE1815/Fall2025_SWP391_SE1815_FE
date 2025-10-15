@@ -34,6 +34,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { Textarea } from '@/components/ui/textarea';
 import staffRentalService from '@/services/staff/staffRentalService';
 import {
   CreditCard,
@@ -49,7 +50,11 @@ import {
   Receipt,
   AlertTriangle,
   Calendar,
-  Hash
+  Hash,
+  Flag,
+  Eye,
+  MapPin,
+  Phone
 } from 'lucide-react';
 
 const PaymentManagement = () => {
@@ -62,6 +67,23 @@ const PaymentManagement = () => {
     amount: '',
     method: ''
   });
+  
+  // Additional states for detailed payment info
+  const [rentalViolations, setRentalViolations] = useState([]);
+  const [rentalBill, setRentalBill] = useState(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+  
+  // Violation states
+  const [violationDialogOpen, setViolationDialogOpen] = useState(false);
+  const [violationForm, setViolationForm] = useState({
+    rental_id: '',
+    description: '',
+    fine_amount: ''
+  });
+  
+  // Detail dialog state
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [selectedDetail, setSelectedDetail] = useState(null);
   
   // Filter states
   const [searchTerm, setSearchTerm] = useState('');
@@ -81,13 +103,48 @@ const PaymentManagement = () => {
       const response = await staffRentalService.getRentals({ status: 'waiting_for_payment' });
       console.log('Pending payments response:', response);
       
-      // Transform rental data to payment format for UI
+      // Transform rental data to payment format for UI - lưu đầy đủ thông tin
       const paymentsData = response?.map(rental => ({
         payment_id: `PAY-${rental.id}`,
         rental_id: rental.id,
+        
+        // Renter info
+        renter_id: rental.renter.id,
         renter_name: rental.renter.fullName,
+        renter_email: rental.renter.email,
         renter_phone: rental.renter.phone,
+        
+        // Vehicle info
+        vehicle_id: rental.vehicle.id,
         vehicle_license: rental.vehicle.licensePlate,
+        vehicle_type: rental.vehicle.type,
+        vehicle_brand: rental.vehicle.brand,
+        vehicle_model: rental.vehicle.model,
+        vehicle_price_per_hour: rental.vehicle.pricePerHour,
+        
+        // Station info
+        station_pickup_name: rental.stationPickup?.name,
+        station_pickup_address: rental.stationPickup?.address,
+        station_return_name: rental.stationReturn?.name,
+        station_return_address: rental.stationReturn?.address,
+        
+        // Staff info
+        staff_pickup_name: rental.staffPickup?.fullName,
+        staff_pickup_phone: rental.staffPickup?.phone,
+        staff_return_name: rental.staffReturn?.fullName,
+        staff_return_phone: rental.staffReturn?.phone,
+        
+        // Rental details
+        start_time: rental.startTime,
+        end_time: rental.endTime,
+        total_distance: rental.totalDistance,
+        total_cost: rental.totalCost,
+        rental_type: rental.rentalType,
+        deposit_amount: rental.depositAmount,
+        deposit_status: rental.depositStatus,
+        rental_status: rental.status,
+        
+        // Payment info
         amount: rental.totalCost || rental.depositAmount,
         method: 'cash', // Default method, can be changed in dialog
         status: 'pending',
@@ -110,18 +167,121 @@ const PaymentManagement = () => {
     }
   };
 
-  const handleProcessPayment = (payment) => {
+  const handleViewDetail = (payment) => {
+    setSelectedDetail(payment);
+    setDetailDialogOpen(true);
+  };
+
+  const handleProcessPayment = async (payment) => {
+    console.log('handleProcessPayment called with:', payment);
     setSelectedPayment(payment);
     setPaymentForm({
-      amount: payment.amount.toString(),
-      method: payment.method
+      amount: '', // Will be set after loading bill details
+      method: payment.method || ''
     });
     setPaymentDialogOpen(true);
+    
+    // Load detailed payment information
+    await loadPaymentDetails(payment.rental_id);
+  };
+
+  const loadPaymentDetails = async (rentalId) => {
+    try {
+      setLoadingDetails(true);
+      console.log('Loading payment details for rental:', rentalId);
+      
+      // 1. Get violations for this rental
+      const violationsResponse = await staffRentalService.getViolations(rentalId);
+      const violations = Array.isArray(violationsResponse) ? violationsResponse : violationsResponse?.data || [];
+      console.log('Violations loaded:', violations);
+      setRentalViolations(violations);
+      
+      // 2. Calculate total bill (rental cost + violations)
+      // Use current time as the actual return time when processing payment
+      const billResponse = await staffRentalService.calculateBill(rentalId, {
+        returnTime: new Date().toISOString()
+      });
+      const billData = billResponse?.data || billResponse;
+      console.log('Bill data loaded:', billData);
+      setRentalBill(billData);
+      
+      // Set default payment amount from bill
+      if (billData?.totalBill) {
+        setPaymentForm(prev => ({ 
+          ...prev, 
+          amount: billData.totalBill.toString() 
+        }));
+        console.log('Payment amount set to:', billData.totalBill);
+      }
+      
+    } catch (error) {
+      console.error('Error loading payment details:', error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể tải thông tin chi tiết thanh toán",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingDetails(false);
+    }
+  };
+
+  const submitViolation = async () => {
+    try {
+      if (!violationForm.rental_id || !violationForm.description || !violationForm.fine_amount) {
+        toast({
+          title: "Thiếu thông tin",
+          description: "Vui lòng điền đầy đủ thông tin vi phạm",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const fineAmount = parseInt(violationForm.fine_amount);
+      if (isNaN(fineAmount) || fineAmount < 0) {
+        toast({
+          title: "Số tiền không hợp lệ",
+          description: "Vui lòng nhập số tiền phạt hợp lệ",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setLoading(true);
+
+      // Use real API service for adding violation
+      await staffRentalService.addViolation({
+        rentalId: parseInt(violationForm.rental_id),
+        description: violationForm.description,
+        fineAmount: fineAmount
+      });
+
+      toast({
+        title: "Thành công",
+        description: "Vi phạm đã được ghi nhận.",
+      });
+
+      setViolationDialogOpen(false);
+      setViolationForm({ rental_id: '', description: '', fine_amount: '' });
+      
+      // Refresh pending payments to show updated info
+      fetchPendingPayments();
+
+    } catch (error) {
+      console.error('Error submitting violation:', error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể ghi nhận vi phạm",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const processPayment = async () => {
     try {
-      if (!paymentForm.amount || !paymentForm.method) {
+      if (!paymentForm.method || !rentalBill || !paymentForm.amount) {
         toast({
           title: "Thiếu thông tin",
           description: "Vui lòng điền đầy đủ thông tin thanh toán",
@@ -130,11 +290,11 @@ const PaymentManagement = () => {
         return;
       }
 
-      const amount = parseInt(paymentForm.amount);
+      const amount = parseFloat(paymentForm.amount);
       if (isNaN(amount) || amount <= 0) {
         toast({
           title: "Số tiền không hợp lệ",
-          description: "Vui lòng nhập số tiền hợp lệ",
+          description: "Vui lòng nhập số tiền thanh toán hợp lệ",
           variant: "destructive",
         });
         return;
@@ -142,26 +302,30 @@ const PaymentManagement = () => {
 
       setLoading(true);
       
-      // Call real API to process payment
-      const response = await staffRentalService.processPayment(selectedPayment.rental_id, {
+      // Use the correct API endpoint for payment confirmation
+      await staffRentalService.processPayment(selectedPayment.rental_id, {
+        // API expects these fields based on swagger
+        paymentMethod: paymentForm.method,
         amount: amount,
-        method: paymentForm.method,
-        payment_type: selectedPayment.payment_type
+        notes: `Thanh toán ${paymentForm.method} tại trạm`
       });
 
       toast({
         title: "Thành công",
-        description: "Thanh toán đã được ghi nhận thành công",
+        description: "Đã xác nhận thanh toán thành công.",
       });
 
       setPaymentDialogOpen(false);
+      setPaymentForm({ amount: '', method: '' });
+      setRentalViolations([]);
+      setRentalBill(null);
       fetchPendingPayments(); // Refresh the list
       
     } catch (error) {
       console.error('Error processing payment:', error);
       toast({
         title: "Lỗi",
-        description: "Không thể xử lý thanh toán",
+        description: "Không thể xác nhận thanh toán",
         variant: "destructive",
       });
     } finally {
@@ -189,8 +353,7 @@ const PaymentManagement = () => {
   const getPaymentMethodBadge = (method) => {
     const methodConfig = {
       cash: { label: 'Tiền mặt', variant: 'default', icon: Banknote },
-      card: { label: 'Thẻ', variant: 'secondary', icon: CreditCard },
-      'e-wallet': { label: 'Ví điện tử', variant: 'outline', icon: Wallet }
+      payos: { label: 'PayOS', variant: 'secondary', icon: CreditCard }
     };
     
     const config = methodConfig[method] || { label: method, variant: 'outline', icon: DollarSign };
@@ -278,6 +441,10 @@ const PaymentManagement = () => {
               className="w-64"
             />
           </div>
+          <Button onClick={() => setViolationDialogOpen(true)} variant="outline">
+            <Flag className="h-4 w-4 mr-2" />
+            Ghi nhận vi phạm
+          </Button>
           <Button onClick={fetchPendingPayments} disabled={loading}>
             <RefreshCw className="h-4 w-4 mr-2" />
             Làm mới
@@ -315,11 +482,11 @@ const PaymentManagement = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Thẻ ngân hàng</CardTitle>
+            <CardTitle className="text-sm font-medium">PayOS</CardTitle>
             <CreditCard className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{getPendingByMethod('card')}</div>
+            <div className="text-2xl font-bold">{getPendingByMethod('payos')}</div>
             <p className="text-xs text-muted-foreground">
               Giao dịch chờ xử lý
             </p>
@@ -328,11 +495,11 @@ const PaymentManagement = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ví điện tử</CardTitle>
-            <Wallet className="h-4 w-4 text-purple-600" />
+            <CardTitle className="text-sm font-medium">Tổng số giao dịch</CardTitle>
+            <Receipt className="h-4 w-4 text-gray-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{getPendingByMethod('e-wallet')}</div>
+            <div className="text-2xl font-bold">{pendingPayments.length}</div>
             <p className="text-xs text-muted-foreground">
               Giao dịch chờ xử lý
             </p>
@@ -435,15 +602,26 @@ const PaymentManagement = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Button
-                        size="sm"
-                        onClick={() => handleProcessPayment(payment)}
-                        disabled={loading}
-                        className="w-full"
-                      >
-                        <Receipt className="h-4 w-4 mr-2" />
-                        Xử lý thanh toán
-                      </Button>
+                      <div className="flex flex-col gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleViewDetail(payment)}
+                          className="w-full"
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          Xem chi tiết
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => handleProcessPayment(payment)}
+                          disabled={loading}
+                          className="w-full"
+                        >
+                          <Receipt className="h-4 w-4 mr-2" />
+                          Xử lý thanh toán
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -494,8 +672,77 @@ const PaymentManagement = () => {
               </CardContent>
             </Card>
 
-            {/* Payment Form */}
-            <div className="space-y-4">
+            {/* Violations List */}
+            {loadingDetails ? (
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-center py-4">
+                    <RefreshCw className="h-6 w-6 animate-spin mr-2" />
+                    <span>Đang tải thông tin chi tiết...</span>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <>
+                {rentalViolations.length > 0 && (
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm text-red-600">Vi phạm ({rentalViolations.length})</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        {rentalViolations.map((violation, index) => (
+                          <div key={index} className="flex justify-between items-start p-3 bg-red-50 rounded-lg">
+                            <div className="flex-1">
+                              <p className="font-medium text-sm">{violation.description}</p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {formatDateTime(violation.createdAt || violation.created_at)}
+                              </p>
+                            </div>
+                            <div className="text-red-600 font-medium">
+                              {formatCurrency(violation.fineAmount || violation.fine_amount || 0)}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Bill Summary */}
+                {rentalBill && (
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm">Tổng kết thanh toán</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        <div className="flex justify-between">
+                          <span>Tiền thuê xe:</span>
+                          <span>{formatCurrency(rentalBill.rentalCost || 0)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Phí vi phạm:</span>
+                          <span className="text-red-600">
+                            {formatCurrency(rentalBill.violationCost || 0)}
+                          </span>
+                        </div>
+                        <hr />
+                        <div className="flex justify-between text-lg font-bold">
+                          <span>Tổng hóa đơn:</span>
+                          <span className="text-green-600">
+                            {formatCurrency(rentalBill.totalBill || 0)}
+                          </span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </>
+            )}
+
+            {/* Payment Amount Input */}
+            {rentalBill && (
               <div className="space-y-2">
                 <Label htmlFor="amount">Số tiền thanh toán *</Label>
                 <div className="relative">
@@ -503,17 +750,20 @@ const PaymentManagement = () => {
                   <Input
                     id="amount"
                     type="number"
-                    placeholder="Nhập số tiền"
+                    placeholder="Nhập số tiền thanh toán"
                     value={paymentForm.amount}
                     onChange={(e) => setPaymentForm(prev => ({ ...prev, amount: e.target.value }))}
                     className="pl-10"
                   />
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Số tiền gốc: {selectedPayment && formatCurrency(selectedPayment.amount)}
+                  Tổng hóa đơn: {formatCurrency(rentalBill.totalBill || 0)}
                 </p>
               </div>
+            )}
 
+            {/* Payment Method Selection */}
+            <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="method">Phương thức thanh toán *</Label>
                 <Select
@@ -530,16 +780,10 @@ const PaymentManagement = () => {
                         Tiền mặt
                       </div>
                     </SelectItem>
-                    <SelectItem value="card">
+                    <SelectItem value="payos">
                       <div className="flex items-center gap-2">
                         <CreditCard className="h-4 w-4" />
-                        Thẻ ngân hàng
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="e-wallet">
-                      <div className="flex items-center gap-2">
-                        <Wallet className="h-4 w-4" />
-                        Ví điện tử
+                        PayOS
                       </div>
                     </SelectItem>
                   </SelectContent>
@@ -558,16 +802,10 @@ const PaymentManagement = () => {
                         Nhận tiền mặt trực tiếp từ khách hàng
                       </div>
                     )}
-                    {paymentForm.method === 'card' && (
+                    {paymentForm.method === 'payos' && (
                       <div className="flex items-center gap-2">
                         <CreditCard className="h-4 w-4" />
-                        Xử lý thanh toán qua thẻ ngân hàng
-                      </div>
-                    )}
-                    {paymentForm.method === 'e-wallet' && (
-                      <div className="flex items-center gap-2">
-                        <Wallet className="h-4 w-4" />
-                        Xử lý thanh toán qua ví điện tử
+                        Xử lý thanh toán qua PayOS
                       </div>
                     )}
                   </div>
@@ -577,12 +815,340 @@ const PaymentManagement = () => {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPaymentDialogOpen(false)}>
+            <Button variant="outline" onClick={() => {
+              setPaymentDialogOpen(false);
+              setRentalViolations([]);
+              setRentalBill(null);
+            }}>
               Hủy
             </Button>
-            <Button onClick={processPayment} disabled={loading}>
-              <CheckCircle className="h-4 w-4 mr-2" />
-              Xác nhận thanh toán
+            <Button 
+              onClick={processPayment} 
+              disabled={loading || loadingDetails || !rentalBill || !paymentForm.method || !paymentForm.amount}
+            >
+              {loadingDetails ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Đang tải thông tin...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Xác nhận thanh toán
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Detail Dialog */}
+      <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="h-5 w-5" />
+              Chi tiết thanh toán - {selectedDetail?.payment_id}
+            </DialogTitle>
+            <DialogDescription>
+              Thông tin đầy đủ về lượt thuê và thanh toán
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedDetail && (
+            <div className="space-y-4">
+              {/* Renter Information */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    Thông tin khách hàng
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <Label className="text-muted-foreground">ID</Label>
+                      <p className="font-medium">#{selectedDetail.renter_id}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Họ tên</Label>
+                      <p className="font-medium">{selectedDetail.renter_name}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Email</Label>
+                      <p className="font-medium">{selectedDetail.renter_email}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Số điện thoại</Label>
+                      <p className="font-medium flex items-center gap-2">
+                        <Phone className="h-3 w-3" />
+                        {selectedDetail.renter_phone}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Vehicle Information */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Car className="h-4 w-4" />
+                    Thông tin xe
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <Label className="text-muted-foreground">ID Xe</Label>
+                      <p className="font-medium">#{selectedDetail.vehicle_id}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Biển số</Label>
+                      <p className="font-medium text-lg">{selectedDetail.vehicle_license}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Loại xe</Label>
+                      <p className="font-medium capitalize">{selectedDetail.vehicle_type}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Hãng xe</Label>
+                      <p className="font-medium">{selectedDetail.vehicle_brand} {selectedDetail.vehicle_model}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Giá thuê</Label>
+                      <p className="font-medium text-green-600">
+                        {formatCurrency(selectedDetail.vehicle_price_per_hour)}/giờ
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Station Information */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <MapPin className="h-4 w-4" />
+                    Thông tin trạm
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <Label className="text-muted-foreground">Trạm lấy xe</Label>
+                      <p className="font-medium">{selectedDetail.station_pickup_name}</p>
+                      <p className="text-xs text-muted-foreground">{selectedDetail.station_pickup_address}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Trạm trả xe</Label>
+                      <p className="font-medium">
+                        {selectedDetail.station_return_name || 'Chưa trả xe'}
+                      </p>
+                      {selectedDetail.station_return_address && (
+                        <p className="text-xs text-muted-foreground">{selectedDetail.station_return_address}</p>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Staff Information */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    Thông tin nhân viên
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <Label className="text-muted-foreground">NV giao xe</Label>
+                      <p className="font-medium">{selectedDetail.staff_pickup_name}</p>
+                      <p className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Phone className="h-3 w-3" />
+                        {selectedDetail.staff_pickup_phone}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">NV nhận xe</Label>
+                      <p className="font-medium">{selectedDetail.staff_return_name}</p>
+                      <p className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Phone className="h-3 w-3" />
+                        {selectedDetail.staff_return_phone}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Rental Details */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Receipt className="h-4 w-4" />
+                    Chi tiết thuê xe
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <Label className="text-muted-foreground">Mã thuê</Label>
+                      <p className="font-medium">#{selectedDetail.rental_id}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Loại thuê</Label>
+                      <p className="font-medium capitalize">{selectedDetail.rental_type}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Thời gian bắt đầu</Label>
+                      <p className="font-medium">{formatDateTime(selectedDetail.start_time)}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Thời gian kết thúc</Label>
+                      <p className="font-medium">{formatDateTime(selectedDetail.end_time)}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Trạng thái</Label>
+                      <Badge variant="secondary" className="capitalize">
+                        {selectedDetail.rental_status}
+                      </Badge>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Quãng đường</Label>
+                      <p className="font-medium">
+                        {selectedDetail.total_distance ? `${selectedDetail.total_distance} km` : 'Chưa có'}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Payment Summary */}
+              <Card className="border-green-200 bg-green-50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm flex items-center gap-2 text-green-900">
+                    <DollarSign className="h-4 w-4" />
+                    Tổng kết thanh toán
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-green-800">Tổng chi phí:</span>
+                      <span className="font-bold text-lg text-green-900">
+                        {formatCurrency(selectedDetail.total_cost)}
+                      </span>
+                    </div>
+                    <hr className="border-green-200" />
+                    <div className="flex justify-between text-sm">
+                      <span className="text-green-800">Tiền cọc:</span>
+                      <span className="font-medium text-green-900">
+                        {formatCurrency(selectedDetail.deposit_amount)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-green-800">Trạng thái cọc:</span>
+                      <Badge variant="outline" className="capitalize">
+                        {selectedDetail.deposit_status}
+                      </Badge>
+                    </div>
+                    <hr className="border-green-200" />
+                    <div className="flex justify-between text-sm">
+                      <span className="text-green-800">Loại thanh toán:</span>
+                      {getPaymentTypeBadge(selectedDetail.payment_type)}
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-green-800">Ngày tạo:</span>
+                      <span className="font-medium text-green-900">
+                        {formatDateTime(selectedDetail.created_at)}
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDetailDialogOpen(false)}>
+              Đóng
+            </Button>
+            <Button onClick={() => {
+              setDetailDialogOpen(false);
+              handleProcessPayment(selectedDetail);
+            }}>
+              <Receipt className="h-4 w-4 mr-2" />
+              Xử lý thanh toán
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Violation Dialog */}
+      <Dialog open={violationDialogOpen} onOpenChange={setViolationDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Flag className="h-5 w-5" />
+              Ghi nhận vi phạm
+            </DialogTitle>
+            <DialogDescription>
+              Ghi nhận vi phạm khi khách hàng trả xe
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="rental-id">Mã lượt thuê *</Label>
+              <Input
+                id="rental-id"
+                type="number"
+                placeholder="Nhập mã lượt thuê"
+                value={violationForm.rental_id}
+                onChange={(e) => setViolationForm(prev => ({ ...prev, rental_id: e.target.value }))}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="violation-description">Mô tả vi phạm *</Label>
+              <Textarea
+                id="violation-description"
+                placeholder="Mô tả chi tiết vi phạm (ví dụ: không đội mũ bảo hiểm, vượt đèn đỏ, trả xe trễ...)"
+                value={violationForm.description}
+                onChange={(e) => setViolationForm(prev => ({ ...prev, description: e.target.value }))}
+                rows={4}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="fine-amount">Số tiền phạt (VND) *</Label>
+              <div className="relative">
+                <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="fine-amount"
+                  type="number"
+                  placeholder="Nhập số tiền phạt"
+                  value={violationForm.fine_amount}
+                  onChange={(e) => setViolationForm(prev => ({ ...prev, fine_amount: e.target.value }))}
+                  className="pl-10"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Vi phạm sẽ được tính vào hóa đơn thanh toán
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViolationDialogOpen(false)}>
+              Hủy
+            </Button>
+            <Button onClick={submitViolation} disabled={loading}>
+              <Flag className="h-4 w-4 mr-2" />
+              Ghi nhận vi phạm
             </Button>
           </DialogFooter>
         </DialogContent>

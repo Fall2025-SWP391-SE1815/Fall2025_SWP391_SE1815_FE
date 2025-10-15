@@ -188,6 +188,28 @@ const Home = () => {
                 </div>
               </div>
 
+              {/* Quick Links */}
+              <div className="flex flex-wrap gap-3 mb-6 animate-in fade-in slide-in-from-bottom duration-700 delay-1500">
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={() => window.location.href = '/public/stations'}
+                  className="border-blue-600 text-blue-600 hover:bg-blue-50 transition-all duration-300 hover:scale-105"
+                >
+                  <MapPin className="mr-2 h-4 w-4" />
+                  Xem trạm xe
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={() => window.location.href = '/public/vehicles'}
+                  className="border-purple-600 text-purple-600 hover:bg-purple-50 transition-all duration-300 hover:scale-105"
+                >
+                  <Car className="mr-2 h-4 w-4" />
+                  Xem xe có sẵn
+                </Button>
+              </div>
+
               {/* CTA Buttons */}
               <div className="flex flex-col sm:flex-row gap-4 animate-in fade-in slide-in-from-bottom duration-700 delay-1600">
                 <Button size="lg" className="bg-green-600 hover:bg-green-700 transition-all duration-300 hover:scale-105 hover:shadow-lg">

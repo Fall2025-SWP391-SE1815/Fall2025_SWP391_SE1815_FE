@@ -104,7 +104,23 @@ const VehiclesPage = () => {
     }
   };
 
+  // Initialize filters from URL parameters on mount
   useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialFilters = {
+      type: urlParams.get('type') || '',
+      station_id: urlParams.get('station_id') || '',
+      price_min: urlParams.get('price_min') || '',
+      price_max: urlParams.get('price_max') || '',
+      search: urlParams.get('search') || ''
+    };
+    
+    // Only update if there are URL params to avoid unnecessary re-renders
+    const hasUrlParams = Object.values(initialFilters).some(value => value !== '');
+    if (hasUrlParams) {
+      setFilters(initialFilters);
+    }
+    
     loadStations();
   }, []); // Remove authentication dependency
 

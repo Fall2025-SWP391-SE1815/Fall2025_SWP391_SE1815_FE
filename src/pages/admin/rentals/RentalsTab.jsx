@@ -109,13 +109,13 @@ const RentalsTab = () => {
             <Filter className='h-4 w-4 mr-2' />
             <SelectValue placeholder='Lọc theo trạng thái' />
           </SelectTrigger>
-          <SelectContent position="popper" side="bottom" style={{ zIndex: 9999 }}>
-            <SelectItem value='all'>Tất cả trạng thái</SelectItem>
-            <SelectItem value='booked'>Đã đặt</SelectItem>
-            <SelectItem value='in_use'>Đang thuê</SelectItem>
-            <SelectItem value='waiting_for_payment'>Chờ thanh toán</SelectItem>
-            <SelectItem value='returned'>Đã trả</SelectItem>
-            <SelectItem value='cancelled'>Đã hủy</SelectItem>
+          <SelectContent position="popper" className="z-[9999] bg-white border border-gray-200 shadow-lg rounded-md p-1 min-w-[var(--radix-select-trigger-width)]">
+            <SelectItem value='all' className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Tất cả trạng thái</SelectItem>
+            <SelectItem value='booked' className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Đã đặt</SelectItem>
+            <SelectItem value='in_use' className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Đang thuê</SelectItem>
+            <SelectItem value='waiting_for_payment' className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Chờ thanh toán</SelectItem>
+            <SelectItem value='returned' className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Đã trả</SelectItem>
+            <SelectItem value='cancelled' className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Đã hủy</SelectItem>
           </SelectContent>
         </Select>
 

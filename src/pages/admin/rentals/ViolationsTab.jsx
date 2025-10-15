@@ -66,19 +66,21 @@ const ViolationsTab = () => {
           {violations.length > 0 ? violations.map((violation) => (
             <div key={violation.id} className="flex items-center justify-between p-4 border rounded-lg">
               <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
+                <div className="flex items-center gap-3 mb-2 text-sm text-gray-800">
                   <Shield className="h-4 w-4 text-red-600" />
-                  <span className="font-medium">{violation.renter_name}</span>
-                  <Badge variant="outline">{violation.type}</Badge>
+                  <div className="flex items-center gap-1">
+                    <span className="text-gray-500">Người thuê:</span>
+                    <span className="font-medium">{violation.rental.renter.fullName}</span>
+                  </div>
                 </div>
                 <p className="text-sm text-muted-foreground mb-2">{violation.description}</p>
                 <span className="text-xs text-muted-foreground">
-                  {new Date(violation.created_at).toLocaleString('vi-VN')}
+                  {new Date(violation.createdAt).toLocaleString('vi-VN')}
                 </span>
               </div>
               <div className="text-right">
                 <div className="text-lg font-bold text-red-600">
-                  {formatCurrency(violation.penalty_amount)}
+                  {formatCurrency(violation.fineAmount)}
                 </div>
                 <Badge variant="destructive">Phạt tiền</Badge>
               </div>

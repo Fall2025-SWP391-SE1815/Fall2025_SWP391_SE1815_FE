@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth, useAuthValidation } from '@/hooks/auth/useAuth.jsx';
 import { Eye, EyeOff, Mail, Lock, User, Phone, Zap, AlertCircle, Loader2, CheckCircle } from 'lucide-react';
 
@@ -21,8 +20,7 @@ const RegisterPage = () => {
     password: '',
     confirmPassword: '',
     full_name: '',
-    phone: '',
-    agreeToTerms: false
+    phone: ''
   });
   
   // UI state
@@ -64,10 +62,6 @@ const RegisterPage = () => {
     const phoneError = validatePhone(formData.phone);
     if (phoneError) newErrors.phone = phoneError;
     
-    if (!formData.agreeToTerms) {
-      newErrors.agreeToTerms = 'Bạn phải đồng ý với điều khoản sử dụng';
-    }
-    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -95,8 +89,8 @@ const RegisterPage = () => {
       const result = await register(registerData);
       
       if (result.success) {
-        // Registration successful, redirect to home page
-        navigate('/');
+        // Registration successful, redirect to login page
+        navigate('/login');
       } else {
         setSubmitError(result.message || 'Đăng ký thất bại');
       }
@@ -322,33 +316,6 @@ const RegisterPage = () => {
                 )}
               </div>
 
-              {/* Terms Agreement */}
-              <div className="space-y-2">
-                <div className="flex items-start space-x-2">
-                  <Checkbox
-                    id="agreeToTerms"
-                    checked={formData.agreeToTerms}
-                    onCheckedChange={(checked) => handleInputChange('agreeToTerms', checked)}
-                    disabled={isSubmitting}
-                    className="mt-1"
-                  />
-                  <Label htmlFor="agreeToTerms" className="text-sm text-gray-600 leading-relaxed">
-                    Tôi đồng ý với{' '}
-                    <Link to="/terms" className="text-green-600 hover:text-green-800 underline">
-                      Điều khoản sử dụng
-                    </Link>
-                    {' '}và{' '}
-                    <Link to="/privacy" className="text-green-600 hover:text-green-800 underline">
-                      Chính sách bảo mật
-                    </Link>
-                  </Label>
-                </div>
-                {errors.agreeToTerms && (
-                  <p className="text-sm text-red-500 animate-in fade-in-50">
-                    {errors.agreeToTerms}
-                  </p>
-                )}
-              </div>
             </CardContent>
 
             <CardFooter className="flex flex-col space-y-4">

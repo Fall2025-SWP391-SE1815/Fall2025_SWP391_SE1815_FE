@@ -23,28 +23,28 @@ import PersonnelManagement from "../pages/admin/personnel/PersonnelManagement.js
 import StationStaffManagement from "../pages/admin/staff-stations/StationStaffManagement.jsx";
 import SystemMonitoring from "../pages/admin/rentals/SystemMonitoring.jsx";
 import ComplaintsManagement from "../pages/admin/ComplaintsManagement.jsx";
-import ReportsAndStatistics from "../pages/admin/ReportsAndStatistics.jsx";
+import StaffPerformance from "../pages/admin/StaffPerformance.jsx";
 
 // Renter Components
-import RentalPage from "../pages/renter/RentalPage.jsx";
-import HistoryPage from "../pages/renter/HistoryPage.jsx";
-import PaymentPage from "../pages/renter/PaymentPage.jsx";
-import ProfilePage from "../pages/renter/ProfilePage.jsx";
+import HistoryPage from "../pages/renter/history/HistoryPage.jsx";
+import PaymentPage from "../pages/renter/history/PaymentPage.jsx";
+import ProfilePage from "../pages/renter/profile/ProfilePage.jsx";
 import ReservationsPage from "../pages/renter/booking/ReservationsPage.jsx";
 import StationsPage from "../pages/renter/booking/StationsPage.jsx";
 import VehiclesPage from "../pages/renter/booking/VehiclesPage.jsx";
-import ComplaintsPage from "../pages/renter/ComplaintsPage.jsx";
-import IncidentsPage from "../pages/renter/IncidentsPage.jsx";
+import ComplaintsPage from "../pages/renter/complaints/ComplaintsPage.jsx";
+import IncidentsPage from "../pages/renter/incidents/IncidentsPage.jsx";
+
+// Public Components (Guest accessible)
+import PublicStationsPage from "../pages/public/PublicStationsPage.jsx";
+import PublicVehiclesPage from "../pages/public/PublicVehiclesPage.jsx";
 
 // New Rental Workflow Components
-import RentalCurrentPage from "../pages/renter/RentalCurrentPage.jsx";
-import RentalChecksPage from "../pages/renter/RentalChecksPage.jsx";
-import RentalReturnPage from "../pages/renter/RentalReturnPage.jsx";
-import RentalPaymentPage from "../pages/renter/RentalPaymentPage.jsx";
-import RentalSummaryPage from "../pages/renter/RentalSummaryPage.jsx";
-import RentalDetailPage from "../pages/renter/RentalDetailPage.jsx";
-import PaymentDetailPage from "../pages/renter/PaymentDetailPage.jsx";
-import ComplaintDetailPage from "../pages/renter/ComplaintDetailPage.jsx";
+import RentalCurrentPage from "../pages/renter/current/RentalCurrentPage.jsx";
+import RentalChecksPage from "../pages/renter/current/RentalChecksPage.jsx";
+import RentalDetailPage from "../pages/renter/history/RentalDetailPage.jsx";
+import PaymentDetailPage from "../pages/renter/history/PaymentDetailPage.jsx";
+import ComplaintDetailPage from "../pages/renter/complaints/ComplaintDetailPage.jsx";
 
 // Staff Components
 import StaffDashboard from "../pages/staff/StaffDashboard.jsx";
@@ -75,7 +75,7 @@ export const paths = {
     stationStaff: "station-staff",
     monitoring: "monitoring",
     complaints: "complaints",
-    reports: "reports"
+    performance: "performance"
   },
 
   // Renter routes
@@ -156,6 +156,22 @@ const router = createBrowserRouter([
     ),
   },
 
+  // Public pages - Guest có thể xem
+  {
+    path: "/public/stations",
+    element: <MainLayout />,
+    children: [
+      { index: true, element: <PublicStationsPage /> }
+    ],
+  },
+  {
+    path: "/public/vehicles",
+    element: <MainLayout />,
+    children: [
+      { index: true, element: <PublicVehiclesPage /> }
+    ],
+  },
+
   // Admin routes
   {
     path: "/admin",
@@ -172,7 +188,7 @@ const router = createBrowserRouter([
       { path: "station-staff", element: <StationStaffManagement /> },
       { path: "monitoring", element: <SystemMonitoring /> },
       { path: "complaints", element: <ComplaintsManagement /> },
-      { path: "reports", element: <ReportsAndStatistics /> },
+      { path: "performance", element: <StaffPerformance /> },
     ],
   },
 
@@ -203,17 +219,6 @@ const router = createBrowserRouter([
     ),
     children: [
       { index: true, element: <ProfilePage /> }
-    ]
-  },
-  {
-    path: "/rental",
-    element: (
-      <ProtectedRoute requiredRole="renter">
-        <MainLayout />
-      </ProtectedRoute>
-    ),
-    children: [
-      { index: true, element: <RentalPage /> }
     ]
   },
   {
@@ -338,10 +343,7 @@ const router = createBrowserRouter([
     children: [
       { path: "current", element: <RentalCurrentPage /> },
       { path: "checks", element: <RentalChecksPage /> },
-      { path: "checks/:id", element: <RentalChecksPage /> },
-      { path: "return", element: <RentalReturnPage /> },
-      { path: "payment", element: <RentalPaymentPage /> },
-      { path: "summary", element: <RentalSummaryPage /> }
+      { path: "checks/:id", element: <RentalChecksPage /> }
     ]
   },
 

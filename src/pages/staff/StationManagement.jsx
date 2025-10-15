@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import vehicleService from '@/services/vehicles/vehicleService';
+import staffRentalService from '@/services/staff/staffRentalService';
 import {
   Card,
   CardContent,
@@ -47,7 +48,6 @@ import {
   MapPin,
   AlertTriangle,
   Flag,
-  Settings,
   Clock,
   User,
   RefreshCw,
@@ -59,28 +59,31 @@ import {
   DollarSign,
   Phone,
   Calendar,
-  Activity
+  Activity,
+  Eye,
+  Zap,
+  Gauge
 } from 'lucide-react';
 
 const StationManagement = () => {
   const { toast } = useToast();
   const [selectedTab, setSelectedTab] = useState('vehicles');
   const [loading, setLoading] = useState(false);
-  
+
   // State for vehicles
   const [vehicles, setVehicles] = useState([]);
-  const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+
+  // State for vehicle detail/update
+  const [vehicleDetailDialogOpen, setVehicleDetailDialogOpen] = useState(false);
+  const [vehicleUpdateDialogOpen, setVehicleUpdateDialogOpen] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState(null);
-  const [newStatus, setNewStatus] = useState('');
-  
-  // State for violations
-  const [violationDialogOpen, setViolationDialogOpen] = useState(false);
-  const [violationForm, setViolationForm] = useState({
-    rental_id: '',
-    description: '',
-    fine_amount: ''
+  const [updateForm, setUpdateForm] = useState({
+    brand: '',
+    model: '',
+    capacity: '',
+    rangePerFullCharge: ''
   });
-  
+
   // State for incidents
   const [incidentDialogOpen, setIncidentDialogOpen] = useState(false);
   const [incidentForm, setIncidentForm] = useState({
@@ -89,47 +92,11 @@ const StationManagement = () => {
     description: '',
     severity: ''
   });
-  
+
   // State for current rentals
   const [currentRentals, setCurrentRentals] = useState([]);
 
-  // (Removed mock vehicles; using real API)
 
-  // Mock data for current rentals
-  const mockCurrentRentals = [
-    {
-      rental_id: 101,
-      vehicle: {
-        id: 2,
-        license_plate: "29A1-67890",
-        type: "Electric Bike"
-      },
-      renter: {
-        id: 1,
-        full_name: "Nguyễn Văn Minh",
-        phone: "0909123456"
-      },
-      start_time: "2025-09-23T09:30:00Z",
-      expected_end_time: "2025-09-23T17:30:00Z",
-      status: "in_use"
-    },
-    {
-      rental_id: 102,
-      vehicle: {
-        id: 5,
-        license_plate: "29A1-33333",
-        type: "Electric Scooter"
-      },
-      renter: {
-        id: 2,
-        full_name: "Trần Thị Lan",
-        phone: "0912345678"
-      },
-      start_time: "2025-09-23T11:00:00Z",
-      expected_end_time: "2025-09-23T19:00:00Z",
-      status: "in_use"
-    }
-  ];
 
   useEffect(() => {
     fetchVehicles();
@@ -143,7 +110,7 @@ const StationManagement = () => {
       const response = await vehicleService.staff.getAllStaffVehicles();
       const data = Array.isArray(response) ? response : response?.data || [];
       setVehicles(data);
-      
+
     } catch (error) {
       console.error('Error fetching vehicles:', error);
       toast({
@@ -159,13 +126,11 @@ const StationManagement = () => {
   const fetchCurrentRentals = async () => {
     try {
       setLoading(true);
-      // TODO: Replace with actual API call
-      // const response = await apiClient.get('/api/staff/rentals/current');
-      // setCurrentRentals(response.data.data);
-      
-      // Using mock data for now
-      setCurrentRentals(mockCurrentRentals);
-      
+      // Real API call to get current rentals (status = 'active' or 'in_use')
+      const response = await staffRentalService.getRentals({ status: 'in_use' });
+      const data = Array.isArray(response) ? response : response?.data || [];
+      setCurrentRentals(data);
+
     } catch (error) {
       console.error('Error fetching current rentals:', error);
       toast({
@@ -178,107 +143,73 @@ const StationManagement = () => {
     }
   };
 
-  const handleUpdateVehicleStatus = (vehicle) => {
+
+
+  const handleViewVehicleDetail = (vehicle) => {
     setSelectedVehicle(vehicle);
-    setNewStatus(vehicle.status);
-    setStatusDialogOpen(true);
+    setVehicleDetailDialogOpen(true);
   };
 
-  const updateVehicleStatus = async () => {
+  const handleEditVehicle = (vehicle) => {
+    setSelectedVehicle(vehicle);
+    setUpdateForm({
+      brand: vehicle.brand || '',
+      model: vehicle.model || '',
+      capacity: vehicle.capacity?.toString() || '',
+      rangePerFullCharge: vehicle.rangePerFullCharge?.toString() || ''
+    });
+    setVehicleUpdateDialogOpen(true);
+  };
+
+  const submitVehicleUpdate = async () => {
     try {
-      if (!newStatus) {
+      if (!updateForm.brand || !updateForm.model || !updateForm.capacity || !updateForm.rangePerFullCharge) {
         toast({
           title: "Thiếu thông tin",
-          description: "Vui lòng chọn trạng thái mới",
+          description: "Vui lòng điền đầy đủ thông tin xe",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const capacity = parseInt(updateForm.capacity);
+      const range = parseInt(updateForm.rangePerFullCharge);
+      
+      if (isNaN(capacity) || capacity <= 0 || isNaN(range) || range <= 0) {
+        toast({
+          title: "Thông tin không hợp lệ",
+          description: "Vui lòng nhập số hợp lệ cho dung lượng pin và quãng đường",
           variant: "destructive",
         });
         return;
       }
 
       setLoading(true);
-      
-      // Real API call
-      await apiClient.put(`/api/staff/vehicles/${selectedVehicle.id}/status`, {
-        status: newStatus
+
+      // PUT /api/staff/vehicle/{id}
+      await vehicleService.staff.updateVehicle(selectedVehicle.id, {
+        brand: updateForm.brand,
+        model: updateForm.model,
+        capacity: capacity,
+        rangePerFullCharge: range
       });
 
       toast({
         title: "Thành công",
-        description: "Cập nhật trạng thái xe thành công.",
+        description: "Đã cập nhật thông tin xe.",
       });
 
-      setStatusDialogOpen(false);
-      fetchVehicles(); // Refresh the list
+      setVehicleUpdateDialogOpen(false);
+      setUpdateForm({ brand: '', model: '', capacity: '', rangePerFullCharge: '' });
       
+      // Refresh vehicle list
+      fetchVehicles();
+
     } catch (error) {
-      console.error('Error updating vehicle status:', error);
+      console.error('Error updating vehicle:', error);
       toast({
         title: "Lỗi",
-        description: "Không thể cập nhật trạng thái xe",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const submitViolation = async () => {
-    try {
-      if (!violationForm.rental_id || !violationForm.description || !violationForm.fine_amount) {
-        toast({
-          title: "Thiếu thông tin",
-          description: "Vui lòng điền đầy đủ thông tin vi phạm",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const fineAmount = parseInt(violationForm.fine_amount);
-      if (isNaN(fineAmount) || fineAmount < 0) {
-        toast({
-          title: "Số tiền không hợp lệ",
-          description: "Vui lòng nhập số tiền phạt hợp lệ",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      setLoading(true);
-      
-      // TODO: Replace with actual API call
-      // const response = await apiClient.post('/api/staff/violations', {
-      //   rental_id: parseInt(violationForm.rental_id),
-      //   description: violationForm.description,
-      //   fine_amount: fineAmount
-      // });
-      
-      // Mock success response
-      const mockResponse = {
-        success: true,
-        message: "Vi phạm đã được ghi nhận.",
-        data: {
-          violation_id: Date.now(),
-          rental_id: parseInt(violationForm.rental_id),
-          staff_id: 1,
-          description: violationForm.description,
-          fine_amount: fineAmount,
-          created_at: new Date().toISOString()
-        }
-      };
-
-      toast({
-        title: "Thành công",
-        description: mockResponse.message,
-      });
-
-      setViolationDialogOpen(false);
-      setViolationForm({ rental_id: '', description: '', fine_amount: '' });
-      
-    } catch (error) {
-      console.error('Error submitting violation:', error);
-      toast({
-        title: "Lỗi",
-        description: "Không thể ghi nhận vi phạm",
+        description: error.message || "Không thể cập nhật thông tin xe",
         variant: "destructive",
       });
     } finally {
@@ -298,39 +229,23 @@ const StationManagement = () => {
       }
 
       setLoading(true);
-      
-      // TODO: Replace with actual API call
-      // const response = await apiClient.post('/api/staff/incidents', {
-      //   vehicle_id: parseInt(incidentForm.vehicle_id),
-      //   rental_id: incidentForm.rental_id ? parseInt(incidentForm.rental_id) : null,
-      //   description: incidentForm.description,
-      //   severity: incidentForm.severity
-      // });
-      
-      // Mock success response
-      const mockResponse = {
-        success: true,
-        message: "Sự cố đã được ghi nhận.",
-        data: {
-          incident_id: Date.now(),
-          vehicle_id: parseInt(incidentForm.vehicle_id),
-          rental_id: incidentForm.rental_id ? parseInt(incidentForm.rental_id) : null,
-          staff_id: 1,
-          description: incidentForm.description,
-          severity: incidentForm.severity,
-          status: "pending",
-          created_at: new Date().toISOString()
-        }
-      };
+
+      // Use real API service for creating incident report - based on API schema
+      await staffRentalService.createIncidentReport({
+        vehicleId: parseInt(incidentForm.vehicle_id),
+        rentalId: incidentForm.rental_id ? parseInt(incidentForm.rental_id) : null,
+        description: incidentForm.description,
+        severity: incidentForm.severity
+      });
 
       toast({
         title: "Thành công",
-        description: mockResponse.message,
+        description: "Sự cố đã được ghi nhận.",
       });
 
       setIncidentDialogOpen(false);
       setIncidentForm({ vehicle_id: '', rental_id: '', description: '', severity: '' });
-      
+
     } catch (error) {
       console.error('Error submitting incident:', error);
       toast({
@@ -366,10 +281,10 @@ const StationManagement = () => {
       rented: { label: 'Đang thuê', variant: 'secondary', icon: Clock },
       maintenance: { label: 'Bảo trì', variant: 'destructive', icon: Wrench }
     };
-    
+
     const config = statusConfig[status] || { label: status, variant: 'outline', icon: Activity };
     const IconComponent = config.icon;
-    
+
     return (
       <Badge variant={config.variant} className="gap-1">
         <IconComponent className="h-3 w-3" />
@@ -384,7 +299,7 @@ const StationManagement = () => {
       medium: { label: 'Trung bình', variant: 'outline' },
       high: { label: 'Cao', variant: 'destructive' }
     };
-    
+
     const config = severityConfig[severity] || { label: severity, variant: 'outline' };
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
@@ -395,7 +310,7 @@ const StationManagement = () => {
     const available = vehicles.filter(v => v.status === 'available').length;
     const rented = vehicles.filter(v => v.status === 'rented').length;
     const maintenance = vehicles.filter(v => v.status === 'maintenance').length;
-    
+
     return { available, rented, maintenance, total: vehicles.length };
   };
 
@@ -411,10 +326,6 @@ const StationManagement = () => {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={() => setViolationDialogOpen(true)} variant="outline">
-            <Flag className="h-4 w-4 mr-2" />
-            Ghi nhận vi phạm
-          </Button>
           <Button onClick={() => setIncidentDialogOpen(true)} variant="outline">
             <AlertTriangle className="h-4 w-4 mr-2" />
             Báo cáo sự cố
@@ -520,7 +431,7 @@ const StationManagement = () => {
                     <TableRow>
                       <TableHead>Thông tin xe</TableHead>
                       <TableHead>Trạng thái</TableHead>
-                      <TableHead>Pin & Bảo trì</TableHead>
+                      <TableHead>Trạm</TableHead>
                       <TableHead>Giá thuê</TableHead>
                       <TableHead>Thao tác</TableHead>
                     </TableRow>
@@ -532,7 +443,7 @@ const StationManagement = () => {
                           <div className="flex flex-col space-y-1">
                             <div className="font-medium flex items-center gap-2">
                               <Car className="h-4 w-4" />
-                              {vehicle.licensePlate}
+                              {vehicle.licensePlate || vehicle.license_plate || 'N/A'}
                             </div>
                             <div className="text-sm text-muted-foreground">
                               {vehicle.brand} {vehicle.model}
@@ -552,20 +463,26 @@ const StationManagement = () => {
                         </TableCell>
                         <TableCell>
                           <div className="font-medium">
-                            {formatCurrency(vehicle.pricePerHour || 0)}/giờ
+                            {formatCurrency(vehicle.pricePerHour || vehicle.price_per_hour || 0)}/giờ
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleUpdateVehicleStatus(vehicle)}
-                            disabled={loading}
-                            className="w-full"
-                          >
-                            <Settings className="h-4 w-4 mr-2" />
-                            Đổi trạng thái
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleViewVehicleDetail(vehicle)}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEditVehicle(vehicle)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -607,20 +524,20 @@ const StationManagement = () => {
                   </TableHeader>
                   <TableBody>
                     {currentRentals.map((rental) => (
-                      <TableRow key={rental.rental_id}>
+                      <TableRow key={rental.id || rental.rental_id}>
                         <TableCell>
                           <div className="font-medium">
-                            #{rental.rental_id}
+                            #{rental.id || rental.rental_id}
                           </div>
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-col space-y-1">
                             <div className="font-medium flex items-center gap-2">
                               <Car className="h-4 w-4" />
-                              {rental.vehicle.license_plate}
+                              {rental.vehicle?.licensePlate || rental.vehicle?.license_plate || 'N/A'}
                             </div>
                             <div className="text-sm text-muted-foreground">
-                              {rental.vehicle.type}
+                              {rental.vehicle?.type || 'N/A'}
                             </div>
                           </div>
                         </TableCell>
@@ -628,28 +545,28 @@ const StationManagement = () => {
                           <div className="flex flex-col space-y-1">
                             <div className="font-medium flex items-center gap-2">
                               <User className="h-4 w-4" />
-                              {rental.renter.full_name}
+                              {rental.renter?.fullName || rental.renter?.full_name || 'N/A'}
                             </div>
                             <div className="text-sm text-muted-foreground flex items-center gap-2">
                               <Phone className="h-3 w-3" />
-                              {rental.renter.phone}
+                              {rental.renter?.phone || 'N/A'}
                             </div>
                           </div>
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-col space-y-1">
                             <div className="text-sm">
-                              <strong>Bắt đầu:</strong> {formatDateTime(rental.start_time)}
+                              <strong>Bắt đầu:</strong> {formatDateTime(rental.startTime || rental.start_time)}
                             </div>
                             <div className="text-sm">
-                              <strong>Dự kiến kết thúc:</strong> {formatDateTime(rental.expected_end_time)}
+                              <strong>Dự kiến kết thúc:</strong> {formatDateTime(rental.endTime || rental.end_time)}
                             </div>
                           </div>
                         </TableCell>
                         <TableCell>
                           <Badge variant="secondary" className="gap-1">
                             <Clock className="h-3 w-3" />
-                            Đang sử dụng
+                            {rental.status === 'active' ? 'Đang sử dụng' : rental.status}
                           </Badge>
                         </TableCell>
                       </TableRow>
@@ -662,117 +579,232 @@ const StationManagement = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Vehicle Status Update Dialog */}
-      <Dialog open={statusDialogOpen} onOpenChange={setStatusDialogOpen}>
-        <DialogContent className="max-w-md">
+      {/* Vehicle Detail Dialog */}
+      <Dialog open={vehicleDetailDialogOpen} onOpenChange={setVehicleDetailDialogOpen}>
+        <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Settings className="h-5 w-5" />
-              Cập nhật trạng thái xe
+              <Car className="h-5 w-5" />
+              Chi tiết xe - {selectedVehicle?.licensePlate}
             </DialogTitle>
             <DialogDescription>
-              Thay đổi trạng thái cho xe: {selectedVehicle?.license_plate}
+              Thông tin đầy đủ về xe tại trạm
             </DialogDescription>
           </DialogHeader>
-          
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="status">Trạng thái mới *</Label>
-              <Select value={newStatus} onValueChange={setNewStatus}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Chọn trạng thái" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="available">
-                    <div className="flex items-center gap-2">
-                      <Activity className="h-4 w-4" />
-                      Khả dụng
+
+          {selectedVehicle && (
+            <div className="space-y-4">
+              {/* Basic Info */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm">Thông tin cơ bản</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <Label className="text-muted-foreground">ID Xe</Label>
+                      <p className="font-medium">#{selectedVehicle.id}</p>
                     </div>
-                  </SelectItem>
-                  <SelectItem value="rented">
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4" />
-                      Đang thuê
+                    <div>
+                      <Label className="text-muted-foreground">Biển số</Label>
+                      <p className="font-medium text-lg">{selectedVehicle.licensePlate}</p>
                     </div>
-                  </SelectItem>
-                  <SelectItem value="maintenance">
-                    <div className="flex items-center gap-2">
-                      <Wrench className="h-4 w-4" />
-                      Bảo trì
+                    <div>
+                      <Label className="text-muted-foreground">Loại xe</Label>
+                      <p className="font-medium capitalize">{selectedVehicle.type}</p>
                     </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+                    <div>
+                      <Label className="text-muted-foreground">Trạng thái</Label>
+                      <div className="mt-1">
+                        {getVehicleStatusBadge(selectedVehicle.status)}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Vehicle Details */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm">Thông số kỹ thuật</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <Label className="text-muted-foreground">Hãng xe</Label>
+                      <p className="font-medium">{selectedVehicle.brand}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Model</Label>
+                      <p className="font-medium">{selectedVehicle.model}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground flex items-center gap-1">
+                        <Zap className="h-3 w-3" />
+                        Dung lượng pin
+                      </Label>
+                      <p className="font-medium">{selectedVehicle.capacity} Ah</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground flex items-center gap-1">
+                        <Gauge className="h-3 w-3" />
+                        Quãng đường/lần sạc
+                      </Label>
+                      <p className="font-medium">{selectedVehicle.rangePerFullCharge} km</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Pricing */}
+              <Card className="border-green-200 bg-green-50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm flex items-center gap-2 text-green-900">
+                    <DollarSign className="h-4 w-4" />
+                    Thông tin giá
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-green-900">
+                    {formatCurrency(selectedVehicle.pricePerHour)}/giờ
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Station Info */}
+              {selectedVehicle.station && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <MapPin className="h-4 w-4" />
+                      Thông tin trạm
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2 text-sm">
+                      <div>
+                        <Label className="text-muted-foreground">Tên trạm</Label>
+                        <p className="font-medium">{selectedVehicle.station.name}</p>
+                      </div>
+                      <div>
+                        <Label className="text-muted-foreground">Địa chỉ</Label>
+                        <p className="font-medium">{selectedVehicle.station.address}</p>
+                      </div>
+                      <div>
+                        <Label className="text-muted-foreground">Trạng thái trạm</Label>
+                        <Badge variant={selectedVehicle.station.status === 'active' ? 'default' : 'secondary'}>
+                          {selectedVehicle.station.status === 'active' ? 'Hoạt động' : 'Không hoạt động'}
+                        </Badge>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label className="text-muted-foreground">Vĩ độ</Label>
+                          <p className="font-medium">{selectedVehicle.station.latitude}</p>
+                        </div>
+                        <div>
+                          <Label className="text-muted-foreground">Kinh độ</Label>
+                          <p className="font-medium">{selectedVehicle.station.longitude}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
-          </div>
+          )}
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setStatusDialogOpen(false)}>
-              Hủy
+            <Button variant="outline" onClick={() => setVehicleDetailDialogOpen(false)}>
+              Đóng
             </Button>
-            <Button onClick={updateVehicleStatus} disabled={loading}>
-              <Settings className="h-4 w-4 mr-2" />
-              Cập nhật
+            <Button onClick={() => {
+              setVehicleDetailDialogOpen(false);
+              handleEditVehicle(selectedVehicle);
+            }}>
+              <Edit className="h-4 w-4 mr-2" />
+              Chỉnh sửa
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Violation Dialog */}
-      <Dialog open={violationDialogOpen} onOpenChange={setViolationDialogOpen}>
+      {/* Vehicle Update Dialog */}
+      <Dialog open={vehicleUpdateDialogOpen} onOpenChange={setVehicleUpdateDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Flag className="h-5 w-5" />
-              Ghi nhận vi phạm
+              <Edit className="h-5 w-5" />
+              Cập nhật thông tin xe
             </DialogTitle>
             <DialogDescription>
-              Ghi nhận vi phạm khi khách hàng trả xe
+              Cập nhật thông số kỹ thuật xe - {selectedVehicle?.licensePlate}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="rental-id">Mã lượt thuê *</Label>
+              <Label htmlFor="brand">Hãng xe *</Label>
               <Input
-                id="rental-id"
-                type="number"
-                placeholder="Nhập mã lượt thuê"
-                value={violationForm.rental_id}
-                onChange={(e) => setViolationForm(prev => ({ ...prev, rental_id: e.target.value }))}
+                id="brand"
+                placeholder="Nhập hãng xe (VD: Honda, Yamaha...)"
+                value={updateForm.brand}
+                onChange={(e) => setUpdateForm(prev => ({ ...prev, brand: e.target.value }))}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="violation-description">Mô tả vi phạm *</Label>
-              <Textarea
-                id="violation-description"
-                placeholder="Mô tả chi tiết vi phạm (ví dụ: không đội mũ bảo hiểm, vượt đèn đỏ, ...)"
-                value={violationForm.description}
-                onChange={(e) => setViolationForm(prev => ({ ...prev, description: e.target.value }))}
-                rows={4}
+              <Label htmlFor="model">Model *</Label>
+              <Input
+                id="model"
+                placeholder="Nhập model xe (VD: Air Blade, Vision...)"
+                value={updateForm.model}
+                onChange={(e) => setUpdateForm(prev => ({ ...prev, model: e.target.value }))}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="fine-amount">Số tiền phạt (VND) *</Label>
+              <Label htmlFor="capacity" className="flex items-center gap-1">
+                <Zap className="h-3 w-3" />
+                Dung lượng pin (Ah) *
+              </Label>
               <Input
-                id="fine-amount"
+                id="capacity"
                 type="number"
-                placeholder="Nhập số tiền phạt"
-                value={violationForm.fine_amount}
-                onChange={(e) => setViolationForm(prev => ({ ...prev, fine_amount: e.target.value }))}
+                placeholder="Nhập dung lượng pin (VD: 20)"
+                value={updateForm.capacity}
+                onChange={(e) => setUpdateForm(prev => ({ ...prev, capacity: e.target.value }))}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="range" className="flex items-center gap-1">
+                <Gauge className="h-3 w-3" />
+                Quãng đường/lần sạc (km) *
+              </Label>
+              <Input
+                id="range"
+                type="number"
+                placeholder="Nhập quãng đường (VD: 250)"
+                value={updateForm.rangePerFullCharge}
+                onChange={(e) => setUpdateForm(prev => ({ ...prev, rangePerFullCharge: e.target.value }))}
+              />
+            </div>
+
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <p className="text-sm text-blue-800">
+                <strong>Lưu ý:</strong> Biển số xe, loại xe và giá thuê không thể thay đổi. 
+                Chỉ cập nhật thông số kỹ thuật của xe.
+              </p>
             </div>
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setViolationDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setVehicleUpdateDialogOpen(false)}>
               Hủy
             </Button>
-            <Button onClick={submitViolation} disabled={loading}>
-              <Flag className="h-4 w-4 mr-2" />
-              Ghi nhận vi phạm
+            <Button onClick={submitVehicleUpdate} disabled={loading}>
+              <Edit className="h-4 w-4 mr-2" />
+              {loading ? 'Đang cập nhật...' : 'Cập nhật'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -790,7 +822,7 @@ const StationManagement = () => {
               Báo cáo sự cố về xe tại trạm (hỏng hóc, tai nạn, cháy nổ)
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="incident-vehicle">Mã xe *</Label>
@@ -804,7 +836,7 @@ const StationManagement = () => {
                 <SelectContent>
                   {vehicles.map((vehicle) => (
                     <SelectItem key={vehicle.id} value={vehicle.id.toString()}>
-                      {vehicle.license_plate} - {vehicle.brand} {vehicle.model}
+                      {vehicle.licensePlate || vehicle.license_plate || 'N/A'} - {vehicle.brand} {vehicle.model}
                     </SelectItem>
                   ))}
                 </SelectContent>

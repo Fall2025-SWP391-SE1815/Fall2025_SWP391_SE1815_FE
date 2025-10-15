@@ -122,24 +122,24 @@ export default function PersonnelManagement() {
 
   const confirmDeleteUser = async () => {
     if (!userToDelete) return;
-    
+
     const userName = userToDelete.fullName || userToDelete.email || `User ID ${userToDelete.id}`;
 
     try {
       console.log('Deleting user with ID:', userToDelete.id);
       await userService.admin.deleteUser(userToDelete.id);
-      toast({ 
-        title: 'Thành công', 
-        description: `Đã xóa tài khoản "${userName}" thành công` 
+      toast({
+        title: 'Thành công',
+        description: `Đã xóa tài khoản "${userName}" thành công`
       });
       await fetchUsers();
       setShowDeleteDialog(false);
       setUserToDelete(null);
     } catch (error) {
       console.error('Error deleting user:', error);
-      
+
       let errorMessage = 'Không thể xóa tài khoản';
-      
+
       // Handle specific error cases
       if (error?.response?.data?.message) {
         const serverMessage = error.response.data.message.toLowerCase();
@@ -151,7 +151,7 @@ export default function PersonnelManagement() {
       } else if (error?.message) {
         errorMessage = error.message;
       }
-      
+
       toast({
         title: 'Không thể xóa tài khoản',
         description: errorMessage,
@@ -164,14 +164,14 @@ export default function PersonnelManagement() {
     try {
       let response;
       let payload;
-      
+
       // Use different API endpoint based on user role
       if (user.role === 'renter') {
         // For renter profiles, use the profile endpoint which includes documents and verification info
         response = await userService.admin.getRenterProfile(user.id);
         // API returns an array, get the first item (or find by user id)
         const profileData = Array.isArray(response) ? response[0] : response;
-        
+
         if (profileData?.user) {
           payload = {
             ...profileData.user,
@@ -194,7 +194,7 @@ export default function PersonnelManagement() {
         response = await userService.admin.getUserById(user.id);
         payload = response?.user || response?.data || response || user;
       }
-      
+
       setSelectedUser(payload);
       setShowViewDialog(true);
     } catch (error) {
@@ -296,11 +296,11 @@ export default function PersonnelManagement() {
             <Filter className='h-4 w-4 mr-2' />
             <SelectValue placeholder='Lọc theo vai trò' />
           </SelectTrigger>
-          <SelectContent>
-            <SelectItem value='all'>Tất cả vai trò</SelectItem>
-            <SelectItem value='admin'>Quản trị viên</SelectItem>
-            <SelectItem value='staff'>Nhân viên</SelectItem>
-            <SelectItem value='renter'>Khách hàng</SelectItem>
+          <SelectContent position="popper" side="bottom" className="z-[9999] bg-white border border-gray-200 shadow-lg rounded-md p-1 min-w-[var(--radix-select-trigger-width)]">
+            <SelectItem value='all' className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Tất cả vai trò</SelectItem>
+            <SelectItem value='admin' className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Quản trị viên</SelectItem>
+            <SelectItem value='staff' className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Nhân viên</SelectItem>
+            <SelectItem value='renter' className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Khách hàng</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -380,7 +380,7 @@ export default function PersonnelManagement() {
             <AlertDialogCancel onClick={() => setUserToDelete(null)}>
               Hủy
             </AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={confirmDeleteUser}
               className="bg-red-600 hover:bg-red-700"
             >

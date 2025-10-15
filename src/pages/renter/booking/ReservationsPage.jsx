@@ -222,10 +222,17 @@ const ReservationsPage = () => {
       }
 
       // Payload theo Swagger
+      // Java LocalDateTime format: YYYY-MM-DDTHH:mm:ss (không có timezone)
+      const formatLocalDateTime = (dateTimeString) => {
+        // Input từ datetime-local: "2025-10-19T08:00"
+        // Output cần: "2025-10-19T08:00:00"
+        return dateTimeString + ':00';
+      };
+
       const payload = {
         vehicleId: parseInt(createForm.vehicle_id),
-        reservedStartTime: new Date(createForm.reserved_start_time).toISOString(),
-        reservedEndTime: new Date(createForm.reserved_end_time).toISOString()
+        reservedStartTime: formatLocalDateTime(createForm.reserved_start_time),
+        reservedEndTime: formatLocalDateTime(createForm.reserved_end_time)
       };
 
       const res = await renterService.reservations.create(payload);
@@ -253,8 +260,6 @@ const ReservationsPage = () => {
         reserved_start_time: '',
         reserved_end_time: ''
       });
-
-      // Using renterService.reservations.create to call the real API (above block was a raw fetch example)
 
     } catch (err) {
       console.error('Error creating booking:', err);
@@ -342,7 +347,7 @@ const ReservationsPage = () => {
 
   const handleStartRental = (reservationId) => {
     // Navigate to start rental process
-    navigate(`/current-rentals?start=${reservationId}`);
+    navigate(`/rentals/current?start=${reservationId}`);
   };
 
   const formatPrice = (price) => {
@@ -574,7 +579,7 @@ const ReservationsPage = () => {
               <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-300" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">Chưa có đặt chỗ nào</h3>
               <p className="text-gray-500 mb-4">Bắt đầu hành trình với chiếc xe điện đầu tiên</p>
-              <Button onClick={() => navigate('/rental')}>
+              <Button onClick={() => navigate('/stations')}>
                 <Car className="h-4 w-4 mr-2" />
                 Đặt xe ngay
               </Button>

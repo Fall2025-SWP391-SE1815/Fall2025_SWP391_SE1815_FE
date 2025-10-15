@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
-import { Button } from '../../components/ui/button';
-import { Badge } from '../../components/ui/badge';
-import { Alert, AlertDescription } from '../../components/ui/alert';
-import { Separator } from '../../components/ui/separator';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   ArrowLeft,
   AlertTriangle,
@@ -20,6 +19,9 @@ import {
   Phone,
   Mail
 } from 'lucide-react';
+
+// Services
+import complaintsService from '@/services/complaints/complaintsService';
 
 const ComplaintDetailPage = () => {
   const { id } = useParams();
@@ -37,87 +39,9 @@ const ComplaintDetailPage = () => {
       setLoading(true);
       setError('');
       
-      // Mock GET /api/renter/complaints/:id
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock complaint detail data
-      const mockComplaint = {
-        id: parseInt(id),
-        rental_id: 1,
-        staff_id: 2,
-        description: 'Xe bị hỏng giữa đường khi đang di chuyển từ Quận 1 về Quận 10. Pin xe đột ngột tụt xuống 0% mặc dù trước đó vẫn hiển thị 45%. Tôi phải gọi hotline và chờ hỗ trợ gần 2 tiếng. Điều này ảnh hưởng nghiêm trọng đến lịch trình công việc của tôi.',
-        status: 'resolved',
-        resolution: 'Chúng tôi đã kiểm tra và phát hiện xe gặp sự cố về hệ thống hiển thị pin. Xe đã được bảo trì và thay thế linh kiện lỗi. Phí thuê xe cho chuyến đi này đã được hoàn trả 100% và bạn được tặng voucher giảm giá 20% cho chuyến đi tiếp theo. Chúng tôi chân thành xin lỗi vì sự bất tiện này.',
-        admin_id: 1,
-        created_at: '2024-09-20T10:30:00Z',
-        resolved_at: '2024-09-22T14:20:00Z',
-        
-        // Related rental information
-        rental: {
-          id: 1,
-          vehicleModel: 'VinFast Klara S',
-          licensePlate: '51F-12345',
-          vehicleImage: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400',
-          startTime: '2024-09-20T08:00:00Z',
-          endTime: '2024-09-20T18:30:00Z',
-          startStation: 'Trạm Đại học Bách Khoa',
-          endStation: 'Trạm Công viên Tao Đàn'
-        },
-        
-        // Staff information (if complaint involves staff)
-        staff: {
-          id: 2,
-          name: 'Trần Thị B',
-          role: 'Nhân viên nhận xe',
-          phone: '0901234567',
-          email: 'tranthib@company.com'
-        },
-        
-        // Admin who resolved (if resolved)
-        admin: {
-          id: 1,
-          name: 'Quản trị viên A',
-          department: 'Bộ phận chăm sóc khách hàng'
-        },
-        
-        // Timeline
-        timeline: [
-          {
-            id: 1,
-            action: 'Khiếu nại được gửi',
-            description: 'Khách hàng gửi khiếu nại về sự cố xe',
-            timestamp: '2024-09-20T10:30:00Z',
-            actor: 'Khách hàng',
-            status: 'submitted'
-          },
-          {
-            id: 2,
-            action: 'Tiếp nhận xử lý',
-            description: 'Bộ phận kỹ thuật tiếp nhận và bắt đầu điều tra',
-            timestamp: '2024-09-20T11:00:00Z',
-            actor: 'Quản trị viên A',
-            status: 'in_progress'
-          },
-          {
-            id: 3,
-            action: 'Kiểm tra kỹ thuật',
-            description: 'Đội ngũ kỹ thuật kiểm tra xe và phát hiện lỗi hệ thống',
-            timestamp: '2024-09-21T09:15:00Z',
-            actor: 'Bộ phận kỹ thuật',
-            status: 'investigating'
-          },
-          {
-            id: 4,
-            action: 'Đưa ra giải pháp',
-            description: 'Hoàn tiền 100% và tặng voucher giảm giá',
-            timestamp: '2024-09-22T14:20:00Z',
-            actor: 'Quản trị viên A',
-            status: 'resolved'
-          }
-        ]
-      };
-      
-      setComplaint(mockComplaint);
+      // GET /api/admin/complaint/:id (using admin service as there's no renter-specific endpoint for complaint detail)
+      const response = await complaintsService.getById(id);
+      setComplaint(response.data);
     } catch (err) {
       setError('Không thể tải thông tin chi tiết khiếu nại');
       console.error('Error loading complaint detail:', err);

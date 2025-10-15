@@ -1,12 +1,12 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
-import { Button } from '../../components/ui/button';
-import { Badge } from '../../components/ui/badge';
-import { Input } from '../../components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
-import { Alert, AlertDescription } from '../../components/ui/alert';
-import { 
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import {
   CreditCard,
   Calendar,
   Search,
@@ -27,18 +27,18 @@ import {
 
 const PaymentPage = () => {
   const navigate = useNavigate();
-  
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [payments, setPayments] = useState([]);
   const [filteredPayments, setFilteredPayments] = useState([]);
-  
+
   // Filter states
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [methodFilter, setMethodFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('all');
-  
+
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -58,10 +58,10 @@ const PaymentPage = () => {
   const loadPaymentHistory = async () => {
     setLoading(true);
     setError('');
-    
+
     try {
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       // Mock GET /api/renter/payments response
       const mockResponse = {
         payments: [
@@ -112,7 +112,7 @@ const PaymentPage = () => {
           }
         ]
       };
-      
+
       setPayments(mockResponse.payments.map(payment => ({
         ...payment,
         vehicleLicensePlate: payment.rental_info.license_plate,
@@ -131,34 +131,34 @@ const PaymentPage = () => {
 
   const filterPayments = () => {
     let filtered = [...payments];
-    
+
     // Search filter
     if (searchTerm) {
-      filtered = filtered.filter(payment => 
+      filtered = filtered.filter(payment =>
         payment.rental_info.license_plate.toLowerCase().includes(searchTerm.toLowerCase()) ||
         payment.rental_info.vehicle_model.toLowerCase().includes(searchTerm.toLowerCase()) ||
         payment.id.toString().includes(searchTerm) ||
         payment.rental_id.toString().includes(searchTerm)
       );
     }
-    
+
     // Status filter
     if (statusFilter !== 'all') {
       filtered = filtered.filter(payment => payment.status === statusFilter);
     }
-    
+
     // Method filter
     if (methodFilter !== 'all') {
       filtered = filtered.filter(payment => payment.method === methodFilter);
     }
-    
+
     // Date filter
     if (dateFilter !== 'all') {
       const now = new Date();
       filtered = filtered.filter(payment => {
         const paymentDate = new Date(payment.created_at);
         const diffDays = Math.floor((now - paymentDate) / (1000 * 60 * 60 * 24));
-        
+
         switch (dateFilter) {
           case 'week': return diffDays <= 7;
           case 'month': return diffDays <= 30;
@@ -167,7 +167,7 @@ const PaymentPage = () => {
         }
       });
     }
-    
+
     setFilteredPayments(filtered);
   };
 
@@ -214,7 +214,7 @@ const PaymentPage = () => {
   const totalPages = Math.ceil(filteredPayments.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedPayments = filteredPayments.slice(startIndex, startIndex + itemsPerPage);
-  
+
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -227,7 +227,7 @@ const PaymentPage = () => {
             Xem lại các giao dịch thanh toán đã thực hiện
           </p>
         </div>
-        
+
         <Button
           onClick={loadPaymentHistory}
           variant="outline"
@@ -257,7 +257,7 @@ const PaymentPage = () => {
                 className="pl-10"
               />
             </div>
-            
+
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger>
                 <SelectValue placeholder="Trạng thái" />
@@ -269,7 +269,7 @@ const PaymentPage = () => {
                 <SelectItem value="pending">Đang xử lý</SelectItem>
               </SelectContent>
             </Select>
-            
+
             <Select value={methodFilter} onValueChange={setMethodFilter}>
               <SelectTrigger>
                 <SelectValue placeholder="Phương thức" />
@@ -281,7 +281,7 @@ const PaymentPage = () => {
                 <SelectItem value="bank_transfer">Chuyển khoản</SelectItem>
               </SelectContent>
             </Select>
-            
+
             <Select value={dateFilter} onValueChange={setDateFilter}>
               <SelectTrigger>
                 <SelectValue placeholder="Thời gian" />
@@ -293,7 +293,7 @@ const PaymentPage = () => {
                 <SelectItem value="quarter">3 tháng qua</SelectItem>
               </SelectContent>
             </Select>
-            
+
             <Button
               onClick={() => {
                 setSearchTerm('');
@@ -328,7 +328,7 @@ const PaymentPage = () => {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center">
@@ -344,7 +344,7 @@ const PaymentPage = () => {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center">
@@ -360,7 +360,7 @@ const PaymentPage = () => {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center">
@@ -422,7 +422,7 @@ const PaymentPage = () => {
                           {payment.vehicleLicensePlate}
                         </span>
                       </div>
-                      
+
                       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
                         <div>
                           <p className="text-gray-600">Số tiền:</p>
@@ -450,7 +450,7 @@ const PaymentPage = () => {
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center space-x-2 ml-4">
                       <Button
                         size="sm"
@@ -460,7 +460,7 @@ const PaymentPage = () => {
                         <Eye className="h-4 w-4 mr-1" />
                         Xem
                       </Button>
-                      
+
                       {payment.status === 'completed' && (
                         <Button
                           size="sm"
@@ -486,7 +486,7 @@ const PaymentPage = () => {
           <p className="text-sm text-gray-700">
             Hiển thị {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, filteredPayments.length)} trong tổng số {filteredPayments.length} giao dịch
           </p>
-          
+
           <div className="flex items-center space-x-2">
             <Button
               variant="outline"
@@ -497,11 +497,11 @@ const PaymentPage = () => {
               <ChevronLeft className="h-4 w-4" />
               Trước
             </Button>
-            
+
             <span className="text-sm font-medium">
               Trang {currentPage} / {totalPages}
             </span>
-            
+
             <Button
               variant="outline"
               size="sm"

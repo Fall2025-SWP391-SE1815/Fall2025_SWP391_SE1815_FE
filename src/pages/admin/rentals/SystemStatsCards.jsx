@@ -6,7 +6,6 @@ import adminService from '@/services/admin/adminService';
 const SystemStatsCards = () => {
   const [stats, setStats] = useState({
     activeRentals: 0,
-    completedToday: 0,
     totalViolations: 0
   });
 
@@ -15,23 +14,18 @@ const SystemStatsCards = () => {
       try {
         // Rentals
         const rentals = await adminService.getRentals();
-        const activeRentals = rentals?.filter(r => r.status === 'ongoing').length || 0;
-        const completedToday = rentals?.filter(
-          r => (r.status === 'returned' || r.status === 'completed') && r.endTime &&
-            new Date(r.endTime).toDateString() === new Date().toDateString()
-        ).length || 0;
-        
-        // Violations
+        const activeRentals = rentals?.filter(r => r.status === 'in_use').length || 0;
+
+        // Violations 
         const violations = await adminService.getViolations();
         const totalViolations = violations?.length || 0;
-        
+
         setStats({
           activeRentals,
-          completedToday,
           totalViolations
         });
       } catch (err) {
-        setStats({activeRentals: 0, completedToday: 0, totalViolations: 0});
+        setStats({ activeRentals: 0, totalViolations: 0 });
       }
     };
     fetchStats();
@@ -51,16 +45,6 @@ const SystemStatsCards = () => {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Hoàn thành hôm nay</CardTitle>
-          <DollarSign className="h-4 w-4 text-green-600" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{stats.completedToday || 0}</div>
-          <p className="text-xs text-muted-foreground">Lượt thuê đã hoàn thành hôm nay</p>
-        </CardContent>
-      </Card>
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

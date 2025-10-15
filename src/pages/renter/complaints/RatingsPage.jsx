@@ -25,6 +25,9 @@ import {
   Clock
 } from 'lucide-react';
 
+// Services
+import { renterService } from '@/services/renter/renterService';
+
 const RatingsPage = () => {
   const [activeTab, setActiveTab] = useState('submit');
   const [loading, setLoading] = useState(false);
@@ -52,52 +55,13 @@ const RatingsPage = () => {
   const loadAvailableRentals = async () => {
     try {
       setLoading(true);
-      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Mock data for completed rentals that can be rated
-      const mockRentals = [
-        {
-          id: 1,
-          vehicleModel: 'VinFast Klara S',
-          licensePlate: '51F-12345',
-          endTime: '2024-09-20T18:30:00Z',
-          staff: {
-            id: 1,
-            name: 'Nguyễn Văn A',
-            role: 'Nhân viên giao xe'
-          },
-          canRate: true,
-          hasRating: false
-        },
-        {
-          id: 2,
-          vehicleModel: 'VinFast Theon S',
-          licensePlate: '51F-67890',
-          endTime: '2024-09-18T16:20:00Z',
-          staff: {
-            id: 2,
-            name: 'Trần Thị B',
-            role: 'Nhân viên nhận xe'
-          },
-          canRate: true,
-          hasRating: false
-        },
-        {
-          id: 3,
-          vehicleModel: 'VinFast Evo 200',
-          licensePlate: '51F-11111',
-          endTime: '2024-09-15T14:15:00Z',
-          staff: {
-            id: 3,
-            name: 'Lê Văn C',
-            role: 'Nhân viên giao xe'
-          },
-          canRate: true,
-          hasRating: true
-        }
-      ];
-      
-      setAvailableRentals(mockRentals.filter(r => r.canRate && !r.hasRating));
+      // GET /api/renter/rentals/all - Get completed rentals that can be rated
+      const response = await renterService.rentals.getAll();
+      const completedRentals = (response.data || []).filter(rental => 
+        (rental.status === 'completed' || rental.status === 'returned') && !rental.hasRating
+      );
+      setAvailableRentals(completedRentals);
     } catch (err) {
       setError('Không thể tải danh sách chuyến đi');
     } finally {
@@ -107,9 +71,8 @@ const RatingsPage = () => {
 
   const loadSubmittedRatings = async () => {
     try {
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      // Mock submitted ratings
+      // TODO: Implement API to get submitted ratings history
+      // For now, keep mock data as there's no specific endpoint for ratings history
       const mockRatings = [
         {
           id: 1,
@@ -161,20 +124,14 @@ const RatingsPage = () => {
     try {
       setLoading(true);
       
-      // Mock POST /api/renter/ratings
+      // POST /api/renter/rating/trip
       const requestBody = {
-        rental_id: parseInt(selectedRental),
+        rentalId: parseInt(selectedRental),
         rating: rentalRating,
-        comment: rentalComment || null
+        comment: rentalComment || undefined
       };
       
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Mock response
-      const response = {
-        status: 200,
-        message: "Đánh giá thành công"
-      };
+      const response = await renterService.ratings.submitTrip(requestBody);
       
       // Reset form
       setSelectedRental('');
@@ -202,21 +159,15 @@ const RatingsPage = () => {
     try {
       setLoading(true);
       
-      // Mock POST /api/renter/staff-ratings
+      // POST /api/renter/rating/staff
       const requestBody = {
-        rental_id: parseInt(selectedRental),
-        staff_id: parseInt(selectedStaff),
+        rentalId: parseInt(selectedRental),
+        staffId: parseInt(selectedStaff),
         rating: staffRating,
-        comment: staffComment || null
+        comment: staffComment || undefined
       };
       
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Mock response
-      const response = {
-        status: 200,
-        message: "Đánh giá nhân viên thành công"
-      };
+      const response = await renterService.ratings.submitStaff(requestBody);
       
       // Reset form
       setSelectedStaff('');

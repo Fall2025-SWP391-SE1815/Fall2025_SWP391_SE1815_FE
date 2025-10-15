@@ -1,79 +1,100 @@
-// Fetch-based API client utilities
+// Service Utils - Common utilities for all API services
 import { getApiUrl, API_ENDPOINTS } from './apiConfig.js';
 
-// Helper to read token from localStorage - default key 'token'
+/**
+ * Utility function để lấy token từ localStorage
+ * @returns {string|null} JWT token hoặc null nếu không có
+ */
 export const getAuthToken = () => {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem('token') || localStorage.getItem('accessToken') || null;
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('token') || localStorage.getItem('accessToken');
+  }
+  return null;
 };
 
+/**
+ * Utility function để tạo headers với token
+ * @param {object} extraHeaders - Additional headers to merge
+ * @returns {object} Headers object với Content-Type và Authorization
+ */
 export const getAuthHeaders = (extraHeaders = {}) => {
   const token = getAuthToken();
   return {
-    Accept: 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    'Content-Type': 'application/json',
+    ...(token && { 'Authorization': `Bearer ${token}` }),
     ...extraHeaders
   };
 };
 
-const readText = async (res) => {
-  try {
-    return await res.text();
-  } catch {
-    return null;
-  }
-};
-
+/**
+ * Generic error handler cho API responses
+ * @param {Response} response - Fetch response object
+ * @param {string} defaultMessage - Default error message
+ * @returns {Promise<any>} Parsed JSON data hoặc throw error
+ */
 export const handleApiResponse = async (response, defaultMessage = 'API request failed') => {
-  const text = await readText(response);
+  const text = await response.text();
+
   if (!response.ok) {
-    let data = null;
-    if (text) {
-      try { data = JSON.parse(text); } catch { data = { raw: text }; }
-    }
+    const data = text ? (() => { try { return JSON.parse(text); } catch { return { raw: text }; } })() : null;
     const message = data?.error || data?.message || data?.raw || defaultMessage;
     const err = new Error(message);
     err.status = response.status;
     err.data = data;
     throw err;
   }
-  if (text && text.trim().startsWith('https://')) {
+
+  // Nếu là string và bắt đầu bằng https://, trả về nguyên text, không parse JSON
+  if (text && typeof text === 'string' && text.trim().startsWith('https://')) {
     return text.trim();
   }
-  if (!text) return null;
-  try { return JSON.parse(text); } catch { return text; }
+
+  // Nếu không phải URL, thử parse JSON
+  const data = text ? (() => { try { return JSON.parse(text); } catch { return { raw: text }; } })() : null;
+  return data;
 };
 
-// Simple GET cache + in-flight dedupe
-const GET_CACHE = new Map();
-const INFLIGHT = new Map();
-const DEFAULT_TTL = Number(import.meta.env.VITE_API_GET_CACHE_TTL_MS || 60000);
+// Simple in-memory GET cache with TTL and in-flight deduplication
+const GET_CACHE = new Map(); // key: url, value: { at: number, data: any }
+const INFLIGHT = new Map(); // key: url, value: Promise
+const DEFAULT_GET_TTL_MS = Number(import.meta.env.VITE_API_GET_CACHE_TTL_MS || 60_000);
 
-const isFresh = (entry, ttl) => entry && (Date.now() - entry.at) < ttl;
+const isFresh = (entry, ttlMs) => entry && (Date.now() - entry.at) < ttlMs;
 
 export const invalidateAllGetCache = () => {
   GET_CACHE.clear();
 };
 
+/**
+ * Generic GET request
+ * @param {string} endpoint - API endpoint (relative path)
+ * @param {string} errorMessage - Custom error message
+ * @param {object} options - Request options including cache and ttlMs
+ * @returns {Promise<any>} API response data
+ */
 export const apiGet = async (endpoint, errorMessage = 'Không thể lấy dữ liệu', options = {}) => {
   const url = getApiUrl(endpoint);
-  const { cache = true, ttl = DEFAULT_TTL } = options;
+  const { cache = true, ttlMs = DEFAULT_GET_TTL_MS } = options || {};
 
   if (cache) {
     const cached = GET_CACHE.get(url);
-    if (isFresh(cached, ttl)) return cached.data;
-    const inflight = INFLIGHT.get(url);
-    if (inflight) return inflight;
+    if (isFresh(cached, ttlMs)) {
+      return cached.data;
+    }
+    const running = INFLIGHT.get(url);
+    if (running) return running;
   }
 
   const promise = (async () => {
-    const res = await fetch(url, {
+    const response = await fetch(url, {
       method: 'GET',
       headers: getAuthHeaders(),
       credentials: 'include'
     });
-    const data = await handleApiResponse(res, errorMessage);
-    if (cache) GET_CACHE.set(url, { at: Date.now(), data });
+    const data = await handleApiResponse(response, errorMessage);
+    if (cache) {
+      GET_CACHE.set(url, { at: Date.now(), data });
+    }
     INFLIGHT.delete(url);
     return data;
   })();
@@ -82,62 +103,91 @@ export const apiGet = async (endpoint, errorMessage = 'Không thể lấy dữ l
   return promise;
 };
 
-export const apiPost = async (endpoint, body, errorMessage = 'Không thể tạo dữ liệu', options = {}) => {
+/**
+ * Generic POST request
+ * @param {string} endpoint - API endpoint (relative path)
+ * @param {object|FormData} data - Request body data
+ * @param {string} errorMessage - Custom error message
+ * @returns {Promise<any>} API response data
+ */
+export const apiPost = async (endpoint, data, errorMessage = 'Không thể tạo dữ liệu') => {
   const url = getApiUrl(endpoint);
-  const isForm = body instanceof FormData;
-  const headers = getAuthHeaders(isForm ? {} : { 'Content-Type': 'application/json' });
+  const isForm = data instanceof FormData;
+  const headers = getAuthHeaders(isForm ? {} : {});
 
-  const res = await fetch(url, {
+  const response = await fetch(url, {
     method: 'POST',
     headers,
-    body: isForm ? body : JSON.stringify(body),
+    body: isForm ? data : JSON.stringify(data),
     credentials: 'include'
   });
-  const data = await handleApiResponse(res, errorMessage);
+  const result = await handleApiResponse(response, errorMessage);
   invalidateAllGetCache();
-  return data;
+  return result;
 };
 
-export const apiPut = async (endpoint, body, errorMessage = 'Không thể cập nhật dữ liệu') => {
+/**
+ * Generic PUT request
+ * @param {string} endpoint - API endpoint (relative path)
+ * @param {object|FormData} data - Request body data
+ * @param {string} errorMessage - Custom error message
+ * @returns {Promise<any>} API response data
+ */
+export const apiPut = async (endpoint, data, errorMessage = 'Không thể cập nhật dữ liệu') => {
   const url = getApiUrl(endpoint);
-  const isForm = body instanceof FormData;
-  const headers = getAuthHeaders(isForm ? {} : { 'Content-Type': 'application/json' });
-  const res = await fetch(url, {
+  const isForm = data instanceof FormData;
+  const headers = getAuthHeaders(isForm ? {} : {});
+
+  const response = await fetch(url, {
     method: 'PUT',
     headers,
-    body: isForm ? body : JSON.stringify(body),
+    body: isForm ? data : JSON.stringify(data),
     credentials: 'include'
   });
-  const data = await handleApiResponse(res, errorMessage);
+  const result = await handleApiResponse(response, errorMessage);
   invalidateAllGetCache();
-  return data;
+  return result;
 };
 
-export const apiPatch = async (endpoint, body, errorMessage = 'Không thể cập nhật dữ liệu') => {
+/**
+ * Generic PATCH request
+ * @param {string} endpoint - API endpoint (relative path)
+ * @param {object|FormData} data - Request body data
+ * @param {string} errorMessage - Custom error message
+ * @returns {Promise<any>} API response data
+ */
+export const apiPatch = async (endpoint, data, errorMessage = 'Không thể cập nhật dữ liệu') => {
   const url = getApiUrl(endpoint);
-  const isForm = body instanceof FormData;
-  const headers = getAuthHeaders(isForm ? {} : { 'Content-Type': 'application/json' });
-  const res = await fetch(url, {
+  const isForm = data instanceof FormData;
+  const headers = getAuthHeaders(isForm ? {} : {});
+
+  const response = await fetch(url, {
     method: 'PATCH',
     headers,
-    body: isForm ? body : JSON.stringify(body),
+    body: isForm ? data : JSON.stringify(data),
     credentials: 'include'
   });
-  const data = await handleApiResponse(res, errorMessage);
+  const result = await handleApiResponse(response, errorMessage);
   invalidateAllGetCache();
-  return data;
+  return result;
 };
 
+/**
+ * Generic DELETE request
+ * @param {string} endpoint - API endpoint (relative path)
+ * @param {string} errorMessage - Custom error message
+ * @returns {Promise<any>} API response data
+ */
 export const apiDelete = async (endpoint, errorMessage = 'Không thể xóa dữ liệu') => {
   const url = getApiUrl(endpoint);
-  const res = await fetch(url, {
+  const response = await fetch(url, {
     method: 'DELETE',
     headers: getAuthHeaders(),
     credentials: 'include'
   });
-  const data = await handleApiResponse(res, errorMessage);
+  const result = await handleApiResponse(response, errorMessage);
   invalidateAllGetCache();
-  return data;
+  return result;
 };
 
 // Convenience default export mimicking previous apiClient shape for minimal changes

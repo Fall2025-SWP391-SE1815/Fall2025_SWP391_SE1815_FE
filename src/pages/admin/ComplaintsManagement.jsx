@@ -42,12 +42,13 @@ const ComplaintsManagement = () => {
       
       const response = await complaintsService.getAll(params);
       
-      // Map API response to component data structure
+      // Map API response to component data structure - lưu đầy đủ thông tin cho popup
       const mappedComplaints = response.map(complaint => ({
         id: complaint.id,
         renter_id: complaint.renter?.id,
         renter_name: complaint.renter?.fullName,
         renter_phone: complaint.renter?.phone,
+        renter_email: complaint.renter?.email,
         message: complaint.description,
         status: complaint.status?.toLowerCase(),
         created_at: complaint.createdAt,
@@ -56,7 +57,16 @@ const ComplaintsManagement = () => {
         resolution: complaint.resolution,
         vehicle_name: complaint.rental?.vehicle ? 
           `${complaint.rental.vehicle.brand} ${complaint.rental.vehicle.model}` : null,
-        station_name: complaint.rental?.stationPickup?.name
+        vehicle_license: complaint.rental?.vehicle?.licensePlate,
+        station_name: complaint.rental?.stationPickup?.name,
+        station_address: complaint.rental?.stationPickup?.address,
+        staff_name: complaint.staff?.fullName,
+        staff_phone: complaint.staff?.phone,
+        admin_name: complaint.admin?.fullName,
+        start_time: complaint.rental?.startTime,
+        end_time: complaint.rental?.endTime,
+        total_cost: complaint.rental?.totalCost,
+        rental_status: complaint.rental?.status
       }));
       
       setComplaints(mappedComplaints);
@@ -68,33 +78,11 @@ const ComplaintsManagement = () => {
     }
   };
 
-  const fetchComplaintDetail = async (complaintId) => {
-    try {
-      const response = await complaintsService.getById(complaintId);
-      
-      // Map API response to detail structure
-      const mappedDetail = {
-        id: response.id,
-        renter_id: response.renter?.id,
-        renter_name: response.renter?.fullName,
-        renter_phone: response.renter?.phone,
-        rental_id: response.rental?.id,
-        message: response.description,
-        status: response.status?.toLowerCase(),
-        resolution: response.resolution,
-        created_at: response.createdAt,
-        updated_at: response.resolvedAt || response.createdAt,
-        vehicle_name: response.rental?.vehicle ? 
-          `${response.rental.vehicle.brand} ${response.rental.vehicle.model}` : null,
-        station_name: response.rental?.stationPickup?.name
-      };
-      
-      setComplaintDetail(mappedDetail);
-    } catch (error) {
-      console.error('Error fetching complaint detail:', error);
-      toast.error('Không thể tải chi tiết khiếu nại');
-      setComplaintDetail(null);
-    }
+  // Không cần fetch chi tiết riêng vì API không có endpoint getById
+  // Sử dụng dữ liệu từ danh sách
+  const prepareComplaintDetail = (complaint) => {
+    // Dữ liệu đã có đầy đủ từ danh sách
+    setComplaintDetail(complaint);
   };
 
   const handleUpdateComplaint = async () => {
@@ -134,10 +122,10 @@ const ComplaintsManagement = () => {
     }
   };
 
-  const handleViewComplaint = async (complaint) => {
+  const handleViewComplaint = (complaint) => {
     setSelectedComplaint(complaint);
+    prepareComplaintDetail(complaint);
     setShowDetailDialog(true);
-    await fetchComplaintDetail(complaint.id);
   };
 
   const handleResolveComplaint = (complaint) => {
@@ -294,12 +282,12 @@ const ComplaintsManagement = () => {
             <Filter className='h-4 w-4 mr-2' />
             <SelectValue placeholder='Lọc theo trạng thái' />
           </SelectTrigger>
-          <SelectContent>
-            <SelectItem value='all'>Tất cả trạng thái</SelectItem>
-            <SelectItem value='pending'>Chờ xử lý</SelectItem>
-            <SelectItem value='in_progress'>Đang xử lý</SelectItem>
-            <SelectItem value='resolved'>Đã giải quyết</SelectItem>
-            <SelectItem value='rejected'>Từ chối</SelectItem>
+          <SelectContent position="popper" side="bottom" className="z-[9999] bg-white border border-gray-200 shadow-lg rounded-md p-1 min-w-[var(--radix-select-trigger-width)]">
+            <SelectItem value='all' className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Tất cả trạng thái</SelectItem>
+            <SelectItem value='pending' className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Chờ xử lý</SelectItem>
+            <SelectItem value='in_progress' className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Đang xử lý</SelectItem>
+            <SelectItem value='resolved' className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Đã giải quyết</SelectItem>
+            <SelectItem value='rejected' className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Từ chối</SelectItem>
           </SelectContent>
         </Select>
 
@@ -433,9 +421,22 @@ const ComplaintsManagement = () => {
               </div>
 
               {complaintDetail.vehicle_name && (
-                <div>
-                  <Label className='text-sm font-medium text-muted-foreground'>Xe liên quan</Label>
-                  <p className='text-lg'>{complaintDetail.vehicle_name}</p>
+                <div className='grid grid-cols-2 gap-4'>
+                  <div>
+                    <Label className='text-sm font-medium text-muted-foreground'>Xe liên quan</Label>
+                    <p className='text-lg'>{complaintDetail.vehicle_name}</p>
+                    {complaintDetail.vehicle_license && (
+                      <p className='text-sm text-muted-foreground'>
+                        Biển số: {complaintDetail.vehicle_license}
+                      </p>
+                    )}
+                  </div>
+                  {complaintDetail.rental_status && (
+                    <div>
+                      <Label className='text-sm font-medium text-muted-foreground'>Trạng thái thuê</Label>
+                      <p className='text-lg capitalize'>{complaintDetail.rental_status}</p>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -443,6 +444,54 @@ const ComplaintsManagement = () => {
                 <div>
                   <Label className='text-sm font-medium text-muted-foreground'>Trạm liên quan</Label>
                   <p className='text-lg'>{complaintDetail.station_name}</p>
+                  {complaintDetail.station_address && (
+                    <p className='text-sm text-muted-foreground'>{complaintDetail.station_address}</p>
+                  )}
+                </div>
+              )}
+
+              {(complaintDetail.start_time || complaintDetail.end_time || complaintDetail.total_cost) && (
+                <div className='grid grid-cols-2 gap-4'>
+                  {complaintDetail.start_time && (
+                    <div>
+                      <Label className='text-sm font-medium text-muted-foreground'>Thời gian bắt đầu</Label>
+                      <p className='text-lg'>{new Date(complaintDetail.start_time).toLocaleString('vi-VN')}</p>
+                    </div>
+                  )}
+                  {complaintDetail.end_time && (
+                    <div>
+                      <Label className='text-sm font-medium text-muted-foreground'>Thời gian kết thúc</Label>
+                      <p className='text-lg'>{new Date(complaintDetail.end_time).toLocaleString('vi-VN')}</p>
+                    </div>
+                  )}
+                  {complaintDetail.total_cost && (
+                    <div>
+                      <Label className='text-sm font-medium text-muted-foreground'>Tổng chi phí</Label>
+                      <p className='text-lg font-semibold text-green-600'>
+                        {complaintDetail.total_cost.toLocaleString('vi-VN')} VNĐ
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {(complaintDetail.staff_name || complaintDetail.admin_name) && (
+                <div className='grid grid-cols-2 gap-4'>
+                  {complaintDetail.staff_name && (
+                    <div>
+                      <Label className='text-sm font-medium text-muted-foreground'>Nhân viên liên quan</Label>
+                      <p className='text-lg'>{complaintDetail.staff_name}</p>
+                      {complaintDetail.staff_phone && (
+                        <p className='text-sm text-muted-foreground'>{complaintDetail.staff_phone}</p>
+                      )}
+                    </div>
+                  )}
+                  {complaintDetail.admin_name && (
+                    <div>
+                      <Label className='text-sm font-medium text-muted-foreground'>Người xử lý</Label>
+                      <p className='text-lg'>{complaintDetail.admin_name}</p>
+                    </div>
+                  )}
                 </div>
               )}
 

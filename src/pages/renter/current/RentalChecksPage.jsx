@@ -6,10 +6,10 @@ import {
   CardDescription, 
   CardHeader, 
   CardTitle 
-} from '../../components/ui/card';
-import { Button } from '../../components/ui/button';
-import { Badge } from '../../components/ui/badge';
-import { Alert, AlertDescription } from '../../components/ui/alert';
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   FileText, 
   Car,
