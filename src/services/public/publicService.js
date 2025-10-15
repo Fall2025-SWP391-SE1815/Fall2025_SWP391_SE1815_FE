@@ -1,52 +1,22 @@
 // Public Service - API calls that don't require authentication
-import { getApiUrl } from '../../lib/api/apiConfig.js';
+import { apiGetPublic } from '@/lib/api/apiClient.js';
+import { API_ENDPOINTS } from '@/lib/api/apiConfig.js';
 
-/**
- * Lấy danh sách xe công khai (không cần token)
- * @returns {Promise<Array>} Danh sách xe
- */
-export const getPublicVehicles = async () => {
-  try {
-    const response = await fetch(getApiUrl('/api/public/vehicles'), {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Error fetching public vehicles:', error);
-    throw error;
-  }
+const buildQuery = (params = {}) => {
+  return params && Object.keys(params).length ? `?${new URLSearchParams(params).toString()}` : '';
 };
 
-/**
- * Lấy danh sách trạm công khai (không cần token)
- * @returns {Promise<Array>} Danh sách trạm
- */
-export const getPublicStations = async () => {
-  try {
-    const response = await fetch(getApiUrl('/api/public/stations'), {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+const getPublicVehicles = async (params = {}) => {
+  const query = buildQuery(params);
+  return apiGetPublic(`${API_ENDPOINTS.PUBLIC.VEHICLES}${query}`, 'Không thể lấy danh sách xe công khai');
+};
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
+const getPublicStations = async (params = {}) => {
+  const query = buildQuery(params);
+  return apiGetPublic(`${API_ENDPOINTS.PUBLIC.STATIONS}${query}`, 'Không thể lấy danh sách trạm công khai');
+};
 
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Error fetching public stations:', error);
-    throw error;
-  }
+export default {
+  getPublicVehicles,
+  getPublicStations
 };

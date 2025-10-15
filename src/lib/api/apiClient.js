@@ -104,6 +104,46 @@ export const apiGet = async (endpoint, errorMessage = 'Không thể lấy dữ l
 };
 
 /**
+ * Generic GET request for public endpoints (no authentication)
+ * @param {string} endpoint - API endpoint (relative path)
+ * @param {string} errorMessage - Custom error message
+ * @param {object} options - Request options including cache and ttlMs
+ * @returns {Promise<any>} API response data
+ */
+export const apiGetPublic = async (endpoint, errorMessage = 'Không thể lấy dữ liệu', options = {}) => {
+  const url = getApiUrl(endpoint);
+  const { cache = true, ttlMs = DEFAULT_GET_TTL_MS } = options || {};
+
+  if (cache) {
+    const cached = GET_CACHE.get(url);
+    if (isFresh(cached, ttlMs)) {
+      return cached.data;
+    }
+    const running = INFLIGHT.get(url);
+    if (running) return running;
+  }
+
+  const promise = (async () => {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      credentials: 'omit'
+    });
+    const data = await handleApiResponse(response, errorMessage);
+    if (cache) {
+      GET_CACHE.set(url, { at: Date.now(), data });
+    }
+    INFLIGHT.delete(url);
+    return data;
+  })();
+
+  if (cache) INFLIGHT.set(url, promise);
+  return promise;
+};
+
+/**
  * Generic POST request
  * @param {string} endpoint - API endpoint (relative path)
  * @param {object|FormData} data - Request body data

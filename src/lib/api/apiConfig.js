@@ -100,7 +100,14 @@ export const API_ENDPOINTS = {
 
     // Performance management
     PERFORMANCE: '/api/admin/performance'
+  },
+  
+  // Public endpoints (no authentication required)
+  PUBLIC: {
+    STATIONS: '/api/public/stations',
+    VEHICLES: '/api/public/vehicles'
   }
+
 };
 
 // Helper function to get full URL
