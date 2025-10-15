@@ -31,15 +31,13 @@ export default function VehiclesManagement() {
         vehicleService.admin.getVehicleStats()
       ]);
       
-      // Parse response data
-      const vehiclesData = vehiclesRes?.vehicles || vehiclesRes?.data || vehiclesRes || [];
-      const stationsData = stationsRes?.stations || stationsRes?.data || stationsRes || [];
+      const vehiclesData = Array.isArray(vehiclesRes) ? vehiclesRes : (vehiclesRes?.data || []);
+      const stationsData = Array.isArray(stationsRes) ? stationsRes : (stationsRes?.data || []);
       const statsData = statsRes?.data || statsRes || {};
       
-      setVehicles(Array.isArray(vehiclesData) ? vehiclesData : []);
-      setStations(Array.isArray(stationsData) ? stationsData : []);
+      setVehicles(vehiclesData);
+      setStations(stationsData);
       
-      // Use API stats instead of calculating manually
       const totalVehicles = (statsData.available || 0) + (statsData.reserved || 0) + (statsData.rented || 0) + (statsData.maintenance || 0);
       const monthlyRevenue = vehiclesData.reduce((acc, cur) => acc + (cur.pricePerHour || 0), 0);
       
@@ -59,7 +57,6 @@ export default function VehiclesManagement() {
 
   const handleSave = async (values, imageFile) => {
     try {
-      // Create FormData for multipart/form-data
       const formData = new FormData();
       formData.append('licensePlate', values.licensePlate);
       formData.append('type', values.type);
@@ -70,24 +67,7 @@ export default function VehiclesManagement() {
       formData.append('status', values.status);
       formData.append('pricePerHour', Number(values.pricePerHour));
       formData.append('stationId', Number(values.stationId));
-      
-      // Add image if provided
-      if (imageFile) {
-        formData.append('image', imageFile);
-      }
-
-      console.log('Sending FormData with fields:', {
-        licensePlate: values.licensePlate,
-        type: values.type,
-        brand: values.brand,
-        model: values.model,
-        capacity: Number(values.capacity),
-        rangePerFullCharge: Number(values.rangePerFullCharge),
-        status: values.status,
-        pricePerHour: Number(values.pricePerHour),
-        stationId: Number(values.stationId),
-        hasImage: !!imageFile
-      });
+      if (imageFile) formData.append('image', imageFile);
 
       if (selectedVehicle) {
         await vehicleService.admin.updateVehicle(selectedVehicle.id, formData);
@@ -96,13 +76,13 @@ export default function VehiclesManagement() {
         await vehicleService.admin.createVehicle(formData);
         toast.success('Thêm phương tiện thành công');
       }
+      
       setIsDialogOpen(false);
       setSelectedVehicle(null);
       fetchData();
     } catch (error) {
       console.error('Error saving vehicle:', error);
-      const errorMsg = error?.response?.data?.message || error?.message || 'Lỗi khi lưu dữ liệu';
-      toast.error(errorMsg);
+      toast.error(error?.response?.data?.message || 'Lỗi khi lưu dữ liệu');
     }
   };
 
@@ -136,8 +116,7 @@ export default function VehiclesManagement() {
         onView={async (v) => {
           try {
             const res = await vehicleService.admin.getVehicleById(v.id);
-            const vehicleData = res?.vehicle || res?.data || res || v;
-            setViewVehicle(vehicleData);
+            setViewVehicle(res?.data || res);
             setIsDetailDialogOpen(true);
           } catch (error) {
             console.error('Error fetching vehicle details:', error);
@@ -152,7 +131,10 @@ export default function VehiclesManagement() {
             <DialogTitle>{selectedVehicle ? 'Chỉnh sửa xe' : 'Thêm xe mới'}</DialogTitle>
           </DialogHeader>
           <VehicleForm
-            initialValues={selectedVehicle || {
+            initialValues={selectedVehicle ? {
+              ...selectedVehicle,
+              stationId: selectedVehicle.station?.id || selectedVehicle.stationId || ''
+            } : {
               licensePlate: '',
               brand: '',
               model: '',

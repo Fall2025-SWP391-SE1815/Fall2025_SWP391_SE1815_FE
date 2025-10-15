@@ -1,6 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Car, MapPin, Battery, DollarSign, Users, Gauge } from 'lucide-react';
+import { API_BASE_URL } from '@/lib/api/apiConfig';
 
 export default function VehicleDetailDialog({ vehicle, open, onOpenChange }) {
     if (!vehicle) return null;
@@ -40,12 +41,17 @@ export default function VehicleDetailDialog({ vehicle, open, onOpenChange }) {
 
                 <div className="space-y-6">
                     {/* Vehicle Image */}
-                    {vehicle.image && (
-                        <div className="w-full h-64 rounded-lg overflow-hidden bg-gray-100">
+                    {vehicle.imageUrl && (
+                        <div className="w-full h-64 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
                             <img 
-                                src={vehicle.image} 
+                                src={`${API_BASE_URL}${vehicle.imageUrl}`}
                                 alt={vehicle.licensePlate}
-                                className="w-full h-full object-cover"
+                                className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                                onClick={() => window.open(`${API_BASE_URL}${vehicle.imageUrl}`, '_blank')}
+                                onError={(e) => {
+                                    e.target.style.display = 'none';
+                                    e.target.parentElement.innerHTML = '<div class="text-center text-gray-500"><svg class="h-16 w-16 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"></path></svg><p class="mt-2">Không thể tải ảnh</p></div>';
+                                }}
                             />
                         </div>
                     )}

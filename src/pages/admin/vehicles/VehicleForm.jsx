@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useState } from 'react';
 import { Upload, X } from 'lucide-react';
+import { API_BASE_URL } from '@/lib/api/apiConfig';
 
 const validationSchema = Yup.object({
   licensePlate: Yup.string().required('Biển số xe bắt buộc'),
@@ -21,7 +22,7 @@ const validationSchema = Yup.object({
 });
 
 export default function VehicleForm({ initialValues, onSubmit, onCancel, stations }) {
-  const [imagePreview, setImagePreview] = useState(initialValues?.image || null);
+  const [imagePreview, setImagePreview] = useState(initialValues?.imageurl || initialValues?.image || null);
   const [imageFile, setImageFile] = useState(null);
 
   const formik = useFormik({
@@ -61,7 +62,7 @@ export default function VehicleForm({ initialValues, onSubmit, onCancel, station
 
   const handleRemoveImage = () => {
     setImageFile(null);
-    setImagePreview(initialValues?.image || null);
+    setImagePreview(initialValues?.imageurl || initialValues?.image || null);
     formik.setFieldValue('image', null);
   };
 
@@ -73,7 +74,7 @@ export default function VehicleForm({ initialValues, onSubmit, onCancel, station
           {imagePreview && (
             <div className="relative w-full h-48 border rounded-lg overflow-hidden bg-gray-50">
               <img 
-                src={imagePreview} 
+                src={imagePreview.startsWith('/') ? `${API_BASE_URL}${imagePreview}` : imagePreview}
                 alt="Vehicle preview" 
                 className="w-full h-full object-cover"
               />
