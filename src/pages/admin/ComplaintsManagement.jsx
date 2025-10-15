@@ -78,7 +78,6 @@ const ComplaintsManagement = () => {
     }
   };
 
-  // Không cần fetch chi tiết riêng vì API không có endpoint getById
   // Sử dụng dữ liệu từ danh sách
   const prepareComplaintDetail = (complaint) => {
     // Dữ liệu đã có đầy đủ từ danh sách
@@ -139,7 +138,6 @@ const ComplaintsManagement = () => {
     const normalizedStatus = status?.toLowerCase();
     const statusMap = {
       'pending': { label: 'Chờ xử lý', variant: 'destructive', icon: Clock },
-      'in_progress': { label: 'Đang xử lý', variant: 'default', icon: AlertTriangle },
       'resolved': { label: 'Đã giải quyết', variant: 'secondary', icon: CheckCircle },
       'rejected': { label: 'Từ chối', variant: 'outline', icon: X }
     };
@@ -171,7 +169,6 @@ const ComplaintsManagement = () => {
   const complaintStats = {
     total: complaints.length,
     pending: complaints.filter(c => c.status?.toLowerCase() === 'pending').length,
-    inProgress: complaints.filter(c => c.status?.toLowerCase() === 'in_progress').length,
     resolved: complaints.filter(c => c.status?.toLowerCase() === 'resolved').length,
     rejected: complaints.filter(c => c.status?.toLowerCase() === 'rejected').length,
     todayComplaints: complaints.filter(c => 
@@ -285,7 +282,6 @@ const ComplaintsManagement = () => {
           <SelectContent position="popper" side="bottom" className="z-[9999] bg-white border border-gray-200 shadow-lg rounded-md p-1 min-w-[var(--radix-select-trigger-width)]">
             <SelectItem value='all' className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Tất cả trạng thái</SelectItem>
             <SelectItem value='pending' className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Chờ xử lý</SelectItem>
-            <SelectItem value='in_progress' className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Đang xử lý</SelectItem>
             <SelectItem value='resolved' className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Đã giải quyết</SelectItem>
             <SelectItem value='rejected' className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Từ chối</SelectItem>
           </SelectContent>
@@ -573,9 +569,9 @@ const ComplaintsManagement = () => {
                   <SelectTrigger>
                     <SelectValue placeholder='Chọn trạng thái' />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value='resolved'>Đã giải quyết</SelectItem>
-                    <SelectItem value='rejected'>Từ chối</SelectItem>
+                  <SelectContent className="z-[9999] bg-white border border-gray-200 shadow-lg rounded-md p-1 min-w-[var(--radix-select-trigger-width)]">
+                    <SelectItem value='resolved' className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Đã giải quyết</SelectItem>
+                    <SelectItem value='rejected' className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Từ chối</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

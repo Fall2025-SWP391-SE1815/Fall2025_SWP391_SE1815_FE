@@ -370,7 +370,7 @@ export default function PersonnelManagement() {
               <span className="text-red-600 font-medium">Hành động này không thể hoàn tác.</span>
               <br />
               <span className="text-orange-600 text-sm">
-                Lưu ý: Tài khoản không thể xóa nếu còn dữ liệu liên quan (đơn thuê, thanh toán, v.v.)
+                Lưu ý: Tài khoản không thể xóa nếu trong thời gian phân công
               </span>
             </AlertDialogDescription>
           </AlertDialogHeader>
