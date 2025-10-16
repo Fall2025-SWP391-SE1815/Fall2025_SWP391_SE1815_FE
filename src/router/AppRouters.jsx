@@ -48,10 +48,10 @@ import ComplaintDetailPage from "../pages/renter/complaints/ComplaintDetailPage.
 
 // Staff Components
 import StaffDashboard from "../pages/staff/StaffDashboard.jsx";
-import RentalManagement from "../pages/staff/RentalManagement.jsx";
-import CustomerVerification from "../pages/staff/CustomerVerification.jsx";
-import PaymentManagement from "../pages/staff/PaymentManagement.jsx";
-import StationManagement from "../pages/staff/StationManagement.jsx";
+import RentalManagement from "../pages/staff/rental-management/RentalManagement.jsx";
+import CustomerVerification from "@/pages/staff/customer-verification/CustomerVerification.jsx";
+import PaymentManagement from "../pages/staff/payment-management/PaymentManagement.jsx";
+import StationManagement from "../pages/staff/station-management/StationManagement.jsx";
 
 // Routes wrapper
 import PublicRoute from "../routes/PublicRoute.jsx";
@@ -59,6 +59,8 @@ import ProtectedRoute from "../routes/ProtectedRoute.jsx";
 
 // Auth Provider
 import { AuthProvider } from "../hooks/auth/useAuth.jsx";
+import VehicleManagement from "@/pages/staff/vehicle-management/VehicleManagement.jsx";
+
 
 // Path constants
 export const paths = {
@@ -66,10 +68,12 @@ export const paths = {
   login: "/login",
   register: "/register",
 
+
   // Admin routes
   admin: {
     dashboard: "/admin",
     stations: "stations",
+    vehicles: "vehicles",
     vehicles: "vehicles",
     personnel: "personnel",
     stationStaff: "station-staff",
@@ -77,6 +81,7 @@ export const paths = {
     complaints: "complaints",
     performance: "performance"
   },
+
 
   // Renter routes
   renter: {
@@ -101,14 +106,17 @@ export const paths = {
     }
   },
 
+
   // Staff routes  
   staff: {
     dashboard: "/staff",
     rentalManagement: "rental-management",
     customerVerification: "customer-verification",
+    customerVerification: "customer-verification",
     paymentManagement: "payment-management",
     stationManagement: "station-management"
   },
+
 
   notFound: "*",
 };
@@ -138,6 +146,7 @@ const router = createBrowserRouter([
     ],
   },
 
+
   // Auth routes (public)
   {
     path: "/login",
@@ -148,6 +157,7 @@ const router = createBrowserRouter([
     ),
   },
   {
+    path: "/register",
     path: "/register",
     element: (
       <PublicRoute>
@@ -192,6 +202,7 @@ const router = createBrowserRouter([
     ],
   },
 
+
   // Staff routes
   {
     path: "/staff",
@@ -206,8 +217,10 @@ const router = createBrowserRouter([
       { path: "customer-verification", element: <CustomerVerification /> },
       { path: "payment-management", element: <PaymentManagement /> },
       { path: "station-management", element: <StationManagement /> },
+      { path: "/staff/vehicle-management", element: <VehicleManagement />, }
     ],
   },
+
 
   // Renter protected pages (using MainLayout for consistency)
   {
@@ -311,6 +324,7 @@ const router = createBrowserRouter([
   },
   {
     path: "/complaints",
+    path: "/complaints",
     element: (
       <ProtectedRoute requiredRole="renter">
         <MainLayout />
@@ -346,6 +360,7 @@ const router = createBrowserRouter([
       { path: "checks/:id", element: <RentalChecksPage /> }
     ]
   },
+
 
   // Not found
   { path: "*", element: <NotFoundPage /> },
