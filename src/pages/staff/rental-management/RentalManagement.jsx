@@ -1,111 +1,136 @@
 import React, { useState, useEffect } from "react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RefreshCw, ArrowRight, CheckCircle } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { RefreshCw, ArrowRight, Car, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import staffRentalService from "@/services/staff/staffRentalService";
 
-import PickupTab from "./PickupTab";
-import ReturnTab from "./ReturnTab";
+import HandoverTab from "./tabs/HandoverTab";
+import InUseTab from "./tabs/InUseTab";
+import ReturnTab from "./tabs/ReturnTab";
 
 export default function RentalManagement() {
   const { toast } = useToast();
-  const [selectedTab, setSelectedTab] = useState("pickup");
+  const [selectedTab, setSelectedTab] = useState("handover");
   const [loading, setLoading] = useState(false);
+  const [reservations, setReservations] = useState([]);
   const [pendingRentals, setPendingRentals] = useState([]);
+  const [inUseRentals, setInUseRentals] = useState([]);
   const [returningRentals, setReturningRentals] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
 
-  // Mock data (bạn thay bằng API thật sau)
-  const mockPendingRentals = [
-    {
-      rental_id: 1,
-      vehicle: { license_plate: "51A-12345", brand: "Toyota", model: "Vios" },
-      renter: { full_name: "Nguyễn Văn A", phone: "0901234567" },
-      pickup_station: { name: "Trạm A" },
-      deposit_amount: 2000000,
-      deposit_status: "Đã cọc",
-      start_time: "2025-10-13T09:00:00",
-    },
-  ];
+  useEffect(() => {
+    refreshAll();
+  }, []);
 
-  const mockReturningRentals = [
-    {
-      rental_id: 2,
-      vehicle: { license_plate: "51B-67890", brand: "Honda", model: "City" },
-      renter: { full_name: "Trần Thị B", phone: "0939876543" },
-      return_station: { name: "Trạm B" },
-      end_time: "2025-10-14T10:00:00",
-    },
-  ];
+  const fetchReservations = async () => {
+    try {
+      setLoading(true);
+      const res = await staffRentalService.getReservations();
+      setReservations(res?.data || res || []);
+    } catch (err) {
+      toast({ title: "Lỗi", description: "Không thể tải danh sách đặt chỗ", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchPendingRentals = async () => {
-    setLoading(true);
-    setTimeout(() => {
-      setPendingRentals(mockPendingRentals);
+    try {
+      setLoading(true);
+      const res = await staffRentalService.getRentals({ status: "booked" });
+      setPendingRentals(res?.data || res || []);
+    } catch (err) {
+      toast({ title: "Lỗi", description: "Không thể tải danh sách xe cần giao", variant: "destructive" });
+    } finally {
       setLoading(false);
-    }, 500);
+    }
+  };
+
+  const fetchInUseRentals = async () => {
+    try {
+      setLoading(true);
+      const res = await staffRentalService.getRentals({ status: "in_use" });
+      setInUseRentals(res?.data || res || []);
+    } catch (err) {
+      toast({ title: "Lỗi", description: "Không thể tải xe đang cho thuê", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const fetchReturningRentals = async () => {
-    setLoading(true);
-    setTimeout(() => {
-      setReturningRentals(mockReturningRentals);
+    try {
+      setLoading(true);
+      const res = await staffRentalService.getRentals({ status: "in_use" });
+      setReturningRentals(res?.data || res || []);
+    } catch (err) {
+      toast({ title: "Lỗi", description: "Không thể tải danh sách xe cần nhận", variant: "destructive" });
+    } finally {
       setLoading(false);
-    }, 500);
+    }
   };
 
-  useEffect(() => {
+  const refreshAll = () => {
+    fetchReservations();
     fetchPendingRentals();
+    fetchInUseRentals();
     fetchReturningRentals();
-  }, []);
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            Quản lý giao - nhận xe
-          </h1>
-          <p className="text-muted-foreground">
-            Xử lý các yêu cầu giao xe và nhận xe từ khách hàng
-          </p>
+          <h1 className="text-3xl font-bold tracking-tight">Quản lý giao - nhận xe</h1>
+          <p className="text-muted-foreground">Xử lý các yêu cầu giao xe và nhận xe từ khách hàng</p>
         </div>
-        <Button
-          onClick={() => {
-            fetchPendingRentals();
-            fetchReturningRentals();
-          }}
-          disabled={loading}
-        >
-          <RefreshCw className="h-4 w-4 mr-2" /> Làm mới
-        </Button>
+        <div className="flex gap-2">
+          <Input
+            placeholder="Tìm kiếm khách hàng, SĐT, biển số..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-80"
+          />
+          <Button onClick={refreshAll} disabled={loading}>
+            <RefreshCw className="h-4 w-4 mr-2" /> Làm mới
+          </Button>
+        </div>
       </div>
 
       <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="pickup" className="flex items-center gap-2">
-            <ArrowRight className="h-4 w-4" /> Giao xe ({pendingRentals.length})
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="handover" className="flex items-center gap-2">
+            <ArrowRight className="h-4 w-4" /> Đặt chỗ & Giao xe ({reservations.length + pendingRentals.length})
+          </TabsTrigger>
+          <TabsTrigger value="in-use" className="flex items-center gap-2">
+            <Car className="h-4 w-4" /> Đang cho thuê ({inUseRentals.length})
           </TabsTrigger>
           <TabsTrigger value="return" className="flex items-center gap-2">
             <CheckCircle className="h-4 w-4" /> Nhận xe ({returningRentals.length})
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="pickup">
-          <PickupTab
-            rentals={pendingRentals}
-            loading={loading}
+        <TabsContent value="handover">
+          <HandoverTab
+            reservations={reservations}
+            pendingRentals={pendingRentals}
+            fetchReservations={fetchReservations}
+            fetchPendingRentals={fetchPendingRentals}
+            fetchInUseRentals={fetchInUseRentals}
             toast={toast}
-            onRefresh={fetchPendingRentals}
+            loading={loading}
+            searchTerm={searchTerm}
           />
         </TabsContent>
 
+        <TabsContent value="in-use">
+          <InUseTab rentals={inUseRentals} searchTerm={searchTerm} loading={loading} />
+        </TabsContent>
+
         <TabsContent value="return">
-          <ReturnTab
-            rentals={returningRentals}
-            loading={loading}
-            toast={toast}
-            onRefresh={fetchReturningRentals}
-          />
+          <ReturnTab rentals={returningRentals} fetchReturningRentals={fetchReturningRentals} toast={toast} searchTerm={searchTerm} loading={loading} />
         </TabsContent>
       </Tabs>
     </div>

@@ -2,9 +2,9 @@ import React, { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
+  CardDescription,
 } from "@/components/ui/card";
 import {
   Table,
@@ -16,300 +16,161 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import {
-  FileText,
-  Shield,
-  ShieldCheck,
-  Search,
-  Eye,
-  RefreshCw,
-  User,
-  Calendar,
-  AlertTriangle,
-  CreditCard,
-  Car,
-} from "lucide-react";
-
-import DocumentDetail from "./DocumentDetail";
+import staffRentalService from "@/services/staff/staffRentalService";
+import DocumentDetailDialog from "./DocumentDetail";
+import { Search, User, Eye } from "lucide-react";
 
 const CustomerVerification = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [customers, setCustomers] = useState([]);
-  const [selectedCustomer, setSelectedCustomer] = useState(null);
-  const [documentsDialogOpen, setDocumentsDialogOpen] = useState(false);
+  const [renters, setRenters] = useState([]);
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const [selectedId, setSelectedId] = useState(null);
 
-  // ===== MOCK DATA =====
-  const mockCustomers = [
-    {
-      id: 1,
-      full_name: "Nguyễn Văn Minh",
-      phone: "0909123456",
-      email: "minh.nguyen@email.com",
-      registration_date: "2025-09-20T10:30:00Z",
-      verification_status: "pending",
-      total_documents: 2,
-      verified_documents: 0,
-    },
-    {
-      id: 2,
-      full_name: "Trần Thị Lan",
-      phone: "0912345678",
-      email: "lan.tran@email.com",
-      registration_date: "2025-09-21T14:15:00Z",
-      verification_status: "partial",
-      total_documents: 2,
-      verified_documents: 1,
-    },
-  ];
-
-  const mockDocuments = {
-    1: [
-      {
-        id: 101,
-        type: "CCCD",
-        document_number: "024123456789",
-        document_url: "https://example.com/cccd1.jpg",
-        verified: false,
-        upload_date: "2025-09-20T10:35:00Z",
-      },
-      {
-        id: 102,
-        type: "GPLX",
-        document_number: "B124567890",
-        document_url: "https://example.com/gplx1.jpg",
-        verified: false,
-        upload_date: "2025-09-20T10:40:00Z",
-      },
-    ],
-    2: [
-      {
-        id: 103,
-        type: "CCCD",
-        document_number: "024987654321",
-        document_url: "https://example.com/cccd2.jpg",
-        verified: true,
-        upload_date: "2025-09-21T14:20:00Z",
-      },
-      {
-        id: 104,
-        type: "GPLX",
-        document_number: "A234567890",
-        document_url: "https://example.com/gplx2.jpg",
-        verified: false,
-        upload_date: "2025-09-21T14:25:00Z",
-      },
-    ],
-  };
-
-  // ===== LIFECYCLE =====
   useEffect(() => {
-    fetchCustomers();
+    fetchRenters();
   }, []);
 
-  const fetchCustomers = async () => {
-    setLoading(true);
-    setTimeout(() => {
-      setCustomers(mockCustomers);
+  const fetchRenters = async () => {
+    try {
+      setLoading(true);
+      const res = await staffRentalService.getRenters();
+      const data = Array.isArray(res) ? res : res?.data || [];
+      setRenters(
+        data.map((r) => ({
+          id: r.id,
+          name: r.fullName,
+          phone: r.phone,
+          email: r.email,
+          createdAt: r.createdAt,
+        }))
+      );
+    } catch (err) {
+      toast({
+        title: "Lỗi tải dữ liệu",
+        description: err.message || "Không thể tải danh sách khách hàng.",
+        variant: "destructive",
+      });
+    } finally {
       setLoading(false);
-    }, 500);
+    }
   };
 
-  // ===== LOGIC =====
-  const handleViewDocuments = (customer) => {
-    setSelectedCustomer(customer);
-    setDocumentsDialogOpen(true);
-  };
-
-  const verifyDocument = (customerId, documentId, verified) => {
-    const updatedDocs = mockDocuments[customerId].map((doc) =>
-      doc.id === documentId ? { ...doc, verified } : doc
-    );
-
-    mockDocuments[customerId] = updatedDocs;
-    toast({
-      title: verified ? "Xác thực thành công" : "Từ chối tài liệu",
-      description: `Tài liệu ID ${documentId} đã được ${verified ? "xác thực" : "từ chối"
-        }.`,
-      variant: verified ? "default" : "destructive",
-    });
-
-    // Cập nhật trạng thái khách hàng mock
-    const allVerified = updatedDocs.every((d) => d.verified);
-    const verifiedCount = updatedDocs.filter((d) => d.verified).length;
-    setCustomers((prev) =>
-      prev.map((c) =>
-        c.id === customerId
-          ? {
-            ...c,
-            verification_status: allVerified
-              ? "verified"
-              : verifiedCount > 0
-                ? "partial"
-                : "pending",
-            verified_documents: verifiedCount,
-          }
-          : c
-      )
-    );
-  };
-
-  // ===== HELPER UI =====
-  const getVerificationStatusBadge = (status) => {
-    const map = {
-      pending: { label: "Chờ xác thực", variant: "destructive", icon: AlertTriangle },
-      partial: { label: "Một phần", variant: "outline", icon: Shield },
-      verified: { label: "Đã xác thực", variant: "default", icon: ShieldCheck },
-    };
-    const cfg = map[status] || map.pending;
-    const Icon = cfg.icon;
-    return (
-      <Badge variant={cfg.variant} className="gap-1">
-        <Icon className="h-3 w-3" />
-        {cfg.label}
-      </Badge>
-    );
-  };
-
-  const getDocumentTypeBadge = (type) => {
-    const map = {
-      CCCD: { label: "CCCD", icon: CreditCard, variant: "default" },
-      GPLX: { label: "GPLX", icon: Car, variant: "secondary" },
-      Passport: { label: "Hộ chiếu", icon: FileText, variant: "outline" },
-    };
-    const cfg = map[type] || map.Passport;
-    const Icon = cfg.icon;
-    return (
-      <Badge variant={cfg.variant} className="gap-1">
-        <Icon className="h-3 w-3" />
-        {cfg.label}
-      </Badge>
-    );
-  };
-
-  const formatDateTime = (date) =>
-    new Date(date).toLocaleString("vi-VN", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-
-  // ===== FILTER =====
-  const filtered = customers.filter(
-    (c) =>
-      c.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.phone.includes(searchTerm) ||
-      c.email.toLowerCase().includes(searchTerm.toLowerCase())
+  const filtered = renters.filter(
+    (r) =>
+      r.name?.toLowerCase().includes(query.toLowerCase()) ||
+      r.phone?.includes(query)
   );
 
-  // ===== RENDER =====
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-8">
+      {/* Header */}
+      <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 bg-primary/5 rounded-2xl p-6 border border-primary/10 shadow-sm">
         <div>
-          <h1 className="text-3xl font-bold">Xác thực khách hàng</h1>
-          <p className="text-muted-foreground">
-            Quản lý và xác thực tài liệu CCCD / GPLX của khách hàng
+          <h1 className="text-3xl font-semibold text-primary tracking-tight">
+            Xác thực tài liệu khách hàng
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Quản lý và xác thực thông tin người dùng trong hệ thống
           </p>
         </div>
-        <Button onClick={fetchCustomers} disabled={loading}>
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Làm mới
-        </Button>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Search className="h-5 w-5" />
-            Tìm kiếm khách hàng
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+        <div className="flex gap-2 items-center">
           <Input
-            placeholder="Nhập tên, số điện thoại hoặc email..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Tìm kiếm khách hàng..."
+            className="w-[240px] bg-white/80 backdrop-blur-sm rounded-xl"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
           />
-        </CardContent>
-      </Card>
+          <Button
+            onClick={fetchRenters}
+            disabled={loading}
+            className="rounded-xl bg-primary text-white hover:bg-primary/90"
+          >
+            <Search className="h-4 w-4 mr-2" />
+            Làm mới
+          </Button>
+        </div>
+      </header>
 
-      <Card>
+      {/* Table */}
+      <Card className="rounded-2xl shadow-md border border-gray-100 bg-white">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
-            Danh sách khách hàng ({filtered.length})
+          <CardTitle className="text-lg text-gray-800 font-semibold">
+            Danh sách khách hàng
           </CardTitle>
           <CardDescription>
-            Khách hàng đang chờ hoặc đã xác thực tài liệu
+            Tổng số khách hàng: {filtered.length || 0}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {filtered.length === 0 ? (
-            <p className="text-center text-muted-foreground py-6">
-              Không tìm thấy khách hàng nào
-            </p>
-          ) : (
+          <div className="overflow-x-auto rounded-xl border border-gray-100">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Khách hàng</TableHead>
+                <TableRow className="bg-muted/50 text-gray-600">
+                  <TableHead>ID</TableHead>
+                  <TableHead>Họ và tên</TableHead>
+                  <TableHead>Số điện thoại</TableHead>
+                  <TableHead>Email</TableHead>
                   <TableHead>Ngày đăng ký</TableHead>
-                  <TableHead>Tài liệu</TableHead>
-                  <TableHead>Trạng thái</TableHead>
-                  <TableHead>Thao tác</TableHead>
+                  <TableHead className="text-right">Chi tiết</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((c) => (
-                  <TableRow key={c.id}>
-                    <TableCell>
-                      <div className="font-medium">{c.full_name}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {c.phone}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        {c.email}
-                      </div>
+                {filtered.map((r) => (
+                  <TableRow
+                    key={r.id}
+                    className="hover:bg-primary/5 transition-all cursor-pointer"
+                  >
+                    <TableCell className="font-semibold text-primary">
+                      #{r.id}
                     </TableCell>
-                    <TableCell>{formatDateTime(c.registration_date)}</TableCell>
-                    <TableCell>
-                      Tổng {c.total_documents} / Đã xác thực {c.verified_documents}
+                    <TableCell>{r.name}</TableCell>
+                    <TableCell>{r.phone}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {r.email}
                     </TableCell>
-                    <TableCell>{getVerificationStatusBadge(c.verification_status)}</TableCell>
-                    <TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {new Date(r.createdAt).toLocaleDateString("vi-VN")}
+                    </TableCell>
+                    <TableCell className="text-right">
                       <Button
+                        variant="ghost"
                         size="sm"
-                        variant="outline"
-                        onClick={() => handleViewDocuments(c)}
+                        className="hover:bg-primary/10 rounded-xl"
+                        onClick={() => {
+                          setSelectedId(r.id);
+                          setOpen(true);
+                        }}
                       >
-                        <Eye className="h-4 w-4 mr-2" /> Xem tài liệu
+                        <Eye className="h-4 w-4 mr-2 text-primary" />
+                        Xem
                       </Button>
                     </TableCell>
                   </TableRow>
                 ))}
+                {!filtered.length && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8">
+                      <User className="h-10 w-10 text-gray-400 mx-auto mb-3" />
+                      <p className="text-muted-foreground text-sm">
+                        Không tìm thấy khách hàng phù hợp.
+                      </p>
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
-          )}
+          </div>
         </CardContent>
       </Card>
 
-      {selectedCustomer && (
-        <DocumentDetail
-          open={documentsDialogOpen}
-          onOpenChange={setDocumentsDialogOpen}
-          customer={selectedCustomer}
-          documents={mockDocuments[selectedCustomer.id] || []}
-          verifyDocument={verifyDocument}
-          getDocumentTypeBadge={getDocumentTypeBadge}
-          formatDateTime={formatDateTime}
-        />
-      )}
+      <DocumentDetailDialog
+        open={open}
+        onOpenChange={setOpen}
+        renterId={selectedId}
+      />
     </div>
   );
 };

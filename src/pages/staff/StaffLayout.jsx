@@ -48,6 +48,12 @@ const StaffLayout = () => {
       icon: MapPin,
       path: '/staff/station-management',
       description: 'Quản lý tại điểm'
+    },
+    {
+      title: 'Quản lý xe',
+      icon: Car,
+      path: '/staff/vehicle-management',
+      description: 'Xem và quản lý toàn bộ xe'
     }
   ];
 
@@ -99,8 +105,8 @@ const StaffLayout = () => {
                 key={item.path}
                 to={item.path}
                 className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${isActive(item.path)
-                    ? 'bg-green-100 text-green-700 border border-green-200'
-                    : 'text-gray-700 hover:bg-gray-100'
+                  ? 'bg-green-100 text-green-700 border border-green-200'
+                  : 'text-gray-700 hover:bg-gray-100'
                   }`}
               >
                 <item.icon className="h-5 w-5 flex-shrink-0" />

@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
-  Zap, 
-  MapPin, 
+import {
+  Zap,
+  MapPin,
   Calendar,
   Clock,
   Battery,
@@ -22,6 +22,7 @@ import {
   Car,
   CreditCard
 } from 'lucide-react';
+import VehicleCardCarousel from '../commons/VehicleCardCarousel';
 
 const Home = () => {
   const [searchLocation, setSearchLocation] = useState('');
@@ -124,7 +125,7 @@ const Home = () => {
           <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
           <div className="absolute top-40 left-40 w-80 h-80 bg-yellow-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
         </div>
-        
+
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             {/* Hero Content */}
@@ -133,14 +134,14 @@ const Home = () => {
                 <Leaf className="h-6 w-6 text-green-600 animate-bounce" />
                 <span className="text-green-600 font-medium">Tương lai xanh</span>
               </div>
-              
+
               <h1 className="text-4xl lg:text-6xl font-bold text-gray-900 mb-6 animate-in fade-in slide-in-from-left duration-700 delay-200">
                 Thuê xe điện
                 <span className="text-green-600 block animate-in fade-in slide-in-from-left duration-700 delay-400">thông minh</span>
               </h1>
-              
+
               <p className="text-xl text-gray-600 mb-8 leading-relaxed animate-in fade-in slide-in-from-left duration-700 delay-600">
-                Trải nghiệm di chuyển xanh, sạch và tiết kiệm với hệ thống xe điện 
+                Trải nghiệm di chuyển xanh, sạch và tiết kiệm với hệ thống xe điện
                 hiện đại nhất Việt Nam. Đặt xe nhanh chóng, sử dụng linh hoạt.
               </p>
 
@@ -157,7 +158,7 @@ const Home = () => {
                     </label>
                     <div className="relative group">
                       <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400 transition-colors duration-300 group-hover:text-green-600" />
-                      <Input 
+                      <Input
                         placeholder="Chọn điểm thuê xe"
                         value={searchLocation}
                         onChange={(e) => setSearchLocation(e.target.value)}
@@ -171,7 +172,7 @@ const Home = () => {
                     </label>
                     <div className="relative group">
                       <Calendar className="absolute left-3 top-3 h-4 w-4 text-gray-400 transition-colors duration-300 group-hover:text-green-600" />
-                      <Input 
+                      <Input
                         type="datetime-local"
                         value={searchDate}
                         onChange={(e) => setSearchDate(e.target.value)}
@@ -209,7 +210,7 @@ const Home = () => {
                 </div>
                 <h3 className="text-2xl font-bold mb-4 animate-in fade-in duration-700 delay-2000">Pin đầy 24/7</h3>
                 <p className="text-green-100 mb-6 animate-in fade-in duration-700 delay-2200">
-                  Tất cả xe điện luôn sẵn sàng với pin đầy, 
+                  Tất cả xe điện luôn sẵn sàng với pin đầy,
                   hệ thống sạc nhanh tại mọi điểm thuê.
                 </p>
                 <div className="flex items-center space-x-4">
@@ -297,6 +298,9 @@ const Home = () => {
         </div>
       </section>
 
+      {/* Featured Vehicles Carousel */}
+      <VehicleCardCarousel />
+
       {/* How it works */}
       <section className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -372,14 +376,14 @@ const Home = () => {
           <div className="absolute -top-40 -right-40 w-80 h-80 bg-white/10 rounded-full animate-blob"></div>
           <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-white/10 rounded-full animate-blob animation-delay-2000"></div>
         </div>
-        
+
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
           <Zap className="h-16 w-16 mx-auto mb-6 animate-bounce" />
           <h2 className="text-3xl lg:text-4xl font-bold mb-4 animate-in fade-in slide-in-from-top duration-700">
             Sẵn sàng trải nghiệm di chuyển xanh?
           </h2>
           <p className="text-xl text-green-100 mb-8 max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom duration-700 delay-200">
-            Tham gia cùng hàng nghìn người dùng đã chọn EV Rental 
+            Tham gia cùng hàng nghìn người dùng đã chọn EV Rental
             để góp phần bảo vệ môi trường
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center animate-in fade-in slide-in-from-bottom duration-700 delay-400">

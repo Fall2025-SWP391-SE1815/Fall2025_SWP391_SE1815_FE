@@ -77,8 +77,8 @@ export const API_ENDPOINTS = {
     // Station and vehicle management
     STATION_VEHICLES: (id) => `/api/staff/stations/${id}/vehicles`,
     VEHICLES: '/api/staff/vehicle',
-    VEHICLE_BY_ID: (id) => `/api/staff/vehicles/${id}`,
-    VEHICLE_STATUS: (id) => `/api/staff/vehicles/${id}/status`,
+    VEHICLE_BY_ID: (id) => `/api/staff/vehicle/${id}`,
+    VEHICLE_STATUS: (id) => `/api/staff/vehicle/${id}/status`,
     
     // Violations and incidents
     VIOLATIONS: '/api/staff/violations',

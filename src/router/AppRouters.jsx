@@ -62,6 +62,7 @@ import ProtectedRoute from "../routes/ProtectedRoute.jsx";
 
 // Auth Provider
 import { AuthProvider } from "../hooks/auth/useAuth.jsx";
+import VehicleManagement from "@/pages/staff/vehicle-management/VehicleManagement.jsx";
 
 
 // Path constants
@@ -196,6 +197,7 @@ const router = createBrowserRouter([
       { path: "customer-verification", element: <CustomerVerification /> },
       { path: "payment-management", element: <PaymentManagement /> },
       { path: "station-management", element: <StationManagement /> },
+      { path: "/staff/vehicle-management", element: <VehicleManagement />, }
     ],
   },
 
