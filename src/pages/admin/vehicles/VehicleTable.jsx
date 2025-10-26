@@ -4,6 +4,17 @@ import { Edit, Trash, Eye, Car } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { API_BASE_URL } from '@/lib/api/apiConfig';
 
+// Helper function to convert status
+const getStatusText = (status) => {
+    const statusMap = {
+        'available': 'Có sẵn',
+        'reserved': 'Đã đặt',
+        'rented': 'Đang thuê',
+        'maintenance': 'Bảo trì'
+    };
+    return statusMap[status] || status;
+};
+
 export default function VehicleTable({ vehicles, onEdit, onDelete, onView }) {
     return (
         <div className="overflow-x-auto">
@@ -55,7 +66,7 @@ export default function VehicleTable({ vehicles, onEdit, onDelete, onView }) {
                                     <TableCell>{v.station?.name || 'Chưa phân bổ'}</TableCell>
                                     <TableCell>
                                         <Badge variant={v.status === 'available' ? 'default' : 'secondary'}>
-                                            {v.status}
+                                            {getStatusText(v.status)}
                                         </Badge>
                                     </TableCell>
                                     <TableCell>{(v.pricePerHour || 0).toLocaleString()}₫</TableCell>

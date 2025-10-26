@@ -1,31 +1,22 @@
-// Professional Profile Page with Tabs (Profile + Documents)
 import React, { useState } from 'react';
 import { useAuth } from '@/hooks/auth/useAuth.jsx';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { FileText, Edit3, Mail, Phone, Upload, Eye, Trash2 } from 'lucide-react';
+import { FileText, Upload, Trash2 } from 'lucide-react';
 import documentService from '@/services/documents/documentService.js';
 import { useEffect } from 'react';
 
 const ProfilePage = () => {
   const { user } = useAuth();
-  const name = user?.full_name || 'Người dùng';
+  const name = user?.fullName || 'Người dùng';
   const email = user?.email || 'Không có email';
   const phone = user?.phone || 'Không có số điện thoại';
 
-  const initials = (name || 'U')
-    .split(' ')
-    .map(n => n[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
-
   // Documents state (fetched from API)
-  const [tab, setTab] = useState('profile');
   const [docs, setDocs] = useState([]);
   const [uploadFile, setUploadFile] = useState(null);
   const [uploadType, setUploadType] = useState('');
@@ -33,20 +24,17 @@ const ProfilePage = () => {
   const [loadingDocs, setLoadingDocs] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
-  const [debugInfo, setDebugInfo] = useState(null);
 
   useEffect(() => {
-    if (tab === 'documents') {
-      loadDocuments();
-    }
-  }, [tab]);
+    loadDocuments();
+  }, []);
 
   const loadDocuments = async () => {
     try {
       setLoadingDocs(true);
       setError('');
       const res = await documentService.getAll();
-      // backend returns array per your example
+      // backend returns array
       const data = res && res.data ? res.data : res;
       setDocs(Array.isArray(data) ? data : (data.documents || []));
     } catch (err) {
@@ -58,17 +46,7 @@ const ProfilePage = () => {
     }
   };
 
-  const handleDebug = async () => {
-    setDebugInfo(null);
-    try {
-      const accessToken = localStorage.getItem('accessToken');
-      const refreshToken = localStorage.getItem('refreshToken');
-      const result = await documentService.getAll();
-      setDebugInfo({ ok: true, accessTokenPreview: accessToken ? `${accessToken.slice(0,10)}...` : null, refreshTokenPresent: !!refreshToken, result });
-    } catch (err) {
-      setDebugInfo({ ok: false, message: err.message, status: err.status, authToken: err.authToken || null, refreshToken: err.refreshToken || null, raw: err.data || null });
-    }
-  };
+
 
   const handleUpload = async () => {
     if (!uploadFile) return;
@@ -104,140 +82,137 @@ const ProfilePage = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: Profile Card */}
-        <div className="lg:col-span-1">
-          <Card>
-            <CardContent className="p-6 text-center">
-              <div className="flex flex-col items-center">
-                <Avatar className="w-28 h-28 mb-4">
-                  {user?.avatar ? (
-                    <AvatarImage src={user.avatar} />
-                  ) : (
-                    <AvatarFallback className="text-2xl">{initials}</AvatarFallback>
-                  )}
-                </Avatar>
-                <h3 className="text-xl font-semibold">{name}</h3>
-                <p className="text-sm text-gray-500 mt-1">{email}</p>
-                <p className="text-sm text-gray-500">{phone}</p>
-
-                <div className="mt-4">
-                  <Button variant="ghost" size="sm">
-                    <Edit3 className="mr-2 h-4 w-4" /> Chỉnh sửa hồ sơ
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Right: Tabs (Profile / Documents) */}
-        <div className="lg:col-span-2">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Hồ sơ & Tài liệu</CardTitle>
-                <div className="text-sm text-gray-500">Quản lý thông tin và tài liệu xác thực</div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <Tabs value={tab} onValueChange={setTab}>
-                <TabsList className="mb-4">
-                  <TabsTrigger value="profile">Thông tin</TabsTrigger>
-                  <TabsTrigger value="documents">Tài liệu</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="profile">
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-sm text-gray-600 block">Họ và tên</label>
-                      <div className="text-lg font-medium">{name}</div>
-                    </div>
-                    <div>
-                      <label className="text-sm text-gray-600 block">Email</label>
-                      <div className="text-sm text-gray-700 flex items-center"><Mail className="mr-2 h-4 w-4 text-gray-400"/>{email}</div>
-                    </div>
-                    <div>
-                      <label className="text-sm text-gray-600 block">Số điện thoại</label>
-                      <div className="text-sm text-gray-700 flex items-center"><Phone className="mr-2 h-4 w-4 text-gray-400"/>{phone}</div>
-                    </div>
+    <div className="min-h-screen bg-gray-50 py-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left: Profile Info */}
+          <div className="lg:col-span-1">
+            <Card>
+              <CardHeader>
+                <CardTitle>Thông tin cá nhân</CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-sm text-gray-600 font-medium">Họ và tên</label>
+                    <div className="text-lg font-semibold text-gray-900">{name}</div>
                   </div>
-                </TabsContent>
+                  <div>
+                    <label className="text-sm text-gray-600 font-medium">Email</label>
+                    <div className="text-sm text-gray-700">{email}</div>
+                  </div>
+                  <div>
+                    <label className="text-sm text-gray-600 font-medium">Số điện thoại</label>
+                    <div className="text-sm text-gray-700">{phone}</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
-                <TabsContent value="documents">
-                  <div className="space-y-4">
-                    {/* Upload area */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+          {/* Right: Documents Management */}
+          <div className="lg:col-span-2">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Quản lý Tài liệu</CardTitle>
+                  <div className="text-sm text-gray-500">Tải lên và quản lý tài liệu xác thực</div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {/* Upload area */}
+                  <div className="bg-gray-50 p-4 rounded-lg border-2 border-dashed border-gray-300">
+                    <div className="grid grid-rows-1 sm:grid-rows-2 lg:grid-rows-3 gap-4">
                       <div>
-                        <Label htmlFor="docType">Loại tài liệu</Label>
-                        <Input id="docType" value={uploadType} onChange={(e) => setUploadType(e.target.value)} placeholder="CMND | GPLX | Hộ chiếu" />
+                        <Label htmlFor="docType" className="text-sm font-medium">Loại tài liệu</Label>
+                        <Input
+                          id="docType"
+                          value={uploadType}
+                          onChange={(e) => setUploadType(e.target.value)}
+                          placeholder="CMND | GPLX | Hộ chiếu"
+                          className="mt-1"
+                        />
                       </div>
                       <div>
-                        <Label htmlFor="docNumber">Số tài liệu</Label>
-                        <Input id="docNumber" value={uploadNumber} onChange={(e) => setUploadNumber(e.target.value)} placeholder="123456789" />
+                        <Label htmlFor="docNumber" className="text-sm font-medium">Số tài liệu</Label>
+                        <Input
+                          id="docNumber"
+                          value={uploadNumber}
+                          onChange={(e) => setUploadNumber(e.target.value)}
+                          placeholder="123456789"
+                          className="mt-1"
+                        />
                       </div>
                       <div>
-                        <Label>Chọn tệp</Label>
-                        <div className="flex items-center space-x-2">
-                          <input type="file" accept="image/*,application/pdf" onChange={(e) => setUploadFile(e.target.files?.[0] || null)} className="text-sm" />
-                          <Button onClick={handleUpload} disabled={!uploadFile} size="sm">
-                            <Upload className="mr-2 h-4 w-4"/> Tải lên
+                        <Label className="text-sm font-medium block mb-1">Chọn tệp</Label>
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          <input
+                            type="file"
+                            accept="image/*,application/pdf"
+                            onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
+                            className="text-sm flex-1 p-2 border rounded"
+                          />
+                          <Button
+                            onClick={handleUpload}
+                            disabled={!uploadFile || uploading}
+                            size="sm"
+                            className="whitespace-nowrap"
+                          >
+                            <Upload className="mr-2 h-4 w-4" />
+                            {uploading ? 'Đang tải...' : 'Tải lên'}
                           </Button>
                         </div>
                       </div>
                     </div>
-
-                    {/* Documents list */}
-                    <div className="space-y-3">
-                      <div className="mb-3">
-                        <Button size="sm" variant="ghost" onClick={handleDebug}>Debug Documents API</Button>
-                        {debugInfo && (
-                          <div className="mt-2 p-2 bg-gray-50 border rounded text-xs text-gray-700">
-                            {debugInfo.ok ? (
-                              <div>OK — access: {debugInfo.accessTokenPreview} refreshPresent: {String(!!debugInfo.refreshTokenPresent)}</div>
-                            ) : (
-                              <div>
-                                <div className="font-semibold">Error: {debugInfo.message}</div>
-                                <div>Status: {debugInfo.status}</div>
-                                <div>authToken present: {String(!!debugInfo.authToken)}</div>
-                                <div>refreshToken present: {String(!!debugInfo.refreshToken)}</div>
-                                <div>raw: {JSON.stringify(debugInfo.raw)}</div>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                      {docs.length === 0 ? (
-                        <div className="text-center py-8 text-gray-500">
-                          <FileText className="mx-auto h-10 w-10 mb-2 text-gray-300" />
-                          <div>Chưa có tài liệu</div>
-                        </div>
-                      ) : (
-                        docs.map(doc => (
-                          <div key={doc.id} className="flex items-center justify-between p-3 border rounded-md">
-                            <div className="flex items-center space-x-3">
-                              <FileText className="h-6 w-6 text-blue-600" />
-                              <div>
-                                <div className="font-medium">{doc.type} {doc.documentNumber ? `- ${doc.documentNumber}` : ''}</div>
-                                <div className="text-xs text-gray-500">{new Date(doc.createdAt).toLocaleString('vi-VN')}</div>
-                              </div>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <a href={doc.url} target="_blank" rel="noreferrer">
-                                <Button size="sm" variant="outline"><Eye className="h-4 w-4 mr-1"/>Xem</Button>
-                              </a>
-                              <Button size="sm" variant="destructive" onClick={() => handleDelete(doc.id)}><Trash2 className="h-4 w-4 mr-1"/>Xóa</Button>
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
                   </div>
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
+
+                  {error && (
+                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
+                      {error}
+                    </div>
+                  )}
+
+                  {/* Documents list */}
+                  <div className="space-y-3">
+                    {docs.length === 0 ? (
+                      <div className="text-center py-8 text-gray-500">
+                        <FileText className="mx-auto h-10 w-10 mb-2 text-gray-300" />
+                        <div>Chưa có tài liệu</div>
+                      </div>
+                    ) : (
+                      docs.map(doc => (
+                        <div key={doc.id} className="flex items-center justify-between p-4 bg-white border rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                          <div className="flex items-center space-x-3 flex-1 min-w-0">
+                            <FileText className="h-8 w-8 text-blue-600 flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-gray-900 truncate">
+                                {doc.type} {doc.documentNumber ? `- ${doc.documentNumber}` : ''}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {new Date(doc.createdAt).toLocaleString('vi-VN')}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center ml-4">
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleDelete(doc.id)}
+                              className="flex items-center"
+                            >
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              Xóa
+                            </Button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>
