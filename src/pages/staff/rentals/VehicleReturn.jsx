@@ -41,7 +41,9 @@ import {
   Phone,
   Calendar,
   DollarSign,
-  AlertTriangle
+  AlertTriangle,
+  Gauge,
+  Battery
 } from 'lucide-react';
 
 const VehicleReturn = () => {
@@ -57,6 +59,8 @@ const VehicleReturn = () => {
   // Form states
   const [returnForm, setReturnForm] = useState({
     condition_report: '',
+    odo: '',
+    batteryLevel: '',
     photo_url: null,
     customer_signature_url: null,
     staff_signature_url: null
@@ -90,6 +94,8 @@ const VehicleReturn = () => {
     setSelectedReturnRental(rental);
     setReturnForm({
       condition_report: '',
+      odo: rental?.vehicle?.odo?.toString() || '',
+      batteryLevel: rental?.vehicle?.batteryLevel?.toString() || '',
       photo_url: null,
       customer_signature_url: null,
       staff_signature_url: null
@@ -102,12 +108,14 @@ const VehicleReturn = () => {
     try {
       // Validate all required fields and files
       if (!returnForm.condition_report || 
+          !returnForm.odo ||
+          !returnForm.batteryLevel ||
           !returnForm.photo_url || 
           !returnForm.customer_signature_url || 
           !returnForm.staff_signature_url) {
         toast({
           title: "Thiếu thông tin",
-          description: "Vui lòng điền đầy đủ thông tin biên bản và chọn 3 file ảnh (ảnh xe, chữ ký khách hàng, chữ ký nhân viên)",
+          description: "Vui lòng điền đầy đủ thông tin biên bản, số km, mức pin và chọn 3 file ảnh (ảnh xe, chữ ký khách hàng, chữ ký nhân viên)",
           variant: "destructive",
         });
         return;
@@ -149,7 +157,9 @@ const VehicleReturn = () => {
       const requestData = {
         rentalId: selectedReturnRental.id,
         checkType: "return",
-        conditionReport: returnForm.condition_report
+        conditionReport: returnForm.condition_report,
+        odo: parseInt(returnForm.odo),
+        batteryLevel: parseInt(returnForm.batteryLevel)
       };
       formData.append('data', JSON.stringify(requestData));
 
@@ -170,6 +180,8 @@ const VehicleReturn = () => {
       // Reset form after successful submission
       setReturnForm({
         condition_report: '',
+        odo: '',
+        batteryLevel: '',
         photo_url: null,
         customer_signature_url: null,
         staff_signature_url: null
@@ -461,6 +473,41 @@ const VehicleReturn = () => {
               <p className="text-xs text-muted-foreground">
                 Ghi chú cẩn thận để xử lý bồi thường nếu có hư hỏng
               </p>
+            </div>
+
+            {/* Odometer and Battery Level */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="return-odo">Số km hiện tại *</Label>
+                <div className="flex gap-2">
+                  <Gauge className="h-4 w-4 mt-3 text-muted-foreground" />
+                  <Input
+                    id="return-odo"
+                    type="number"
+                    placeholder="12000"
+                    value={returnForm.odo}
+                    onChange={(e) => setReturnForm(prev => ({ ...prev, odo: e.target.value }))}
+                  />
+                  <span className="text-sm text-muted-foreground mt-3">km</span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="return-battery-level">Mức pin hiện tại *</Label>
+                <div className="flex gap-2">
+                  <Battery className="h-4 w-4 mt-3 text-muted-foreground" />
+                  <Input
+                    id="return-battery-level"
+                    type="number"
+                    min="0"
+                    max="100"
+                    placeholder="95"
+                    value={returnForm.batteryLevel}
+                    onChange={(e) => setReturnForm(prev => ({ ...prev, batteryLevel: e.target.value }))}
+                  />
+                  <span className="text-sm text-muted-foreground mt-3">%</span>
+                </div>
+              </div>
             </div>
 
             {/* Photo Upload */}

@@ -288,7 +288,7 @@ const HistoryPage = () => {
                       <MapPin className="h-4 w-4 mr-2" />
                       <div>
                         <div className="font-medium">Quãng đường</div>
-                        <div>{rental.totalDistance ? `${rental.totalDistance} km` : 'N/A'}</div>
+                        <div>{rental.odoStart && rental.odoEnd ? `${rental.odoEnd - rental.odoStart} km` : 'N/A'}</div>
                       </div>
                     </div>
 

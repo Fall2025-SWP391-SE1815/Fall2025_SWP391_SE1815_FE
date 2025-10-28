@@ -27,6 +27,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import staffRentalService from '@/services/staff/staffRentalService';
 import {
@@ -40,7 +41,12 @@ import {
   RefreshCw,
   Phone,
   Calendar,
-  DollarSign
+  DollarSign,
+  Eye,
+  Battery,
+  Gauge,
+  Users,
+  Shield
 } from 'lucide-react';
 
 const ReservationHandover = () => {
@@ -53,16 +59,21 @@ const ReservationHandover = () => {
   // Dialog states
   const [checkInDialogOpen, setCheckInDialogOpen] = useState(false);
   const [pickupDialogOpen, setPickupDialogOpen] = useState(false);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [selectedReservation, setSelectedReservation] = useState(null);
   const [selectedRental, setSelectedRental] = useState(null);
 
   // Form states
   const [checkInForm, setCheckInForm] = useState({
-    depositAmount: ''
+    depositAmount: '',
+    insurance: '',
+    highRisk: false
   });
 
   const [pickupForm, setPickupForm] = useState({
     condition_report: '',
+    odo: '',
+    batteryLevel: '',
     photo_url: null,
     customer_signature_url: null,
     staff_signature_url: null
@@ -125,6 +136,12 @@ const ReservationHandover = () => {
     }
   };
 
+  // Handle view details button click
+  const handleViewDetails = (reservation) => {
+    setSelectedReservation(reservation);
+    setDetailsDialogOpen(true);
+  };
+
   // Handle check-in button click
   const handleCheckIn = async (reservation) => {
     setSelectedReservation(reservation);
@@ -132,7 +149,9 @@ const ReservationHandover = () => {
     const suggestedDeposit = totalCost > 0 ? Math.round(totalCost * 0.3) : 0;
     
     setCheckInForm({
-      depositAmount: suggestedDeposit.toString()
+      depositAmount: suggestedDeposit.toString(),
+      insurance: reservation?.insurance?.toString() || '0',
+      highRisk: false
     });
     setCheckInDialogOpen(true);
   };
@@ -169,7 +188,9 @@ const ReservationHandover = () => {
         stationId: parseInt(stationId),
         startTime: selectedReservation.reservedStartTime,
         endTime: selectedReservation.reservedEndTime,
-        depositAmount: parseFloat(checkInForm.depositAmount)
+        depositAmount: parseFloat(checkInForm.depositAmount),
+        insurance: parseFloat(checkInForm.insurance),
+        highRisk: checkInForm.highRisk
       };
 
       console.log('Check-in request data:', requestData);
@@ -201,6 +222,8 @@ const ReservationHandover = () => {
     setSelectedRental(rental);
     setPickupForm({
       condition_report: '',
+      odo: rental?.vehicle?.odo?.toString() || '',
+      batteryLevel: rental?.vehicle?.batteryLevel?.toString() || '',
       photo_url: null,
       customer_signature_url: null,
       staff_signature_url: null
@@ -212,12 +235,14 @@ const ReservationHandover = () => {
   const submitPickupCheck = async () => {
     try {
       if (!pickupForm.condition_report || 
+          !pickupForm.odo ||
+          !pickupForm.batteryLevel ||
           !pickupForm.photo_url || 
           !pickupForm.customer_signature_url || 
           !pickupForm.staff_signature_url) {
         toast({
           title: "Thiếu thông tin",
-          description: "Vui lòng điền đầy đủ thông tin biên bản và chọn 3 file ảnh",
+          description: "Vui lòng điền đầy đủ thông tin biên bản, số km, mức pin và chọn 3 file ảnh",
           variant: "destructive",
         });
         return;
@@ -255,7 +280,9 @@ const ReservationHandover = () => {
       const requestData = {
         rentalId: selectedRental.id,
         checkType: "pickup",
-        conditionReport: pickupForm.condition_report
+        conditionReport: pickupForm.condition_report,
+        odo: parseInt(pickupForm.odo),
+        batteryLevel: parseInt(pickupForm.batteryLevel)
       };
       formData.append('data', JSON.stringify(requestData));
       formData.append('photo', pickupForm.photo_url);
@@ -272,6 +299,8 @@ const ReservationHandover = () => {
       setPickupDialogOpen(false);
       setPickupForm({
         condition_report: '',
+        odo: '',
+        batteryLevel: '',
         photo_url: null,
         customer_signature_url: null,
         staff_signature_url: null
@@ -477,14 +506,25 @@ const ReservationHandover = () => {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Button
-                        size="sm"
-                        onClick={() => handleCheckIn(reservation)}
-                        disabled={loading}
-                      >
-                        <CheckCircle className="h-4 w-4 mr-2" />
-                        Check-in
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleViewDetails(reservation)}
+                          disabled={loading}
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          Xem chi tiết
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => handleCheckIn(reservation)}
+                          disabled={loading}
+                        >
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                          Check-in
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -667,11 +707,17 @@ const ReservationHandover = () => {
 
             <Card className="bg-blue-50 border-blue-200">
               <CardContent className="p-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-4">
                   <div className="text-center">
-                    <span className="text-sm font-medium text-gray-700">Tổng chi phí</span>
+                    <span className="text-sm font-medium text-gray-700">Chi phí thuê xe</span>
                     <div className="text-lg font-bold text-blue-600">
                       {formatCurrency(calculateTotalCost(selectedReservation))}
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <span className="text-sm font-medium text-gray-700">Phí bảo hiểm</span>
+                    <div className="text-lg font-bold text-orange-600">
+                      {formatCurrency(parseFloat(checkInForm.insurance) || 0)}
                     </div>
                   </div>
                   <div className="text-center">
@@ -679,6 +725,13 @@ const ReservationHandover = () => {
                     <div className="text-lg font-bold text-green-600">
                       {formatCurrency(Math.round(calculateTotalCost(selectedReservation) * 0.3))}
                     </div>
+                  </div>
+                </div>
+                
+                <div className="mt-4 pt-4 border-t text-center">
+                  <span className="text-sm font-medium text-gray-700">Tổng thanh toán</span>
+                  <div className="text-xl font-bold text-purple-600">
+                    {formatCurrency(calculateTotalCost(selectedReservation) + (parseFloat(checkInForm.insurance) || 0))}
                   </div>
                 </div>
               </CardContent>
@@ -693,7 +746,7 @@ const ReservationHandover = () => {
                   type="number"
                   placeholder="500000"
                   value={checkInForm.depositAmount}
-                  onChange={(e) => setCheckInForm({ depositAmount: e.target.value })}
+                  onChange={(e) => setCheckInForm(prev => ({ ...prev, depositAmount: e.target.value }))}
                 />
                 <Button 
                   type="button" 
@@ -701,11 +754,42 @@ const ReservationHandover = () => {
                   size="sm"
                   onClick={() => {
                     const suggestedAmount = Math.round(calculateTotalCost(selectedReservation) * 0.3);
-                    setCheckInForm({ depositAmount: suggestedAmount.toString() });
+                    setCheckInForm(prev => ({ ...prev, depositAmount: suggestedAmount.toString() }));
                   }}
                 >
                   Áp dụng 30%
                 </Button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="insurance-amount">Phí bảo hiểm (VND)</Label>
+                <div className="flex gap-2">
+                  <Shield className="h-4 w-4 mt-3 text-muted-foreground" />
+                  <div className="flex-1 p-2 bg-gray-50 border border-gray-200 rounded-md">
+                    <span className="text-gray-900">
+                      {selectedReservation?.insurance ? formatCurrency(selectedReservation.insurance) : 'Không có bảo hiểm'}
+                    </span>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Phí bảo hiểm được xác định từ đặt chỗ, không thể chỉnh sửa
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Khách hàng rủi ro cao</Label>
+                <div className="flex items-center space-x-2 pt-2">
+                  <Checkbox
+                    id="high-risk"
+                    checked={checkInForm.highRisk}
+                    onCheckedChange={(checked) => setCheckInForm(prev => ({ ...prev, highRisk: checked }))}
+                  />
+                  <Label htmlFor="high-risk" className="text-sm font-normal">
+                    Đánh dấu là khách hàng có rủi ro cao
+                  </Label>
+                </div>
               </div>
             </div>
           </div>
@@ -717,6 +801,325 @@ const ReservationHandover = () => {
             <Button onClick={submitCheckIn} disabled={loading}>
               <CheckCircle className="h-4 w-4 mr-2" />
               Xác nhận Check-in
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reservation Details Dialog */}
+      <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="h-5 w-5" />
+              Chi tiết đặt chỗ #{selectedReservation?.id}
+            </DialogTitle>
+            <DialogDescription>
+              Thông tin chi tiết đặt chỗ của khách hàng {selectedReservation?.renter.fullName}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6">
+            {/* Customer Information */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  Thông tin khách hàng
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-3">
+                    <div>
+                      <Label className="text-muted-foreground text-sm">Mã khách hàng</Label>
+                      <p className="font-medium">{selectedReservation?.renter.id}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground text-sm">Họ và tên</Label>
+                      <p className="font-medium">{selectedReservation?.renter.fullName}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground text-sm">Email</Label>
+                      <p className="font-medium">{selectedReservation?.renter.email}</p>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <div>
+                      <Label className="text-muted-foreground text-sm">Số điện thoại</Label>
+                      <p className="font-medium flex items-center gap-2">
+                        <Phone className="h-4 w-4" />
+                        {selectedReservation?.renter.phone}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground text-sm">Vai trò</Label>
+                      <Badge variant="outline">
+                        {selectedReservation?.renter.role}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Vehicle Information */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Car className="h-5 w-5" />
+                  Thông tin xe
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-3">
+                    <div>
+                      <Label className="text-muted-foreground text-sm">Mã xe</Label>
+                      <p className="font-medium">{selectedReservation?.vehicle.id}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground text-sm">Biển số xe</Label>
+                      <p className="font-medium text-lg">{selectedReservation?.vehicle.licensePlate}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground text-sm">Loại xe</Label>
+                      <Badge variant="secondary">
+                        {selectedReservation?.vehicle.type}
+                      </Badge>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground text-sm">Hãng xe</Label>
+                      <p className="font-medium">{selectedReservation?.vehicle.brand}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground text-sm">Model</Label>
+                      <p className="font-medium">{selectedReservation?.vehicle.model}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground text-sm">Trạng thái</Label>
+                      <Badge variant={selectedReservation?.vehicle.status === 'RESERVED' ? 'default' : 'outline'}>
+                        {selectedReservation?.vehicle.status}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <div>
+                      <Label className="text-muted-foreground text-sm">Dung tích pin (kWh)</Label>
+                      <p className="font-medium flex items-center gap-2">
+                        <Battery className="h-4 w-4" />
+                        {selectedReservation?.vehicle.capacity}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground text-sm">Quãng đường/1 lần sạc (km)</Label>
+                      <p className="font-medium">{selectedReservation?.vehicle.rangePerFullCharge}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground text-sm">Giá thuê/giờ</Label>
+                      <p className="font-medium text-green-600">
+                        {formatCurrency(selectedReservation?.vehicle.pricePerHour)}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground text-sm">Loại pin</Label>
+                      <p className="font-medium">{selectedReservation?.vehicle.batteryType}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground text-sm">Mức pin hiện tại (%)</Label>
+                      <p className="font-medium flex items-center gap-2">
+                        <Battery className="h-4 w-4" />
+                        {selectedReservation?.vehicle.batteryLevel}%
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground text-sm">Số ghế</Label>
+                      <p className="font-medium flex items-center gap-2">
+                        <Users className="h-4 w-4" />
+                        {selectedReservation?.vehicle.numberSeat}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground text-sm">Số Km đã đi</Label>
+                      <p className="font-medium flex items-center gap-2">
+                        <Gauge className="h-4 w-4" />
+                        {selectedReservation?.vehicle.odo?.toLocaleString()} km
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                {selectedReservation?.vehicle.imageUrl && (
+                  <div className="mt-4">
+                    <Label className="text-muted-foreground text-sm">Hình ảnh xe</Label>
+                    <div className="mt-2">
+                      <img 
+                        src={selectedReservation.vehicle.imageUrl} 
+                        alt={`${selectedReservation.vehicle.brand} ${selectedReservation.vehicle.model}`}
+                        className="w-48 h-32 object-cover rounded-lg border"
+                      />
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Station Information */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <MapPin className="h-5 w-5" />
+                  Thông tin trạm
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-3">
+                    <div>
+                      <Label className="text-muted-foreground text-sm">Mã trạm</Label>
+                      <p className="font-medium">{selectedReservation?.vehicle.station.id}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground text-sm">Tên trạm</Label>
+                      <p className="font-medium">{selectedReservation?.vehicle.station.name}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground text-sm">Địa chỉ</Label>
+                      <p className="font-medium">{selectedReservation?.vehicle.station.address}</p>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <div>
+                      <Label className="text-muted-foreground text-sm">Trạng thái</Label>
+                      <Badge variant={selectedReservation?.vehicle.station.status === 'active' ? 'default' : 'secondary'}>
+                        {selectedReservation?.vehicle.station.status}
+                      </Badge>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground text-sm">Vĩ độ</Label>
+                      <p className="font-medium">{selectedReservation?.vehicle.station.latitude}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground text-sm">Kinh độ</Label>
+                      <p className="font-medium">{selectedReservation?.vehicle.station.longitude}</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Reservation Information */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  Thông tin đặt chỗ
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-3">
+                    <div>
+                      <Label className="text-muted-foreground text-sm">Mã đặt chỗ</Label>
+                      <p className="font-medium text-lg">#{selectedReservation?.id}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground text-sm">Thời gian bắt đầu</Label>
+                      <p className="font-medium flex items-center gap-2">
+                        <Clock className="h-4 w-4" />
+                        {formatDateTime(selectedReservation?.reservedStartTime)}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground text-sm">Thời gian kết thúc</Label>
+                      <p className="font-medium flex items-center gap-2">
+                        <Clock className="h-4 w-4" />
+                        {formatDateTime(selectedReservation?.reservedEndTime)}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground text-sm">Trạng thái đặt chỗ</Label>
+                      <Badge variant="default">
+                        {selectedReservation?.status === 'pending' ? 'Chờ check-in' : selectedReservation?.status}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <div>
+                      <Label className="text-muted-foreground text-sm">Ngày tạo đặt chỗ</Label>
+                      <p className="font-medium">
+                        {formatDateTime(selectedReservation?.createdAt)}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground text-sm">Phí bảo hiểm</Label>
+                      <p className="font-medium flex items-center gap-2">
+                        <Shield className="h-4 w-4" />
+                        {formatCurrency(selectedReservation?.insurance)}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground text-sm">Người hủy</Label>
+                      <p className="font-medium">
+                        {selectedReservation?.cancelledBy || 'Không có'}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground text-sm">Lý do hủy</Label>
+                      <p className="font-medium">
+                        {selectedReservation?.cancelledReason || 'Không có'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Cost Summary */}
+            <Card className="bg-blue-50 border-blue-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <DollarSign className="h-5 w-5" />
+                  Tổng kết chi phí
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div>
+                    <span className="text-sm font-medium text-gray-700">Chi phí thuê xe</span>
+                    <div className="text-lg font-bold text-blue-600">
+                      {formatCurrency(calculateTotalCost(selectedReservation))}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-gray-700">Phí bảo hiểm</span>
+                    <div className="text-lg font-bold text-orange-600">
+                      {formatCurrency(selectedReservation?.insurance || 0)}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-gray-700">Tổng cộng</span>
+                    <div className="text-xl font-bold text-green-600">
+                      {formatCurrency((calculateTotalCost(selectedReservation) || 0) + (selectedReservation?.insurance || 0))}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDetailsDialogOpen(false)}>
+              Đóng
+            </Button>
+            <Button 
+              onClick={() => {
+                setDetailsDialogOpen(false);
+                handleCheckIn(selectedReservation);
+              }}
+            >
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Tiến hành Check-in
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -745,6 +1148,40 @@ const ReservationHandover = () => {
                 onChange={(e) => setPickupForm(prev => ({ ...prev, condition_report: e.target.value }))}
                 rows={4}
               />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="odo">Số km hiện tại *</Label>
+                <div className="flex gap-2">
+                  <Gauge className="h-4 w-4 mt-3 text-muted-foreground" />
+                  <Input
+                    id="odo"
+                    type="number"
+                    placeholder="12000"
+                    value={pickupForm.odo}
+                    onChange={(e) => setPickupForm(prev => ({ ...prev, odo: e.target.value }))}
+                  />
+                  <span className="text-sm text-muted-foreground mt-3">km</span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="battery-level">Mức pin hiện tại *</Label>
+                <div className="flex gap-2">
+                  <Battery className="h-4 w-4 mt-3 text-muted-foreground" />
+                  <Input
+                    id="battery-level"
+                    type="number"
+                    min="0"
+                    max="100"
+                    placeholder="95"
+                    value={pickupForm.batteryLevel}
+                    onChange={(e) => setPickupForm(prev => ({ ...prev, batteryLevel: e.target.value }))}
+                  />
+                  <span className="text-sm text-muted-foreground mt-3">%</span>
+                </div>
+              </div>
             </div>
 
             <div className="space-y-2">

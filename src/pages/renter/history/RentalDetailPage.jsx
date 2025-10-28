@@ -24,11 +24,14 @@ import {
   CheckCircle,
   XCircle,
   DollarSign,
-  Star
+  Star,
+  Battery,
+  Gauge
 } from 'lucide-react';
 
 // Services
 import { renterService } from '../../../services/renter/renterService';
+import { API_BASE_URL } from '../../../lib/api/apiConfig';
 
 const RentalDetailPage = () => {
   const { id } = useParams();
@@ -64,7 +67,7 @@ const RentalDetailPage = () => {
 
       // Kiểm tra xem có data từ navigation state không
       const rentalData = location.state?.rentalData;
-
+      console.log('Loaded rental data from navigation state:', rentalData);
       if (rentalData) {
         // Sử dụng data từ HistoryPage
         setRental(rentalData);
@@ -123,7 +126,7 @@ const RentalDetailPage = () => {
   const getDepositStatusBadge = (status) => {
     const statusConfig = {
       'held': { color: 'bg-yellow-100 text-yellow-800', label: 'Đang giữ' },
-      'released': { color: 'bg-green-100 text-green-800', label: 'Đã hoàn' },
+      'refunded': { color: 'bg-green-100 text-green-800', label: 'Đã hoàn' },
       'forfeited': { color: 'bg-red-100 text-red-800', label: 'Bị tịch thu' }
     };
 
@@ -351,37 +354,75 @@ const RentalDetailPage = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-3">
-              <div>
-                <label className="text-sm font-medium text-gray-500">Xe</label>
-                <p className="text-lg font-semibold">
-                  {rental.vehicle?.brand} {rental.vehicle?.model}
-                </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+            {/* Left: Vehicle summary with image and primary info */}
+            <div className="space-y-4">
+              <div className="flex items-start gap-4">
+                {rental.vehicle?.imageUrl ? (
+                  <img src={`${API_BASE_URL}${rental.vehicle.imageUrl}`} alt={`${rental.vehicle?.brand} ${rental.vehicle?.model}`} className="w-36 h-24 object-cover rounded-lg border" />
+                ) : (
+                  <div className="w-36 h-24 bg-gray-100 rounded-lg flex items-center justify-center border">
+                    <Car className="h-8 w-8 text-gray-400" />
+                  </div>
+                )}
+                <div>
+                  <div className="text-sm text-gray-500">Xe</div>
+                  <div className="text-xl font-semibold">{rental.vehicle?.brand} {rental.vehicle?.model}</div>
+                  <div className="text-sm text-gray-500 mt-2">Biển số</div>
+                  <div className="text-lg font-medium">{rental.vehicle?.licensePlate}</div>
+                  <div className="mt-3">
+                    <Badge variant="outline" className="px-2 py-1">{rental.vehicle?.type}</Badge>
+                  </div>
+                </div>
               </div>
-              <div>
-                <label className="text-sm font-medium text-gray-500">Biển số</label>
-                <p className="text-lg">{rental.vehicle?.licensePlate}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-500">Loại xe</label>
-                <p className="text-lg capitalize">{rental.vehicle?.type}</p>
+
+              <div className="grid grid-cols-3 gap-3 mt-2">
+                <div className="p-3 bg-gray-50 rounded-lg text-center">
+                  <div className="text-xs text-gray-500">PIN ban đầu</div>
+                  <div className="mt-1 text-lg font-semibold flex items-center justify-center gap-2">
+                    <Battery className="h-4 w-4 text-green-600" />
+                    {rental.batteryLevelStart ?? 'N/A'}%
+                  </div>
+                </div>
+                <div className="p-3 bg-gray-50 rounded-lg text-center">
+                  <div className="text-xs text-gray-500">PIN còn lại</div>
+                  <div className="mt-1 text-lg font-semibold flex items-center justify-center gap-2">
+                    <Battery className="h-4 w-4 text-green-600" />
+                    {rental.batteryLevelEnd ?? 'N/A'}%
+                  </div>
+                </div>
+                <div className="p-3 bg-gray-50 rounded-lg text-center">
+                  <div className="text-xs text-gray-500">Quãng đường/lần sạc</div>
+                  <div className="mt-1 text-lg font-semibold flex items-center justify-center gap-2">
+                    <Gauge className="h-4 w-4 text-blue-600" />
+                    {rental.vehicle?.rangePerFullCharge ?? 'N/A'} km
+                  </div>
+                </div>
               </div>
             </div>
-            <div className="space-y-3">
-              <div>
-                <label className="text-sm font-medium text-gray-500">Dung lượng pin</label>
-                <p className="text-lg">{rental.vehicle?.capacity || 'N/A'} Ah</p>
+
+            {/* Right: Odo and pricing details */}
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <div className="text-xs text-gray-500">Đồng hồ (bắt đầu)</div>
+                  <div className="mt-1 text-lg font-semibold">{rental.odoStart ?? 'N/A'} km</div>
+                </div>
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <div className="text-xs text-gray-500">Đồng hồ (kết thúc)</div>
+                  <div className="mt-1 text-lg font-semibold">{rental.odoEnd ?? 'N/A'} km</div>
+                </div>
               </div>
-              <div>
-                <label className="text-sm font-medium text-gray-500">Quãng đường/lần sạc</label>
-                <p className="text-lg">{rental.vehicle?.rangePerFullCharge || 'N/A'} km</p>
+
+              <div className="p-3 bg-gray-50 rounded-lg">
+                <div className="text-xs text-gray-500">Quãng đường đã đi</div>
+                <div className="mt-1 text-lg font-semibold">{(rental.odoStart != null && rental.odoEnd != null) ? `${rental.odoEnd - rental.odoStart} km` : 'Chưa có dữ liệu'}</div>
               </div>
-              <div>
-                <label className="text-sm font-medium text-gray-500">Giá thuê</label>
-                <p className="text-lg font-semibold text-green-600">
-                  {formatCurrency(rental.vehicle?.pricePerHour)}/giờ
-                </p>
+
+              <div className="p-3 bg-green-50 border border-green-100 rounded-lg">
+                <div className="text-xs text-gray-500">Giá thuê</div>
+                <div className="mt-1 text-2xl font-bold text-green-700">{formatCurrency(rental.vehicle?.pricePerHour)}</div>
+                <div className="text-sm text-gray-600">/giờ</div>
               </div>
             </div>
           </div>
@@ -437,7 +478,7 @@ const RentalDetailPage = () => {
               <div>
                 <label className="text-sm font-medium text-gray-500">Quãng đường đi</label>
                 <p className="text-lg">
-                  {rental.totalDistance ? `${rental.totalDistance} km` : 'Chưa có dữ liệu'}
+                  {rental.odoStart && rental.odoEnd ? `${rental.odoEnd - rental.odoStart} km` : 'Chưa có dữ liệu'}
                 </p>
               </div>
 
@@ -565,7 +606,18 @@ const RentalDetailPage = () => {
                   {formatCurrency(rental.totalCost)}
                 </span>
               </div>
-
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600">Tiền thuê:</span>
+                <span className="text-xl font-bold text-green-600">
+                  {formatCurrency(rental.rentalCost)}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600">Tiền bảo hiểm:</span>
+                <span className="text-xl font-bold text-green-600">
+                  {formatCurrency(rental.insurance)}
+                </span>
+              </div>
               {rental.depositAmount && (
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Tiền cọc:</span>
@@ -828,8 +880,8 @@ const RentalDetailPage = () => {
               <Textarea
                 value={ratingComment}
                 onChange={(e) => setRatingComment(e.target.value)}
-                placeholder={ratingType === 'trip' 
-                  ? "Chia sẻ trải nghiệm của bạn về chất lượng xe, độ tiện lợi..." 
+                placeholder={ratingType === 'trip'
+                  ? "Chia sẻ trải nghiệm của bạn về chất lượng xe, độ tiện lợi..."
                   : "Chia sẻ về thái độ phục vụ, sự nhiệt tình, chuyên nghiệp..."}
                 rows={4}
                 maxLength={500}

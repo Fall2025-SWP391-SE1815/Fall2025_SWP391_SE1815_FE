@@ -67,12 +67,12 @@ const PaymentManagement = () => {
     amount: '',
     method: ''
   });
-  
+
   // Additional states for detailed payment info
   const [rentalViolations, setRentalViolations] = useState([]);
   const [rentalBill, setRentalBill] = useState(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
-  
+
   // Violation states
   const [violationDialogOpen, setViolationDialogOpen] = useState(false);
   const [violationForm, setViolationForm] = useState({
@@ -80,11 +80,11 @@ const PaymentManagement = () => {
     description: '',
     fine_amount: ''
   });
-  
+
   // Detail dialog state
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedDetail, setSelectedDetail] = useState(null);
-  
+
   // Filter states
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -102,18 +102,18 @@ const PaymentManagement = () => {
       // We can use status filter to get rentals waiting for payment
       const response = await staffRentalService.getRentals({ status: 'waiting_for_payment' });
       console.log('Pending payments response:', response);
-      
+
       // Transform rental data to payment format for UI - lưu đầy đủ thông tin
       const paymentsData = response?.map(rental => ({
         payment_id: `PAY-${rental.id}`,
         rental_id: rental.id,
-        
+
         // Renter info
         renter_id: rental.renter.id,
         renter_name: rental.renter.fullName,
         renter_email: rental.renter.email,
         renter_phone: rental.renter.phone,
-        
+
         // Vehicle info
         vehicle_id: rental.vehicle.id,
         vehicle_license: rental.vehicle.licensePlate,
@@ -121,29 +121,38 @@ const PaymentManagement = () => {
         vehicle_brand: rental.vehicle.brand,
         vehicle_model: rental.vehicle.model,
         vehicle_price_per_hour: rental.vehicle.pricePerHour,
-        
+        batteryType: rental.vehicle.batteryType,
+        numberSeat: rental.vehicle.numberSeat,
+        odo: rental.vehicle.odo,
+        batteryLevel: rental.vehicle.batteryLevel,
         // Station info
         station_pickup_name: rental.stationPickup?.name,
         station_pickup_address: rental.stationPickup?.address,
         station_return_name: rental.stationReturn?.name,
         station_return_address: rental.stationReturn?.address,
-        
+
         // Staff info
         staff_pickup_name: rental.staffPickup?.fullName,
         staff_pickup_phone: rental.staffPickup?.phone,
         staff_return_name: rental.staffReturn?.fullName,
         staff_return_phone: rental.staffReturn?.phone,
-        
+
         // Rental details
         start_time: rental.startTime,
         end_time: rental.endTime,
         total_distance: rental.totalDistance,
         total_cost: rental.totalCost,
         rental_type: rental.rentalType,
+        rentalCost: rental.rentalCost,
         deposit_amount: rental.depositAmount,
         deposit_status: rental.depositStatus,
         rental_status: rental.status,
-        
+        insurance: rental.insurance,
+        batteryLevelStart: rental.batteryLevelStart,
+        batteryLevelEnd: rental.batteryLevelEnd,
+        odoStart: rental.odoStart,
+        odoEnd: rental.odoEnd,
+
         // Payment info
         amount: rental.totalCost || rental.depositAmount,
         method: 'cash', // Default method, can be changed in dialog
@@ -152,9 +161,9 @@ const PaymentManagement = () => {
         created_at: rental.createdAt,
         due_date: rental.endTime // Use end time as due date
       })) || [];
-      
+
       setPendingPayments(paymentsData);
-      
+
     } catch (error) {
       console.error('Error fetching pending payments:', error);
       toast({
@@ -180,7 +189,7 @@ const PaymentManagement = () => {
       method: payment.method || ''
     });
     setPaymentDialogOpen(true);
-    
+
     // Load detailed payment information
     await loadPaymentDetails(payment.rental_id);
   };
@@ -189,31 +198,33 @@ const PaymentManagement = () => {
     try {
       setLoadingDetails(true);
       console.log('Loading payment details for rental:', rentalId);
-      
+
       // 1. Get violations for this rental
       const violationsResponse = await staffRentalService.getViolations(rentalId);
       const violations = Array.isArray(violationsResponse) ? violationsResponse : violationsResponse?.data || [];
       console.log('Violations loaded:', violations);
       setRentalViolations(violations);
-      
+
       // 2. Calculate total bill (rental cost + violations)
-      // Use current time as the actual return time when processing payment
+      // Use current time in Vietnam timezone as the actual return time when processing payment
+      const now = new Date();
+      const vietnamTime = new Date(now.getTime() + (7 * 60 * 60 * 1000)); // Add 7 hours for Vietnam timezone (UTC+7)
       const billResponse = await staffRentalService.calculateBill(rentalId, {
-        returnTime: new Date().toISOString()
+        returnTime: vietnamTime.toISOString()
       });
       const billData = billResponse?.data || billResponse;
       console.log('Bill data loaded:', billData);
       setRentalBill(billData);
-      
+
       // Set default payment amount from bill
       if (billData?.totalBill) {
-        setPaymentForm(prev => ({ 
-          ...prev, 
-          amount: billData.totalBill.toString() 
+        setPaymentForm(prev => ({
+          ...prev,
+          amount: billData.totalBill.toString()
         }));
         console.log('Payment amount set to:', billData.totalBill);
       }
-      
+
     } catch (error) {
       console.error('Error loading payment details:', error);
       toast({
@@ -263,7 +274,7 @@ const PaymentManagement = () => {
 
       setViolationDialogOpen(false);
       setViolationForm({ rental_id: '', description: '', fine_amount: '' });
-      
+
       // Refresh pending payments to show updated info
       fetchPendingPayments();
 
@@ -301,7 +312,7 @@ const PaymentManagement = () => {
       }
 
       setLoading(true);
-      
+
       // Use the correct API endpoint for payment confirmation
       await staffRentalService.processPayment(selectedPayment.rental_id, {
         // API expects these fields based on swagger
@@ -320,7 +331,7 @@ const PaymentManagement = () => {
       setRentalViolations([]);
       setRentalBill(null);
       fetchPendingPayments(); // Refresh the list
-      
+
     } catch (error) {
       console.error('Error processing payment:', error);
       toast({
@@ -355,10 +366,10 @@ const PaymentManagement = () => {
       cash: { label: 'Tiền mặt', variant: 'default', icon: Banknote },
       payos: { label: 'PayOS', variant: 'secondary', icon: CreditCard }
     };
-    
+
     const config = methodConfig[method] || { label: method, variant: 'outline', icon: DollarSign };
     const IconComponent = config.icon;
-    
+
     return (
       <Badge variant={config.variant} className="gap-1">
         <IconComponent className="h-3 w-3" />
@@ -374,9 +385,9 @@ const PaymentManagement = () => {
       overtime_fee: { label: 'Phí quá giờ', variant: 'destructive' },
       damage_fee: { label: 'Phí hư hỏng', variant: 'destructive' }
     };
-    
+
     const config = typeConfig[type] || { label: type, variant: 'outline' };
-    
+
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
@@ -386,10 +397,10 @@ const PaymentManagement = () => {
       completed: { label: 'Đã thanh toán', variant: 'default', icon: CheckCircle },
       failed: { label: 'Thất bại', variant: 'destructive', icon: AlertTriangle }
     };
-    
+
     const config = statusConfig[status] || { label: status, variant: 'outline', icon: Clock };
     const IconComponent = config.icon;
-    
+
     return (
       <Badge variant={config.variant} className="gap-1">
         <IconComponent className="h-3 w-3" />
@@ -412,14 +423,14 @@ const PaymentManagement = () => {
 
   // Filter payments based on search and status
   const filteredPayments = pendingPayments.filter(payment => {
-    const matchesSearch = !searchTerm || 
+    const matchesSearch = !searchTerm ||
       payment.renter_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       payment.renter_phone.includes(searchTerm) ||
       payment.vehicle_license.toLowerCase().includes(searchTerm.toLowerCase()) ||
       payment.rental_id.toString().includes(searchTerm);
-    
+
     const matchesStatus = statusFilter === 'all' || payment.status === statusFilter;
-    
+
     return matchesSearch && matchesStatus;
   });
 
@@ -643,7 +654,7 @@ const PaymentManagement = () => {
               Ghi nhận thanh toán cho: {selectedPayment?.renter_name}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             {/* Payment Info */}
             <Card>
@@ -822,8 +833,8 @@ const PaymentManagement = () => {
             }}>
               Hủy
             </Button>
-            <Button 
-              onClick={processPayment} 
+            <Button
+              onClick={processPayment}
               disabled={loading || loadingDetails || !rentalBill || !paymentForm.method || !paymentForm.amount}
             >
               {loadingDetails ? (
@@ -911,6 +922,18 @@ const PaymentManagement = () => {
                     <div>
                       <Label className="text-muted-foreground">Loại xe</Label>
                       <p className="font-medium capitalize">{selectedDetail.vehicle_type}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Loại pin</Label>
+                      <p className="font-medium capitalize">{selectedDetail.batteryType}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Pin ban đầu</Label>
+                      <p className="font-medium capitalize">{selectedDetail.batteryLevelStart}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Pin còn lại</Label>
+                      <p className="font-medium capitalize">{selectedDetail.batteryLevelEnd}</p>
                     </div>
                     <div>
                       <Label className="text-muted-foreground">Hãng xe</Label>
@@ -1019,7 +1042,7 @@ const PaymentManagement = () => {
                     <div>
                       <Label className="text-muted-foreground">Quãng đường</Label>
                       <p className="font-medium">
-                        {selectedDetail.total_distance ? `${selectedDetail.total_distance} km` : 'Chưa có'}
+                        {selectedDetail.odoEnd && selectedDetail.odoStart ? `${selectedDetail.odoEnd - selectedDetail.odoStart} km` : 'Chưa có'}
                       </p>
                     </div>
                   </div>
@@ -1042,17 +1065,33 @@ const PaymentManagement = () => {
                         {formatCurrency(selectedDetail.total_cost)}
                       </span>
                     </div>
-                    <hr className="border-green-200" />
                     <div className="flex justify-between text-sm">
                       <span className="text-green-800">Tiền cọc:</span>
                       <span className="font-medium text-green-900">
                         {formatCurrency(selectedDetail.deposit_amount)}
                       </span>
                     </div>
+                    <hr className="border-green-200" />
+                    <div className="flex justify-between text-sm">
+                      <span className="text-green-800">Tiền thuê:</span>
+                      <span className="font-medium text-green-900">
+                        {formatCurrency(selectedDetail.rentalCost)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-green-800">Tiền bảo hiểm:</span>
+                      <span className="font-medium text-green-900">
+                        {formatCurrency(selectedDetail.insurance)}
+                      </span>
+                    </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-green-800">Trạng thái cọc:</span>
                       <Badge variant="outline" className="capitalize">
-                        {selectedDetail.deposit_status}
+                        {selectedDetail.deposit_status === "held"
+                          ? "Đang giữ"
+                          : selectedDetail.deposit_status === "returned"
+                            ? "Đã trả"
+                            : "Không xác định"}
                       </Badge>
                     </div>
                     <hr className="border-green-200" />
