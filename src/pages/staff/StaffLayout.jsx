@@ -10,7 +10,8 @@ import {
   Home,
   LogOut,
   Menu,
-  X
+  X,
+  AlertTriangle
 } from 'lucide-react';
 
 const StaffLayout = () => {
@@ -54,6 +55,12 @@ const StaffLayout = () => {
       icon: Car,
       path: '/staff/vehicle-management',
       description: 'Xem và quản lý toàn bộ xe'
+    },
+    {
+      title: 'Báo cáo sự cố',
+      icon: AlertTriangle,
+      path: '/staff/incident-management',
+      description: 'Quản lý các báo cáo sự cố'
     }
   ];
 
@@ -97,7 +104,7 @@ const StaffLayout = () => {
           </div>
         </div>
 
-        {/* Navigation - Scrollable */}
+        {/* Navigation */}
         <nav className="flex-1 overflow-y-auto p-4">
           <div className="space-y-2">
             {sidebarItems.map((item) => (
@@ -119,7 +126,7 @@ const StaffLayout = () => {
           </div>
         </nav>
 
-        {/* Logout Button - Fixed at bottom */}
+        {/* Logout */}
         <div className="p-4 border-t bg-white flex-shrink-0">
           <Button
             variant="ghost"
@@ -132,7 +139,7 @@ const StaffLayout = () => {
         </div>
       </div>
 
-      {/* Overlay for mobile */}
+      {/* Overlay (mobile) */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
@@ -140,15 +147,11 @@ const StaffLayout = () => {
         />
       )}
 
-      {/* Main Content */}
+      {/* Main content */}
       <div className={`flex-1 flex flex-col transition-all duration-300 ${sidebarOpen ? 'lg:ml-64' : 'ml-0'}`}>
-        {/* Top Bar with Toggle Button */}
+        {/* Top Bar */}
         <div className="bg-white shadow-sm p-4 flex items-center">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleSidebar}
-          >
+          <Button variant="ghost" size="icon" onClick={toggleSidebar}>
             <Menu className="h-5 w-5" />
           </Button>
           <h2 className="ml-4 text-lg font-semibold text-gray-800">
@@ -156,7 +159,7 @@ const StaffLayout = () => {
           </h2>
         </div>
 
-        {/* Content Area */}
+        {/* Page Content */}
         <div className="flex-1 overflow-auto p-6">
           <Outlet />
         </div>

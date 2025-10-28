@@ -1,204 +1,228 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Card,
-  CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
+  CardContent,
 } from '@/components/ui/card';
 import {
   Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
+  DialogContent,
+  DialogFooter
 } from '@/components/ui/dialog';
 import {
   Table,
-  TableBody,
-  TableCell,
-  TableHead,
   TableHeader,
+  TableHead,
   TableRow,
+  TableCell,
+  TableBody
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { Plus, FileText, AlertTriangle, Car } from 'lucide-react';
 import staffRentalService from '@/services/staff/staffRentalService';
-import {
-  AlertTriangle,
-  FileText,
-  Plus,
-  Calendar,
-  User,
-  Car,
-  MapPin
-} from 'lucide-react';
 
-const IncidentReportManagement = () => {
+const IncidentViolationManagement = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [incidents, setIncidents] = useState([]);
+  const [violations, setViolations] = useState([]);
+  const [rentalId, setRentalId] = useState('');
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  
-  const [incidentForm, setIncidentForm] = useState({
-    rental_id: '',
-    incident_type: '',
+
+  const [formData, setFormData] = useState({
+    rentalId: '',
     description: '',
-    location: '',
-    severity: 'low',
-    reported_by_staff: true
+    fineAmount: ''
   });
 
-  // Fetch incident reports
-  const fetchIncidents = async () => {
+  // 🟢 Lấy danh sách vi phạm theo rentalId
+  const handleFetchViolations = async () => {
+    if (!rentalId) {
+      toast({
+        variant: 'destructive',
+        title: 'Thiếu ID',
+        description: 'Vui lòng nhập mã thuê xe cần xem vi phạm.',
+      });
+      return;
+    }
+
     try {
       setLoading(true);
-      const response = await staffRentalService.getIncidentReports();
-      console.log('Incident reports response:', response);
-      setIncidents(response || []); // Response is directly an array, not nested in data
-    } catch (error) {
-      console.error('Error fetching incident reports:', error);
-      toast({
-        variant: "destructive",
-        title: "Lỗi",
-        description: error.message || "Không thể tải danh sách báo cáo sự cố"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchIncidents();
-  }, []);
-
-  // Handle create incident report
-  const handleCreateIncident = async () => {
-    try {
-      if (!incidentForm.rental_id || !incidentForm.incident_type || !incidentForm.description) {
+      const response = await staffRentalService.getViolations(rentalId);
+      setViolations(response || []);
+      if (response.length === 0) {
         toast({
-          variant: "destructive",
-          title: "Thiếu thông tin",
-          description: "Vui lòng điền đầy đủ thông tin bắt buộc"
+          title: 'Không có vi phạm',
+          description: `Không có vi phạm nào cho mã thuê xe #${rentalId}`,
         });
-        return;
       }
-
-      setLoading(true);
-      const response = await staffRentalService.createIncidentReport(incidentForm);
-      console.log('Create incident response:', response);
-      
-      toast({
-        title: "Thành công",
-        description: "Đã tạo báo cáo sự cố mới thành công"
-      });
-      
-      setCreateDialogOpen(false);
-      setIncidentForm({
-        rental_id: '',
-        incident_type: '',
-        description: '',
-        location: '',
-        severity: 'low',
-        reported_by_staff: true
-      });
-      
-      await fetchIncidents();
     } catch (error) {
-      console.error('Error creating incident report:', error);
+      console.error(error);
       toast({
-        variant: "destructive",
-        title: "Lỗi",
-        description: error.message || "Không thể tạo báo cáo sự cố"
+        variant: 'destructive',
+        title: 'Lỗi tải dữ liệu',
+        description: error.message || 'Không thể tải danh sách vi phạm',
       });
     } finally {
       setLoading(false);
     }
   };
 
-  const getSeverityBadge = (severity) => {
-    const variants = {
-      low: 'default',
-      medium: 'secondary', 
-      high: 'destructive'
-    };
-    
-    const labels = {
-      low: 'Thấp',
-      medium: 'Trung bình',
-      high: 'Cao'
-    };
-    
-    return (
-      <Badge variant={variants[severity]}>
-        {labels[severity]}
-      </Badge>
-    );
+  // 🟢 Xử lý nhập tiền phạt
+  const handleFineChange = (e) => {
+    let rawValue = e.target.value.replace(/\./g, ''); // bỏ dấu chấm
+    if (!/^\d*$/.test(rawValue)) return; // chỉ cho số
+    if (rawValue.startsWith('0') && rawValue.length > 1) rawValue = rawValue.replace(/^0+/, '');
+
+    // format tiền có dấu chấm ngăn cách
+    const formatted = rawValue.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    setFormData({ ...formData, fineAmount: formatted });
+  };
+
+  // 🟢 Tạo mới vi phạm
+  const handleCreateViolation = async () => {
+    const cleanFine = Number(formData.fineAmount.replace(/\./g, '')); // bỏ dấu chấm
+
+    if (!formData.rentalId || !formData.description || !formData.fineAmount) {
+      toast({
+        variant: 'destructive',
+        title: 'Thiếu thông tin',
+        description: 'Vui lòng nhập đầy đủ thông tin vi phạm.',
+      });
+      return;
+    }
+
+    if (cleanFine <= 0) {
+      toast({
+        variant: 'destructive',
+        title: 'Số tiền không hợp lệ',
+        description: 'Tiền phạt phải lớn hơn 0.',
+      });
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const payload = {
+        rentalId: Number(formData.rentalId),
+        description: formData.description,
+        fineAmount: cleanFine,
+      };
+
+      await staffRentalService.addViolation(payload);
+
+      toast({
+        title: 'Thành công',
+        description: 'Đã thêm vi phạm mới.',
+      });
+
+      setCreateDialogOpen(false);
+      setFormData({ rentalId: '', description: '', fineAmount: '' });
+
+      // Reload nếu đang xem cùng rental
+      if (rentalId && rentalId == payload.rentalId) {
+        await handleFetchViolations();
+      }
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Lỗi tạo vi phạm',
+        description: error.message || 'Không thể thêm vi phạm mới.',
+      });
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold">Quản lý Báo cáo Sự cố</h2>
-          <p className="text-gray-600">Tạo và quản lý các báo cáo sự cố</p>
+          <h2 className="text-2xl font-bold">Quản lý Vi Phạm Thuê Xe</h2>
+          <p className="text-gray-600">
+            Nhập mã thuê xe để xem và thêm vi phạm
+          </p>
         </div>
         <Button onClick={() => setCreateDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Tạo Báo cáo Sự cố
+          <Plus className="h-4 w-4" />
+          Thêm Vi Phạm
         </Button>
       </div>
 
+      {/* Ô nhập rentalId */}
+      <div className="flex gap-3 items-end">
+        <div className="flex-1">
+          <Label htmlFor="rentalId">Nhập Mã Thuê Xe</Label>
+          <Input
+            id="rentalId"
+            placeholder="VD: 1"
+            value={rentalId}
+            onChange={(e) => setRentalId(e.target.value)}
+          />
+        </div>
+        <Button onClick={handleFetchViolations} disabled={loading}>
+          {loading ? 'Đang tải...' : 'Xem Vi Phạm'}
+        </Button>
+      </div>
+
+      {/* Danh sách vi phạm */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5" />
-            Danh sách Báo cáo Sự cố
+            Danh sách Vi Phạm {rentalId && <span className="text-sm text-gray-500">(# {rentalId})</span>}
           </CardTitle>
         </CardHeader>
+
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>ID</TableHead>
-                <TableHead>Mã Thuê</TableHead>
-                <TableHead>Loại Sự cố</TableHead>
-                <TableHead>Mức độ</TableHead>
-                <TableHead>Địa điểm</TableHead>
+                <TableHead>Mô tả</TableHead>
+                <TableHead>Tiền phạt</TableHead>
+                <TableHead>Xe / Biển số</TableHead>
+                <TableHead>Nhân viên ghi nhận</TableHead>
                 <TableHead>Ngày tạo</TableHead>
-                <TableHead>Trạng thái</TableHead>
               </TableRow>
             </TableHeader>
+
             <TableBody>
-              {incidents.length === 0 ? (
+              {violations.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
+                  <TableCell colSpan={6} className="text-center py-8">
                     <div className="flex flex-col items-center gap-2">
                       <FileText className="h-8 w-8 text-gray-400" />
-                      <span className="text-gray-500">Chưa có báo cáo sự cố nào</span>
+                      <span className="text-gray-500">
+                        Chưa có vi phạm nào cho thuê xe này
+                      </span>
                     </div>
                   </TableCell>
                 </TableRow>
               ) : (
-                incidents.map((incident) => (
-                  <TableRow key={incident.id}>
-                    <TableCell>{incident.id}</TableCell>
-                    <TableCell>{incident.rental_id}</TableCell>
-                    <TableCell>{incident.incident_type}</TableCell>
-                    <TableCell>{getSeverityBadge(incident.severity)}</TableCell>
-                    <TableCell>{incident.location}</TableCell>
+                violations.map((v) => (
+                  <TableRow key={v.id}>
+                    <TableCell>{v.id}</TableCell>
+                    <TableCell>{v.description}</TableCell>
+                    <TableCell>{v.fineAmount?.toLocaleString()} ₫</TableCell>
                     <TableCell>
-                      {new Date(incident.created_at).toLocaleDateString('vi-VN')}
+                      <div className="flex items-center gap-2">
+                        <Car className="h-4 w-4 text-gray-500" />
+                        {v.rental?.vehicle?.licensePlate || '-'}
+                      </div>
                     </TableCell>
+                    <TableCell>{v.staff?.fullName || '—'}</TableCell>
                     <TableCell>
-                      <Badge variant="outline">
-                        {incident.status || 'Đang xử lý'}
-                      </Badge>
+                      {new Date(v.createdAt).toLocaleString('vi-VN')}
                     </TableCell>
                   </TableRow>
                 ))
@@ -208,85 +232,55 @@ const IncidentReportManagement = () => {
         </CardContent>
       </Card>
 
-      {/* Create Incident Dialog */}
+      {/* Dialog tạo vi phạm */}
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Tạo Báo cáo Sự cố Mới</DialogTitle>
+            <DialogTitle>Thêm Vi Phạm Mới</DialogTitle>
             <DialogDescription>
-              Nhập thông tin chi tiết về sự cố đã xảy ra
+              Nhập thông tin chi tiết về vi phạm
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <div>
-              <Label htmlFor="rental_id">Mã thuê xe</Label>
+              <Label htmlFor="rentalIdInput">Mã Thuê Xe</Label>
               <Input
-                id="rental_id"
-                value={incidentForm.rental_id}
-                onChange={(e) => setIncidentForm({...incidentForm, rental_id: e.target.value})}
-                placeholder="Nhập mã thuê xe"
+                id="rentalIdInput"
+                value={formData.rentalId}
+                onChange={(e) => setFormData({ ...formData, rentalId: e.target.value })}
+                placeholder="VD: 1"
               />
             </div>
-            
+
             <div>
-              <Label htmlFor="incident_type">Loại sự cố</Label>
-              <Input
-                id="incident_type"
-                value={incidentForm.incident_type}
-                onChange={(e) => setIncidentForm({...incidentForm, incident_type: e.target.value})}
-                placeholder="VD: Hỏng xe, tai nạn, mất trộm..."
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="location">Địa điểm</Label>
-              <Input
-                id="location"
-                value={incidentForm.location}
-                onChange={(e) => setIncidentForm({...incidentForm, location: e.target.value})}
-                placeholder="Địa điểm xảy ra sự cố"
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="severity">Mức độ nghiêm trọng</Label>
-              <select
-                id="severity"
-                className="w-full px-3 py-2 border rounded-md"
-                value={incidentForm.severity}
-                onChange={(e) => setIncidentForm({...incidentForm, severity: e.target.value})}
-              >
-                <option value="low">Thấp</option>
-                <option value="medium">Trung bình</option>
-                <option value="high">Cao</option>
-              </select>
-            </div>
-            
-            <div>
-              <Label htmlFor="description">Mô tả chi tiết</Label>
+              <Label htmlFor="description">Mô Tả Vi Phạm</Label>
               <Textarea
                 id="description"
-                value={incidentForm.description}
-                onChange={(e) => setIncidentForm({...incidentForm, description: e.target.value})}
-                placeholder="Mô tả chi tiết về sự cố..."
-                rows={4}
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="VD: Xe bị xước nhẹ..."
+                rows={3}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="fineAmount">Tiền Phạt (VNĐ)</Label>
+              <Input
+                id="fineAmount"
+                value={formData.fineAmount}
+                onChange={handleFineChange}
+                placeholder="VD: 500.000"
               />
             </div>
           </div>
 
           <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setCreateDialogOpen(false)}
-            >
+            <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
               Hủy
             </Button>
-            <Button 
-              onClick={handleCreateIncident}
-              disabled={loading || !incidentForm.incident_type || !incidentForm.description}
-            >
-              {loading ? "Đang tạo..." : "Tạo Báo cáo"}
+            <Button onClick={handleCreateViolation} disabled={loading}>
+              {loading ? 'Đang tạo...' : 'Tạo Vi Phạm'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -295,4 +289,4 @@ const IncidentReportManagement = () => {
   );
 };
 
-export default IncidentReportManagement;
+export default IncidentViolationManagement;

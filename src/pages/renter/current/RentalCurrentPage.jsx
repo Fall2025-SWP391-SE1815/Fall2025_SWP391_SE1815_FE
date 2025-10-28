@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  Clock, 
+import { useToast } from '@/hooks/use-toast';
+import {
+  Clock,
   Car,
   MapPin,
   Battery,
@@ -23,18 +24,20 @@ import {
   Eye,
   CreditCard,
   Timer,
-  Activity
+  Activity,
+  CheckCircle
 } from 'lucide-react';
 import { renterService } from '../../../services/renter/renterService';
 
 const RentalCurrentPage = () => {
   const navigate = useNavigate();
-  
+  const { toast } = useToast();
+
   // State
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [currentRental, setCurrentRental] = useState(null);
-  
+
   // Load current rental
   useEffect(() => {
     loadCurrentRental();
@@ -45,13 +48,33 @@ const RentalCurrentPage = () => {
     setError('');
 
     try {
-      // Call API to get all rentals with status 'in_use'
-      const response = await renterService.rentals.getAll({ status: 'in_use' });
-      
-      // Get the first rental if available (user can have multiple active rentals)
-      const rentals = response.data || response;
-      const currentRental = Array.isArray(rentals) && rentals.length > 0 ? rentals[0] : null;
-      
+      // Try to get current rental - first check in_use, then wait_confirm
+      let currentRental = null;
+
+      // First try to get in_use rentals
+      try {
+        const inUseResponse = await renterService.rentals.getAll({ status: 'in_use' });
+        const inUseRentals = inUseResponse.data || inUseResponse;
+        if (Array.isArray(inUseRentals) && inUseRentals.length > 0) {
+          currentRental = inUseRentals[0];
+        }
+      } catch (error) {
+        console.log('No in_use rentals found');
+      }
+
+      // If no in_use rental found, try wait_confirm
+      if (!currentRental) {
+        try {
+          const waitConfirmResponse = await renterService.rentals.getAll({ status: 'wait_confirm' });
+          const waitConfirmRentals = waitConfirmResponse.data || waitConfirmResponse;
+          if (Array.isArray(waitConfirmRentals) && waitConfirmRentals.length > 0) {
+            currentRental = waitConfirmRentals[0];
+          }
+        } catch (error) {
+          console.log('No wait_confirm rentals found');
+        }
+      }
+
       if (currentRental) {
         // Transform API response to match expected format
         const transformedRental = {
@@ -71,7 +94,7 @@ const RentalCurrentPage = () => {
             brand: currentRental.vehicle?.brand,
             license_plate: currentRental.vehicle?.licensePlate,
             type: currentRental.vehicle?.type,
-            battery_level: 75, // API doesn't provide this, using default
+            battery_level: currentRental.vehicle?.batteryLevel,
             capacity: currentRental.vehicle?.capacity,
             range_per_full_charge: currentRental.vehicle?.rangePerFullCharge,
             price_per_hour: currentRental.vehicle?.pricePerHour
@@ -101,7 +124,7 @@ const RentalCurrentPage = () => {
             phone: currentRental.renter.phone
           } : null
         };
-        
+
         setCurrentRental(transformedRental);
       } else {
         setCurrentRental(null);
@@ -121,7 +144,7 @@ const RentalCurrentPage = () => {
 
   const calculateRentalDuration = (startTime) => {
     if (!startTime) return '0h 0m';
-    
+
     const start = new Date(startTime);
     const now = new Date();
     const diffMs = now - start;
@@ -141,9 +164,41 @@ const RentalCurrentPage = () => {
     loadCurrentRental();
   };
 
-  const handleEndRental = () => {
-    // Navigate to rental history after ending rental
-    navigate('/history');
+  const handleEndRental = async () => {
+    if (!currentRental?.id) {
+      setError('Không tìm thấy thông tin lượt thuê');
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // Call API to confirm rental
+      await renterService.rentals.confirmRental(currentRental.id);
+
+      // Update the current rental status to 'in_use' immediately
+      setCurrentRental(prev => ({
+        ...prev,
+        status: 'in_use'
+      }));
+
+      // Show success message
+      toast({
+        title: "Thành công",
+        description: "Đã xác nhận nhận xe thành công! Xe hiện đang trong trạng thái sử dụng.",
+      });
+
+      setError(''); // Clear any previous errors
+
+      // Stay on current page to show the updated status
+      console.log('Rental confirmed successfully, status updated to in_use');
+
+    } catch (err) {
+      console.error('Error confirming rental:', err);
+      setError('Có lỗi xảy ra khi xác nhận thuê xe. Vui lòng thử lại.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleViewChecks = () => {
@@ -182,7 +237,7 @@ const RentalCurrentPage = () => {
             Theo dõi thông tin lượt thuê xe đang hoạt động
           </p>
         </div>
-        
+
         <Button
           onClick={handleRefresh}
           variant="outline"
@@ -214,7 +269,7 @@ const RentalCurrentPage = () => {
               Bạn chưa có lượt thuê xe nào đang hoạt động. Hãy đặt xe hoặc check-in để bắt đầu thuê xe.
             </p>
             <div className="flex space-x-4 justify-center">
-              <Button 
+              <Button
                 onClick={() => navigate('/vehicles')}
                 className="bg-blue-600 hover:bg-blue-700"
               >
@@ -253,16 +308,18 @@ const RentalCurrentPage = () => {
               </CardContent>
             </Card>
 
-            <Card className="border-orange-200 bg-orange-50">
+            <Card className={currentRental.status === 'in_use' ? "border-green-200 bg-green-50" : "border-orange-200 bg-orange-50"}>
               <CardContent className="p-4 text-center">
-                <Activity className="h-8 w-8 text-orange-600 mx-auto mb-2" />
-                <Badge 
+                <Activity className={`h-8 w-8 mx-auto mb-2 ${currentRental.status === 'in_use' ? 'text-green-600' : 'text-orange-600'}`} />
+                <Badge
                   variant={currentRental.status === 'in_use' ? 'default' : 'secondary'}
                   className="text-lg px-3 py-1"
                 >
-                  {currentRental.status === 'in_use' ? 'Đang sử dụng' : currentRental.status}
+                  {currentRental.status === 'in_use' ? 'Đang sử dụng' :
+                    currentRental.status === 'wait_confirm' ? 'Chờ xác nhận' :
+                      currentRental.status}
                 </Badge>
-                <div className="text-sm text-orange-700 mt-2">Trạng thái</div>
+                <div className={`text-sm mt-2 ${currentRental.status === 'in_use' ? 'text-green-700' : 'text-orange-700'}`}>Trạng thái</div>
               </CardContent>
             </Card>
           </div>
@@ -301,7 +358,7 @@ const RentalCurrentPage = () => {
                       <span className="font-medium text-lg">{currentRental.vehicle.license_plate}</span>
                     </div>
                     <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <span className="text-gray-600">Pin còn lại</span>
+                      <span className="text-gray-600">Pin</span>
                       <div className="flex items-center">
                         <Battery className="h-4 w-4 mr-1 text-green-600" />
                         <span className="font-medium">{currentRental.vehicle.battery_level}%</span>
@@ -362,17 +419,36 @@ const RentalCurrentPage = () => {
                 >
                   <Eye className="h-4 w-4 mr-2" />
                   Xem biên bản giao xe
-                </Button>             
-                
-                <Button
-                  onClick={handleEndRental}
-                  className="flex-1 bg-red-600 hover:bg-red-700"
-                >
-                  <Navigation className="h-4 w-4 mr-2" />
-                  Kết thúc thuê xe
                 </Button>
+
+                {currentRental.status === 'wait_confirm' && (
+                  <Button
+                    onClick={handleEndRental}
+                    className="flex-1 bg-green-600 hover:bg-green-700"
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Navigation className="h-4 w-4 mr-2" />
+                    )}
+                    Xác nhận đã nhận xe
+                  </Button>
+                )}
+
+                {currentRental.status === 'in_use' && (
+                  <div className="flex-1 p-3 bg-green-50 border border-green-200 rounded-lg text-center">
+                    <div className="text-green-700 font-medium flex items-center justify-center">
+                      <CheckCircle className="h-5 w-5 mr-2" />
+                      Đã xác nhận - Xe đang sử dụng
+                    </div>
+                    <div className="text-sm text-green-600 mt-1">
+                      Bạn đã xác nhận nhận xe thành công
+                    </div>
+                  </div>
+                )}
               </div>
-              
+
               <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                 <div className="flex items-start">
                   <AlertTriangle className="h-5 w-5 text-yellow-600 mr-2 mt-0.5" />

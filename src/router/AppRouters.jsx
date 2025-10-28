@@ -60,6 +60,7 @@ import ProtectedRoute from "../routes/ProtectedRoute.jsx";
 // Auth Provider
 import { AuthProvider } from "../hooks/auth/useAuth.jsx";
 import VehicleManagement from "@/pages/staff/vehicle-management/VehicleManagement.jsx";
+import IncidentReportManagement from "@/pages/staff/IncidentReportManagement.jsx";
 
 
 // Path constants
@@ -73,7 +74,6 @@ export const paths = {
   admin: {
     dashboard: "/admin",
     stations: "stations",
-    vehicles: "vehicles",
     vehicles: "vehicles",
     personnel: "personnel",
     stationStaff: "station-staff",
@@ -111,7 +111,6 @@ export const paths = {
   staff: {
     dashboard: "/staff",
     rentalManagement: "rental-management",
-    customerVerification: "customer-verification",
     customerVerification: "customer-verification",
     paymentManagement: "payment-management",
     stationManagement: "station-management"
@@ -157,7 +156,6 @@ const router = createBrowserRouter([
     ),
   },
   {
-    path: "/register",
     path: "/register",
     element: (
       <PublicRoute>
@@ -217,7 +215,8 @@ const router = createBrowserRouter([
       { path: "customer-verification", element: <CustomerVerification /> },
       { path: "payment-management", element: <PaymentManagement /> },
       { path: "station-management", element: <StationManagement /> },
-      { path: "/staff/vehicle-management", element: <VehicleManagement />, }
+      { path: "vehicle-management", element: <VehicleManagement />, },
+      { path: "incident-management", element: <IncidentReportManagement /> },
     ],
   },
 
@@ -323,7 +322,6 @@ const router = createBrowserRouter([
     ]
   },
   {
-    path: "/complaints",
     path: "/complaints",
     element: (
       <ProtectedRoute requiredRole="renter">

@@ -8,17 +8,22 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Eye, Receipt, Clock, AlertTriangle } from "lucide-react";
+import { Eye, Receipt, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-const PaymentTable = ({ payments, searchTerm, loading, onViewDetail, onProcess }) => {
+const PaymentTable = ({ payments = [], searchTerm = "", loading, onViewDetail, onProcess }) => {
+    // Lọc danh sách theo tên khách hoặc biển số
     const filtered = payments.filter(
         (p) =>
             !searchTerm ||
             p.renter?.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             p.vehicle?.licensePlate?.toLowerCase().includes(searchTerm.toLowerCase())
     );
+
+    // Format tiền
+    const formatCurrency = (value) =>
+        (value || 0).toLocaleString("vi-VN", { style: "currency", currency: "VND" });
 
     if (loading)
         return (
@@ -41,30 +46,47 @@ const PaymentTable = ({ payments, searchTerm, loading, onViewDetail, onProcess }
             <CardContent>
                 {filtered.length === 0 ? (
                     <p className="text-center text-muted-foreground py-8">
-                        Không có thanh toán nào phù hợp.
+                        Không có lượt thuê nào cần thanh toán.
                     </p>
                 ) : (
                     <div className="overflow-x-auto">
                         <Table>
                             <TableHeader>
                                 <TableRow className="bg-muted/50 text-gray-600">
+                                    <TableHead>Mã lượt thuê</TableHead>
                                     <TableHead>Khách hàng</TableHead>
                                     <TableHead>Xe</TableHead>
-                                    <TableHead>Số tiền</TableHead>
+                                    <TableHead>Tổng tiền</TableHead>
                                     <TableHead>Trạng thái</TableHead>
                                     <TableHead className="text-right">Thao tác</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {filtered.map((p) => (
-                                    <TableRow key={p.id} className="hover:bg-primary/5">
+                                    <TableRow
+                                        key={p.id || p.rental_id}
+                                        className="hover:bg-primary/5 transition-colors"
+                                    >
+                                        <TableCell className="font-medium text-gray-800">
+                                            #{p.rental_id || p.id}
+                                        </TableCell>
                                         <TableCell>{p.renter?.fullName}</TableCell>
                                         <TableCell>{p.vehicle?.licensePlate}</TableCell>
-                                        <TableCell>
-                                            {(p.totalCost || 0).toLocaleString("vi-VN")}₫
+                                        <TableCell className="font-semibold text-green-700">
+                                            {formatCurrency(p.totalCost || p.total_cost)}
                                         </TableCell>
                                         <TableCell>
-                                            <Badge variant="destructive">Chờ thanh toán</Badge>
+                                            <Badge
+                                                variant={
+                                                    p.status === "waiting_for_payment"
+                                                        ? "destructive"
+                                                        : "outline"
+                                                }
+                                            >
+                                                {p.status === "waiting_for_payment"
+                                                    ? "Chờ thanh toán"
+                                                    : "Khác"}
+                                            </Badge>
                                         </TableCell>
                                         <TableCell className="text-right flex gap-2 justify-end">
                                             <Button

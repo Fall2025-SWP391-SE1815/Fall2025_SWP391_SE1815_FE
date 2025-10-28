@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,7 +9,7 @@ import { Battery, Camera, CheckCircle, Gauge, Loader2, PenTool } from 'lucide-re
 import { useToast } from '@/hooks/use-toast';
 import staffRentalService from '@/services/staff/staffRentalService';
 
-export default function PickupDialog({ open, onOpenChange, rental, onSuccess }) {
+export default function ReturnDialog({ open, onOpenChange, rental, onSuccess }) {
     const { toast } = useToast();
     const [saving, setSaving] = useState(false);
     const [form, setForm] = useState({
@@ -61,7 +62,7 @@ export default function PickupDialog({ open, onOpenChange, rental, onSuccess }) 
         try {
             const data = {
                 rentalId: rental?.id,
-                checkType: 'pickup',
+                checkType: 'return',
                 conditionReport: form.condition_report,
                 odo: parseInt(form.odo),
                 batteryLevel: parseInt(form.batteryLevel),
@@ -73,12 +74,12 @@ export default function PickupDialog({ open, onOpenChange, rental, onSuccess }) 
             fd.append('staff_signature', form.staff_signature_url);
             fd.append('customer_signature', form.customer_signature_url);
 
-            await staffRentalService.confirmPickup(fd);
-            toast({ title: 'Thành công', description: 'Đã xác nhận giao xe.' });
+            await staffRentalService.confirmReturn(fd);
+            toast({ title: 'Trả xe thành công', description: 'Xe đã được xác nhận trả.' });
             onSuccess?.();
             onOpenChange(false);
         } catch (e) {
-            toast({ title: 'Lỗi giao xe', description: e?.message || 'Không thể xác nhận', variant: 'destructive' });
+            toast({ title: 'Lỗi trả xe', description: e?.message || 'Không thể xác nhận', variant: 'destructive' });
         } finally {
             setSaving(false);
         }
@@ -88,18 +89,38 @@ export default function PickupDialog({ open, onOpenChange, rental, onSuccess }) 
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2"><CheckCircle className="h-5 w-5" /> Xác nhận giao xe</DialogTitle>
+                    <DialogTitle className="flex items-center gap-2"><CheckCircle className="h-5 w-5" /> Xác nhận nhận xe</DialogTitle>
                     <DialogDescription>
-                        Lập biên bản giao xe cho: {rental?.renter?.fullName} - {rental?.vehicle?.licensePlate}
+                        Nhận xe từ: {rental?.renter?.fullName} - {rental?.vehicle?.licensePlate}
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="space-y-4">
+                {/* Vehicle summary */}
+                <Card>
+                    <CardHeader className="pb-3">
+                        <CardTitle className="text-lg">Thông tin xe trả</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <p className="text-sm text-muted-foreground">Biển số xe</p>
+                                <p className="font-medium">{rental?.vehicle?.licensePlate}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-muted-foreground">Khách hàng</p>
+                                <p className="font-medium">{rental?.renter?.fullName}</p>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Form */}
+                <div className="space-y-4 mt-4">
                     <div className="space-y-2">
                         <Label htmlFor="condition">Báo cáo tình trạng xe *</Label>
                         <Textarea
                             id="condition"
-                            placeholder="Mô tả chi tiết tình trạng xe..."
+                            placeholder="Mô tả chi tiết tình trạng xe khi trả..."
                             value={form.condition_report}
                             onChange={(e) => setForm((p) => ({ ...p, condition_report: e.target.value }))}
                             rows={4}
@@ -141,7 +162,7 @@ export default function PickupDialog({ open, onOpenChange, rental, onSuccess }) 
                     </div>
 
                     <div className="space-y-2">
-                        <Label>Ảnh xe *</Label>
+                        <Label>Ảnh xe khi nhận lại *</Label>
                         <div className="flex gap-2 items-center">
                             <Input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && setForm((p) => ({ ...p, photo_url: e.target.files[0] }))} className="flex-1" />
                             <Button variant="outline" size="icon" disabled><Camera className="h-4 w-4" /></Button>
@@ -173,7 +194,7 @@ export default function PickupDialog({ open, onOpenChange, rental, onSuccess }) 
                 <DialogFooter>
                     <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Hủy</Button>
                     <Button onClick={handleSubmit} disabled={saving}>
-                        {saving ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Đang xử lý...</> : <><CheckCircle className="h-4 w-4 mr-2" /> Xác nhận giao xe</>}
+                        {saving ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Đang xử lý...</> : <><CheckCircle className="h-4 w-4 mr-2" /> Xác nhận nhận xe</>}
                     </Button>
                 </DialogFooter>
             </DialogContent>

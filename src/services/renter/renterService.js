@@ -86,6 +86,11 @@ export const renterService = {
     // Xem biên bản giao/nhận xe
     getChecks: async (rentalId) => {
       return await apiClient.get(API_ENDPOINTS.RENTER.RENTAL_CHECKS(rentalId));
+    },
+
+    // Xác nhận đã nhận xe
+    confirmRental: async (rentalId) => {
+      return await apiClient.patch(API_ENDPOINTS.RENTER.RENTAL_CONFIRM(rentalId));
     }
   },
 

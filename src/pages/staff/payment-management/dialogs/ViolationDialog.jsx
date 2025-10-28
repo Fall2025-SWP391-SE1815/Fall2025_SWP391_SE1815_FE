@@ -12,15 +12,34 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Flag } from "lucide-react";
+import { Flag, Calculator } from "lucide-react";
 import staffRentalService from "@/services/staff/staffRentalService";
 
 const ViolationDialog = ({ open, onOpenChange, refresh }) => {
     const { toast } = useToast();
     const [loading, setLoading] = useState(false);
-    const [form, setForm] = useState({ rental_id: "", description: "", fine_amount: "" });
+    const [form, setForm] = useState({
+        rental_id: "",
+        description: "",
+        fine_amount: "",
+    });
+    const [bill, setBill] = useState(null);
 
+    // ✅ Định dạng tiền có dấu chấm ngăn cách
+    const handleFineChange = (e) => {
+        let rawValue = e.target.value.replace(/\./g, ""); // bỏ dấu chấm
+        if (!/^\d*$/.test(rawValue)) return; // chỉ cho nhập số
+        if (rawValue.startsWith("0") && rawValue.length > 1)
+            rawValue = rawValue.replace(/^0+/, "");
+
+        const formatted = rawValue.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        setForm({ ...form, fine_amount: formatted });
+    };
+
+    // ✅ Hàm xử lý thêm vi phạm
     const handleSubmit = async () => {
+        const cleanFine = Number(form.fine_amount.replace(/\./g, ""));
+
         if (!form.rental_id || !form.description || !form.fine_amount) {
             toast({
                 title: "Thiếu thông tin",
@@ -29,14 +48,39 @@ const ViolationDialog = ({ open, onOpenChange, refresh }) => {
             });
             return;
         }
+
+        if (cleanFine <= 0) {
+            toast({
+                title: "Số tiền không hợp lệ",
+                description: "Tiền phạt phải lớn hơn 0.",
+                variant: "destructive",
+            });
+            return;
+        }
+
         try {
             setLoading(true);
+
+            // 🟢 Bước 1: Ghi nhận vi phạm
             await staffRentalService.addViolation({
                 rentalId: parseInt(form.rental_id),
                 description: form.description,
-                fineAmount: parseFloat(form.fine_amount),
+                fineAmount: cleanFine,
             });
-            toast({ title: "Đã ghi nhận vi phạm." });
+
+            // 🟢 Bước 2: Tính lại bill sau khi có vi phạm
+            const res = await staffRentalService.calculateBill(form.rental_id, {
+                returnTime: new Date().toISOString(),
+            });
+            setBill(res);
+
+            // 🟢 Bước 3: Thông báo thành công
+            toast({
+                title: "Đã ghi nhận vi phạm.",
+                description: `Tổng bill mới: ${res.totalBill?.toLocaleString("vi-VN")}₫`,
+            });
+
+            // Reset form và đóng dialog
             setForm({ rental_id: "", description: "", fine_amount: "" });
             onOpenChange(false);
             refresh?.();
@@ -64,6 +108,7 @@ const ViolationDialog = ({ open, onOpenChange, refresh }) => {
                 </DialogHeader>
 
                 <div className="space-y-4">
+                    {/* Mã lượt thuê */}
                     <div className="space-y-2">
                         <Label>Mã lượt thuê *</Label>
                         <Input
@@ -73,32 +118,70 @@ const ViolationDialog = ({ open, onOpenChange, refresh }) => {
                             placeholder="Nhập mã lượt thuê"
                         />
                     </div>
+
+                    {/* Mô tả vi phạm */}
                     <div className="space-y-2">
                         <Label>Mô tả vi phạm *</Label>
                         <Textarea
                             rows={4}
                             value={form.description}
-                            onChange={(e) => setForm({ ...form, description: e.target.value })}
-                            placeholder="Ví dụ: trả xe trễ, không đội mũ bảo hiểm..."
+                            onChange={(e) =>
+                                setForm({ ...form, description: e.target.value })
+                            }
+                            placeholder="Ví dụ: Trả xe trễ, xe bị trầy xước..."
                         />
                     </div>
+
+                    {/* Số tiền phạt */}
                     <div className="space-y-2">
                         <Label>Số tiền phạt *</Label>
                         <Input
-                            type="number"
                             value={form.fine_amount}
-                            onChange={(e) => setForm({ ...form, fine_amount: e.target.value })}
-                            placeholder="Nhập số tiền phạt"
+                            onChange={handleFineChange}
+                            placeholder="Nhập số tiền phạt (VD: 500.000)"
                         />
                     </div>
+
+                    {/* Hiển thị tổng bill mới nếu có */}
+                    {bill && (
+                        <div className="mt-4 border-t border-gray-200 pt-3 text-sm">
+                            <p className="flex justify-between">
+                                <span>Chi phí thuê xe:</span>
+                                <span>{bill.rentalCost?.toLocaleString("vi-VN")}₫</span>
+                            </p>
+                            <p className="flex justify-between">
+                                <span>Phí vi phạm:</span>
+                                <span>{bill.violationCost?.toLocaleString("vi-VN")}₫</span>
+                            </p>
+                            <p className="flex justify-between font-semibold text-green-700">
+                                <span>Tổng cộng:</span>
+                                <span>{bill.totalBill?.toLocaleString("vi-VN")}₫</span>
+                            </p>
+                        </div>
+                    )}
                 </div>
 
                 <DialogFooter className="pt-4">
-                    <Button variant="outline" onClick={() => onOpenChange(false)}>
+                    <Button
+                        variant="outline"
+                        onClick={() => onOpenChange(false)}
+                        disabled={loading}
+                    >
                         Hủy
                     </Button>
-                    <Button onClick={handleSubmit} disabled={loading} className="bg-primary text-white">
-                        {loading ? "Đang lưu..." : "Ghi nhận"}
+                    <Button
+                        onClick={handleSubmit}
+                        disabled={loading}
+                        className="bg-primary text-white"
+                    >
+                        {loading ? (
+                            <>
+                                <Calculator className="h-4 w-4 mr-2 animate-spin" />
+                                Đang ghi nhận...
+                            </>
+                        ) : (
+                            "Ghi nhận"
+                        )}
                     </Button>
                 </DialogFooter>
             </DialogContent>
