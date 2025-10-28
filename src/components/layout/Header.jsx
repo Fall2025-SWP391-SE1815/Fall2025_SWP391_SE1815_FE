@@ -63,8 +63,7 @@ const Header = () => {
       icon: History,
       href: '/history',
       dropdownItems: [
-        { name: 'Lịch sử thuê xe', icon: History, href: '/history' },
-        { name: 'Giao dịch thanh toán', icon: Wallet, href: '/payments' }
+        { name: 'Lịch sử thuê xe', icon: History, href: '/history' }
       ]
     },
     {
@@ -72,8 +71,7 @@ const Header = () => {
       icon: MessageSquare,
       href: '/complaints',
       dropdownItems: [
-        { name: 'Đánh giá & Khiếu nại', icon: Star, href: '/complaints' },
-        { name: 'Báo cáo sự cố', icon: AlertTriangle, href: '/incidents' }
+        { name: 'Đánh giá & Khiếu nại', icon: Star, href: '/complaints' }
       ]
     }
   ] : [
@@ -91,7 +89,6 @@ const Header = () => {
 
   const userMenuItems = [
     { name: 'Hồ sơ cá nhân', icon: User, href: '/profile' },
-    { name: 'Thanh toán', icon: CreditCard, href: '/payments' },
   ];
 
   const handleLogout = async () => {

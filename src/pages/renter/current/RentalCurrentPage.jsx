@@ -94,7 +94,7 @@ const RentalCurrentPage = () => {
             brand: currentRental.vehicle?.brand,
             license_plate: currentRental.vehicle?.licensePlate,
             type: currentRental.vehicle?.type,
-            battery_level: 75, // API doesn't provide this, using default
+            battery_level: currentRental.vehicle?.batteryLevel,
             capacity: currentRental.vehicle?.capacity,
             range_per_full_charge: currentRental.vehicle?.rangePerFullCharge,
             price_per_hour: currentRental.vehicle?.pricePerHour
@@ -358,7 +358,7 @@ const RentalCurrentPage = () => {
                       <span className="font-medium text-lg">{currentRental.vehicle.license_plate}</span>
                     </div>
                     <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <span className="text-gray-600">Pin còn lại</span>
+                      <span className="text-gray-600">Pin</span>
                       <div className="flex items-center">
                         <Battery className="h-4 w-4 mr-1 text-green-600" />
                         <span className="font-medium">{currentRental.vehicle.battery_level}%</span>

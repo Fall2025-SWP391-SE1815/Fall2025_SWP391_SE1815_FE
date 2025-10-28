@@ -42,7 +42,6 @@ const Footer = () => {
         { name: 'Xác thực giấy tờ', href: '#verification', icon: FileText },
         { name: 'Lịch sử thuê xe', href: '#history', icon: History },
         { name: 'Thống kê cá nhân', href: '#analytics', icon: BarChart3 },
-        { name: 'Thanh toán', href: '#payment', icon: CreditCard },
         { name: 'Câu hỏi thường gặp', href: '#faq', icon: HelpCircle }
       ]
     },

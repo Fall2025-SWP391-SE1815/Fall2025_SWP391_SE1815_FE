@@ -254,40 +254,252 @@ const RentalChecksPage = () => {
                 <CardContent className="space-y-6">
                   {/* Rental & Vehicle Info */}
                   {check.rental && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                      <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
-                        <Car className="h-4 w-4 mr-2 text-blue-600" />
-                        Thông tin xe và lượt thuê
-                      </h4>
-                      <div className="grid grid-cols-2 gap-3 text-sm">
-                        <div>
-                          <span className="text-gray-600">Biển số xe:</span>
-                          <p className="font-medium">{check.rental.vehicle?.licensePlate || 'N/A'}</p>
+                    <div className="space-y-4">
+                      {/* Rental Information */}
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
+                          <FileText className="h-4 w-4 mr-2 text-green-600" />
+                          Thông tin lượt thuê
+                        </h4>
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <span className="text-gray-600">Mã lượt thuê:</span>
+                            <p className="font-medium">#{check.rental.id}</p>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Loại thuê:</span>
+                            <p className="font-medium capitalize">
+                              {check.rental.rentalType === 'booking' ? 'Đặt trước' : 
+                               check.rental.rentalType === 'walkin' ? 'Thuê tại chỗ' : 'N/A'}
+                            </p>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Thời gian bắt đầu:</span>
+                            <p className="font-medium">
+                              {new Date(check.rental.startTime).toLocaleString('vi-VN')}
+                            </p>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Thời gian kết thúc:</span>
+                            <p className="font-medium">
+                              {new Date(check.rental.endTime).toLocaleString('vi-VN')}
+                            </p>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Trạng thái:</span>
+                            <p className="font-medium">
+                              <Badge variant={check.rental.status === 'wait_confirm' ? 'secondary' : 'default'}>
+                                {check.rental.status === 'wait_confirm' ? 'Chờ xác nhận' :
+                                 check.rental.status === 'confirmed' ? 'Đã xác nhận' :
+                                 check.rental.status === 'in_use' ? 'Đang sử dụng' :
+                                 check.rental.status === 'completed' ? 'Hoàn thành' :
+                                 check.rental.status === 'cancelled' ? 'Đã hủy' : check.rental.status}
+                              </Badge>
+                            </p>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Ngày tạo:</span>
+                            <p className="font-medium">
+                              {new Date(check.rental.createdAt).toLocaleString('vi-VN')}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <span className="text-gray-600">Loại xe:</span>
-                          <p className="font-medium">
-                            {check.rental.vehicle?.type === 'motorbike' ? 'Xe máy điện' : 
-                             check.rental.vehicle?.type === 'car' ? 'Ô tô điện' : 'N/A'}
-                          </p>
+                      </div>
+
+                      {/* Vehicle Information */}
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
+                          <Car className="h-4 w-4 mr-2 text-blue-600" />
+                          Thông tin xe
+                        </h4>
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <span className="text-gray-600">Biển số xe:</span>
+                            <p className="font-medium text-lg">{check.rental.vehicle?.licensePlate || 'N/A'}</p>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Loại xe:</span>
+                            <p className="font-medium">
+                              {check.rental.vehicle?.type === 'motorbike' ? 'Xe máy điện' : 
+                               check.rental.vehicle?.type === 'car' ? 'Ô tô điện' : 'N/A'}
+                            </p>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Hãng/Model:</span>
+                            <p className="font-medium">
+                              {check.rental.vehicle?.brand} {check.rental.vehicle?.model}
+                            </p>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Dung lượng pin:</span>
+                            <p className="font-medium">{check.rental.vehicle?.capacity} kWh</p>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Tầm hoạt động:</span>
+                            <p className="font-medium">{check.rental.vehicle?.rangePerFullCharge} km</p>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Loại pin:</span>
+                            <p className="font-medium">{check.rental.vehicle?.batteryType}</p>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Số ghế:</span>
+                            <p className="font-medium">{check.rental.vehicle?.numberSeat} người</p>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Giá thuê:</span>
+                            <p className="font-medium text-green-600">
+                              {new Intl.NumberFormat('vi-VN', { 
+                                style: 'currency', 
+                                currency: 'VND' 
+                              }).format(check.rental.vehicle?.pricePerHour)}/giờ
+                            </p>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Pin lúc nhận:</span>
+                            <p className="font-medium">{check.rental.batteryLevelStart}%</p>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Odo lúc nhận:</span>
+                            <p className="font-medium">{check.rental.odoStart?.toLocaleString()} km</p>
+                          </div>
+                          {check.rental.batteryLevelEnd && (
+                            <div>
+                              <span className="text-gray-600">Pin lúc trả:</span>
+                              <p className="font-medium">{check.rental.batteryLevelEnd}%</p>
+                            </div>
+                          )}
+                          {check.rental.odoEnd && (
+                            <div>
+                              <span className="text-gray-600">Odo lúc trả:</span>
+                              <p className="font-medium">{check.rental.odoEnd?.toLocaleString()} km</p>
+                            </div>
+                          )}
                         </div>
-                        <div>
-                          <span className="text-gray-600">Hãng/Model:</span>
-                          <p className="font-medium">
-                            {check.rental.vehicle?.brand} {check.rental.vehicle?.model}
-                          </p>
+                      </div>
+
+                      {/* Station Information */}
+                      <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                        <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
+                          <User className="h-4 w-4 mr-2 text-purple-600" />
+                          Thông tin trạm và nhân viên
+                        </h4>
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <span className="text-gray-600">Trạm lấy xe:</span>
+                            <p className="font-medium">{check.rental.stationPickup?.name || 'N/A'}</p>
+                            <p className="text-xs text-gray-500">{check.rental.stationPickup?.address}</p>
+                          </div>
+                          {check.rental.stationReturn && (
+                            <div>
+                              <span className="text-gray-600">Trạm trả xe:</span>
+                              <p className="font-medium">{check.rental.stationReturn.name}</p>
+                              <p className="text-xs text-gray-500">{check.rental.stationReturn.address}</p>
+                            </div>
+                          )}
+                          <div>
+                            <span className="text-gray-600">NV giao xe:</span>
+                            <p className="font-medium">{check.rental.staffPickup?.fullName || 'N/A'}</p>
+                            <p className="text-xs text-gray-500">{check.rental.staffPickup?.phone}</p>
+                          </div>
+                          {check.rental.staffReturn && (
+                            <div>
+                              <span className="text-gray-600">NV nhận xe:</span>
+                              <p className="font-medium">{check.rental.staffReturn.fullName}</p>
+                              <p className="text-xs text-gray-500">{check.rental.staffReturn.phone}</p>
+                            </div>
+                          )}
                         </div>
-                        <div>
-                          <span className="text-gray-600">Trạm:</span>
-                          <p className="font-medium">{check.rental.stationPickup?.name || 'N/A'}</p>
+                      </div>
+
+                      {/* Financial Information */}
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                        <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
+                          <FileText className="h-4 w-4 mr-2 text-yellow-600" />
+                          Thông tin thanh toán
+                        </h4>
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <span className="text-gray-600">Tổng chi phí:</span>
+                            <p className="font-medium text-lg text-green-600">
+                              {new Intl.NumberFormat('vi-VN', { 
+                                style: 'currency', 
+                                currency: 'VND' 
+                              }).format(check.rental.totalCost)}
+                            </p>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Chi phí thuê:</span>
+                            <p className="font-medium">
+                              {new Intl.NumberFormat('vi-VN', { 
+                                style: 'currency', 
+                                currency: 'VND' 
+                              }).format(check.rental.rentalCost)}
+                            </p>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Tiền cọc:</span>
+                            <p className="font-medium">
+                              {new Intl.NumberFormat('vi-VN', { 
+                                style: 'currency', 
+                                currency: 'VND' 
+                              }).format(check.rental.depositAmount)}
+                            </p>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Trạng thái cọc:</span>
+                            <p className="font-medium">
+                              <Badge variant={check.rental.depositStatus === 'held' ? 'secondary' : 'default'}>
+                                {check.rental.depositStatus === 'held' ? 'Đang giữ' :
+                                 check.rental.depositStatus === 'returned' ? 'Đã trả' :
+                                 check.rental.depositStatus === 'pending' ? 'Chờ xử lý' : check.rental.depositStatus}
+                              </Badge>
+                            </p>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Bảo hiểm:</span>
+                            <p className="font-medium">
+                              {check.rental.insurance > 0 ? 
+                                new Intl.NumberFormat('vi-VN', { 
+                                  style: 'currency', 
+                                  currency: 'VND' 
+                                }).format(check.rental.insurance) 
+                                : 'Không có bảo hiểm'
+                              }
+                            </p>
+                          </div>
+                          {check.rental.totalDistance && (
+                            <div>
+                              <span className="text-gray-600">Tổng quãng đường:</span>
+                              <p className="font-medium">{check.rental.totalDistance} km</p>
+                            </div>
+                          )}
                         </div>
-                        <div>
-                          <span className="text-gray-600">Nhân viên xử lý:</span>
-                          <p className="font-medium">{check.staff?.fullName || 'N/A'}</p>
-                        </div>
-                        <div>
-                          <span className="text-gray-600">SĐT nhân viên:</span>
-                          <p className="font-medium">{check.staff?.phone || 'N/A'}</p>
+                      </div>
+
+                      {/* Renter Information */}
+                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                        <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
+                          <User className="h-4 w-4 mr-2 text-gray-600" />
+                          Thông tin khách hàng
+                        </h4>
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <span className="text-gray-600">Họ tên:</span>
+                            <p className="font-medium">{check.rental.renter?.fullName || 'N/A'}</p>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Email:</span>
+                            <p className="font-medium">{check.rental.renter?.email || 'N/A'}</p>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Số điện thoại:</span>
+                            <p className="font-medium">{check.rental.renter?.phone || 'N/A'}</p>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">ID khách hàng:</span>
+                            <p className="font-medium">#{check.rental.renter?.id}</p>
+                          </div>
                         </div>
                       </div>
                     </div>

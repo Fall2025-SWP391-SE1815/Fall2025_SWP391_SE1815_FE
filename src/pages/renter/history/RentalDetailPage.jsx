@@ -518,12 +518,12 @@ const RentalDetailPage = () => {
 
             <div>
               <label className="text-sm font-medium text-gray-500">Trạm trả xe</label>
-              {rental.stationReturn ? (
+              {rental.stationPickup ? (
                 <div className="mt-2">
-                  <p className="font-semibold">{rental.stationReturn.name}</p>
-                  <p className="text-gray-600">{rental.stationReturn.address}</p>
-                  <Badge className="mt-1" variant={rental.stationReturn.status === 'active' ? 'default' : 'secondary'}>
-                    {rental.stationReturn.status === 'active' ? 'Hoạt động' : 'Không hoạt động'}
+                  <p className="font-semibold">{rental.stationPickup.name}</p>
+                  <p className="text-gray-600">{rental.stationPickup.address}</p>
+                  <Badge className="mt-1" variant={rental.stationPickup.status === 'active' ? 'default' : 'secondary'}>
+                    {rental.stationPickup.status === 'active' ? 'Hoạt động' : 'Không hoạt động'}
                   </Badge>
                 </div>
               ) : (

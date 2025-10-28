@@ -124,6 +124,12 @@ const HistoryPage = () => {
         return <Badge variant="destructive">Đã hủy</Badge>;
       case 'pending':
         return <Badge className="bg-yellow-100 text-yellow-800">Chờ xử lý</Badge>;
+      case 'in_use':
+        return <Badge className="bg-blue-100 text-blue-800">Đang sử dụng</Badge>;
+      case 'expired':
+        return <Badge className="bg-red-100 text-red-800">Quá hạn</Badge>;
+        case 'waiting_for_payment':
+        return <Badge className="bg-purple-100 text-purple-800">Chờ thanh toán</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
@@ -176,10 +182,10 @@ const HistoryPage = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tất cả trạng thái</SelectItem>
+                <SelectItem value="booking">Đang đặt</SelectItem>
                 <SelectItem value="returned">Hoàn thành</SelectItem>
-                <SelectItem value="cancelled">Đã hủy</SelectItem>
                 <SelectItem value="in_use">Đang sử dụng</SelectItem>
-                <SelectItem value="pending">Chờ xử lý</SelectItem>
+                <SelectItem value="waiting_for_payment">Chờ thanh toán</SelectItem>
               </SelectContent>
             </Select>
 

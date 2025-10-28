@@ -27,13 +27,11 @@ import StaffPerformance from "../pages/admin/StaffPerformance.jsx";
 
 // Renter Components
 import HistoryPage from "../pages/renter/history/HistoryPage.jsx";
-import PaymentPage from "../pages/renter/history/PaymentPage.jsx";
 import ProfilePage from "../pages/renter/profile/ProfilePage.jsx";
 import ReservationsPage from "../pages/renter/booking/ReservationsPage.jsx";
 import StationsPage from "../pages/renter/booking/StationsPage.jsx";
 import VehiclesPage from "../pages/renter/booking/VehiclesPage.jsx";
 import ComplaintsPage from "../pages/renter/complaints/ComplaintsPage.jsx";
-import IncidentsPage from "../pages/renter/incidents/IncidentsPage.jsx";
 
 // Public Components (Guest accessible)
 import PublicStationsPage from "../pages/public/PublicStationsPage.jsx";
@@ -43,7 +41,6 @@ import PublicVehiclesPage from "../pages/public/PublicVehiclesPage.jsx";
 import RentalCurrentPage from "../pages/renter/current/RentalCurrentPage.jsx";
 import RentalChecksPage from "../pages/renter/current/RentalChecksPage.jsx";
 import RentalDetailPage from "../pages/renter/history/RentalDetailPage.jsx";
-import PaymentDetailPage from "../pages/renter/history/PaymentDetailPage.jsx";
 import ComplaintDetailPage from "../pages/renter/complaints/ComplaintDetailPage.jsx";
 
 // Staff Components
@@ -87,9 +84,7 @@ export const paths = {
     currentRentals: "rentals/current",
     history: "history",
     locations: "locations",
-    payments: "payments",
     complaints: "complaints",
-    incidents: "incidents",
     // New rental workflow routes
     rental: {
       checkin: "/rentals/checkin",
@@ -266,17 +261,6 @@ const router = createBrowserRouter([
     ]
   },
   {
-    path: "/payments",
-    element: (
-      <ProtectedRoute requiredRole="renter">
-        <MainLayout />
-      </ProtectedRoute>
-    ),
-    children: [
-      { index: true, element: <PaymentPage /> }
-    ]
-  },
-  {
     path: "/rental-detail/:id",
     element: (
       <ProtectedRoute requiredRole="renter">
@@ -285,17 +269,6 @@ const router = createBrowserRouter([
     ),
     children: [
       { index: true, element: <RentalDetailPage /> }
-    ]
-  },
-  {
-    path: "/payment-detail/:id",
-    element: (
-      <ProtectedRoute requiredRole="renter">
-        <MainLayout />
-      </ProtectedRoute>
-    ),
-    children: [
-      { index: true, element: <PaymentDetailPage /> }
     ]
   },
   {
@@ -318,17 +291,6 @@ const router = createBrowserRouter([
     ),
     children: [
       { index: true, element: <ComplaintsPage /> }
-    ]
-  },
-  {
-    path: "/incidents",
-    element: (
-      <ProtectedRoute requiredRole="renter">
-        <MainLayout />
-      </ProtectedRoute>
-    ),
-    children: [
-      { index: true, element: <IncidentsPage /> }
     ]
   },
 
