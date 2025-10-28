@@ -198,97 +198,300 @@ const RentalsTab = () => {
           </DialogHeader>
 
           {selectedRental && (
-            <div className='grid gap-4 py-4'>
-              <div className='grid grid-cols-2 gap-4'>
-                <div>
-                  <Label className='text-sm font-medium text-muted-foreground'>Người thuê</Label>
-                  <p className='text-lg font-semibold'>{selectedRental.renter?.fullName || 'N/A'}</p>
-                  <p className='text-sm text-muted-foreground'>{selectedRental.renter?.email}</p>
-                  <p className='text-sm text-muted-foreground'>{selectedRental.renter?.phone}</p>
-                </div>
-                <div>
-                  <Label className='text-sm font-medium text-muted-foreground'>Xe</Label>
-                  <p className='text-lg'>{selectedRental.vehicle?.licensePlate}</p>
-                  <p className='text-sm text-muted-foreground'>{selectedRental.vehicle?.brand} {selectedRental.vehicle?.model}</p>
-                  <p className='text-sm text-muted-foreground'>Loại: {selectedRental.vehicle?.type}</p>
-                </div>
-              </div>
-
-              <div className='grid grid-cols-2 gap-4'>
-                <div>
-                  <Label className='text-sm font-medium text-muted-foreground'>Trạng thái</Label>
-                  <div className='mt-1'>
-                    {getRentalStatusBadge(selectedRental.status)}
+            <div className='grid gap-6 py-4 max-h-[70vh] overflow-y-auto'>
+              {/* Basic Information */}
+              <div className='bg-blue-50 p-4 rounded-lg'>
+                <h3 className='font-semibold text-blue-900 mb-3'>Thông tin cơ bản</h3>
+                <div className='grid grid-cols-2 gap-4'>
+                  <div>
+                    <Label className='text-sm font-medium text-muted-foreground'>Mã lượt thuê</Label>
+                    <p className='text-lg font-semibold'>#{selectedRental.id}</p>
+                  </div>
+                  <div>
+                    <Label className='text-sm font-medium text-muted-foreground'>Ngày tạo</Label>
+                    <p className='text-lg'>{new Date(selectedRental.createdAt).toLocaleString('vi-VN')}</p>
                   </div>
                 </div>
-                <div>
-                  <Label className='text-sm font-medium text-muted-foreground'>Chi phí</Label>
-                  <p className='text-lg font-bold'>
-                    {selectedRental.totalCost > 0 ? formatCurrency(selectedRental.totalCost) : 'Chưa tính'}
-                  </p>
+              </div>
+
+              {/* Renter Information */}
+              <div className='bg-green-50 p-4 rounded-lg'>
+                <h3 className='font-semibold text-green-900 mb-3'>Thông tin khách hàng</h3>
+                <div className='grid grid-cols-2 gap-4'>
+                  <div>
+                    <Label className='text-sm font-medium text-muted-foreground'>Họ tên</Label>
+                    <p className='text-lg font-semibold'>{selectedRental.renter?.fullName || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <Label className='text-sm font-medium text-muted-foreground'>ID khách hàng</Label>
+                    <p className='text-lg'>#{selectedRental.renter?.id}</p>
+                  </div>
+                  <div>
+                    <Label className='text-sm font-medium text-muted-foreground'>Email</Label>
+                    <p className='text-sm text-muted-foreground'>{selectedRental.renter?.email}</p>
+                  </div>
+                  <div>
+                    <Label className='text-sm font-medium text-muted-foreground'>Số điện thoại</Label>
+                    <p className='text-sm text-muted-foreground'>{selectedRental.renter?.phone}</p>
+                  </div>
+                  <div>
+                    <Label className='text-sm font-medium text-muted-foreground'>Vai trò</Label>
+                    <Badge variant="outline">{selectedRental.renter?.role}</Badge>
+                  </div>
+                  <div>
+                    <Label className='text-sm font-medium text-muted-foreground'>Ngày tham gia</Label>
+                    <p className='text-sm text-muted-foreground'>
+                      {selectedRental.renter?.createdAt 
+                        ? new Date(selectedRental.renter.createdAt).toLocaleDateString('vi-VN')
+                        : 'N/A'
+                      }
+                    </p>
+                  </div>
                 </div>
               </div>
 
-              <div className='grid grid-cols-2 gap-4'>
-                <div>
-                  <Label className='text-sm font-medium text-muted-foreground'>Thời gian bắt đầu</Label>
-                  <p className='text-lg'>{new Date(selectedRental.startTime).toLocaleString('vi-VN')}</p>
-                </div>
-                <div>
-                  <Label className='text-sm font-medium text-muted-foreground'>Thời gian kết thúc</Label>
-                  <p className='text-lg'>
-                    {selectedRental.endTime ?
-                      new Date(selectedRental.endTime).toLocaleString('vi-VN') :
-                      'Chưa kết thúc'}
-                  </p>
+              {/* Vehicle Information */}
+              <div className='bg-orange-50 p-4 rounded-lg'>
+                <h3 className='font-semibold text-orange-900 mb-3'>Thông tin xe</h3>
+                <div className='grid grid-cols-2 gap-4'>
+                  <div>
+                    <Label className='text-sm font-medium text-muted-foreground'>Biển số xe</Label>
+                    <p className='text-lg font-bold text-blue-600'>{selectedRental.vehicle?.licensePlate}</p>
+                  </div>
+                  <div>
+                    <Label className='text-sm font-medium text-muted-foreground'>ID xe</Label>
+                    <p className='text-lg'>#{selectedRental.vehicle?.id}</p>
+                  </div>
+                  <div>
+                    <Label className='text-sm font-medium text-muted-foreground'>Hãng/Model</Label>
+                    <p className='text-lg'>{selectedRental.vehicle?.brand} {selectedRental.vehicle?.model}</p>
+                  </div>
+                  <div>
+                    <Label className='text-sm font-medium text-muted-foreground'>Loại xe</Label>
+                    <Badge className={selectedRental.vehicle?.type === 'motorbike' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}>
+                      {selectedRental.vehicle?.type === 'motorbike' ? 'Xe máy điện' : 
+                       selectedRental.vehicle?.type === 'car' ? 'Ô tô điện' : selectedRental.vehicle?.type}
+                    </Badge>
+                  </div>
+                  <div>
+                    <Label className='text-sm font-medium text-muted-foreground'>Dung lượng pin</Label>
+                    <p className='text-lg'>{selectedRental.vehicle?.capacity} kWh</p>
+                  </div>
+                  <div>
+                    <Label className='text-sm font-medium text-muted-foreground'>Tầm hoạt động</Label>
+                    <p className='text-lg'>{selectedRental.vehicle?.rangePerFullCharge} km</p>
+                  </div>
+                  <div>
+                    <Label className='text-sm font-medium text-muted-foreground'>Loại pin</Label>
+                    <p className='text-lg'>{selectedRental.vehicle?.batteryType}</p>
+                  </div>
+                  <div>
+                    <Label className='text-sm font-medium text-muted-foreground'>Số ghế</Label>
+                    <p className='text-lg'>{selectedRental.vehicle?.numberSeat} người</p>
+                  </div>
+                  <div>
+                    <Label className='text-sm font-medium text-muted-foreground'>Giá thuê</Label>
+                    <p className='text-lg font-bold text-green-600'>{formatCurrency(selectedRental.vehicle?.pricePerHour)}/giờ</p>
+                  </div>
+                  <div>
+                    <Label className='text-sm font-medium text-muted-foreground'>Trạng thái xe</Label>
+                    <Badge variant={selectedRental.vehicle?.status === 'available' ? 'default' : 'secondary'}>
+                      {selectedRental.vehicle?.status === 'available' ? 'Có sẵn' :
+                       selectedRental.vehicle?.status === 'rented' ? 'Đang thuê' :
+                       selectedRental.vehicle?.status === 'maintenance' ? 'Bảo trì' : selectedRental.vehicle?.status}
+                    </Badge>
+                  </div>
                 </div>
               </div>
 
-              <div className='grid grid-cols-2 gap-4'>
-                <div>
-                  <Label className='text-sm font-medium text-muted-foreground'>Trạm nhận xe</Label>
-                  <p className='text-lg'>{selectedRental.stationPickup?.name}</p>
-                  <p className='text-sm text-muted-foreground'>{selectedRental.stationPickup?.address}</p>
-                </div>
-                <div>
-                  <Label className='text-sm font-medium text-muted-foreground'>Trạm trả xe</Label>
-                  <p className='text-lg'>
-                    {selectedRental.stationReturn?.name || 'Chưa trả xe'}
-                  </p>
-                  {selectedRental.stationReturn && (
-                    <p className='text-sm text-muted-foreground'>{selectedRental.stationReturn?.address}</p>
+              {/* Battery and Odometer Information */}
+              <div className='bg-purple-50 p-4 rounded-lg'>
+                <h3 className='font-semibold text-purple-900 mb-3'>Thông tin pin và quãng đường</h3>
+                <div className='grid grid-cols-2 gap-4'>
+                  <div>
+                    <Label className='text-sm font-medium text-muted-foreground'>Pin lúc nhận xe</Label>
+                    <p className='text-lg font-bold text-green-600'>{selectedRental.batteryLevelStart}%</p>
+                  </div>
+                  <div>
+                    <Label className='text-sm font-medium text-muted-foreground'>Pin lúc trả xe</Label>
+                    <p className='text-lg font-bold text-orange-600'>
+                      {selectedRental.batteryLevelEnd ? `${selectedRental.batteryLevelEnd}%` : 'Chưa trả'}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className='text-sm font-medium text-muted-foreground'>Odo lúc nhận xe</Label>
+                    <p className='text-lg'>{selectedRental.odoStart?.toLocaleString()} km</p>
+                  </div>
+                  <div>
+                    <Label className='text-sm font-medium text-muted-foreground'>Odo lúc trả xe</Label>
+                    <p className='text-lg'>
+                      {selectedRental.odoEnd ? `${selectedRental.odoEnd?.toLocaleString()} km` : 'Chưa trả'}
+                    </p>
+                  </div>
+                  {selectedRental.odoEnd && selectedRental.odoStart && (
+                    <div>
+                      <Label className='text-sm font-medium text-muted-foreground'>Quãng đường đi</Label>
+                      <p className='text-lg font-bold text-blue-600'>
+                        {(selectedRental.odoEnd - selectedRental.odoStart).toLocaleString()} km
+                      </p>
+                    </div>
+                  )}
+                  {selectedRental.totalDistance && (
+                    <div>
+                      <Label className='text-sm font-medium text-muted-foreground'>Tổng quãng đường</Label>
+                      <p className='text-lg font-bold'>{selectedRental.totalDistance.toLocaleString()} km</p>
+                    </div>
                   )}
                 </div>
               </div>
 
-              <div className='grid grid-cols-2 gap-4'>
-                <div>
-                  <Label className='text-sm font-medium text-muted-foreground'>Nhân viên nhận xe</Label>
-                  <p className='text-lg'>{selectedRental.staffPickup?.fullName}</p>
-                  <p className='text-sm text-muted-foreground'>{selectedRental.staffPickup?.email}</p>
-                </div>
-                <div>
-                  <Label className='text-sm font-medium text-muted-foreground'>Nhân viên trả xe</Label>
-                  <p className='text-lg'>
-                    {selectedRental.staffReturn?.fullName || 'Chưa trả xe'}
-                  </p>
-                  {selectedRental.staffReturn && (
-                    <p className='text-sm text-muted-foreground'>{selectedRental.staffReturn?.email}</p>
-                  )}
+              {/* Rental Status and Timing */}
+              <div className='bg-gray-50 p-4 rounded-lg'>
+                <h3 className='font-semibold text-gray-900 mb-3'>Trạng thái và thời gian</h3>
+                <div className='grid grid-cols-2 gap-4'>
+                  <div>
+                    <Label className='text-sm font-medium text-muted-foreground'>Trạng thái lượt thuê</Label>
+                    <div className='mt-1'>
+                      {getRentalStatusBadge(selectedRental.status)}
+                    </div>
+                  </div>
+                  <div>
+                    <Label className='text-sm font-medium text-muted-foreground'>Loại thuê</Label>
+                    <Badge className={selectedRental.rentalType === 'booking' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'}>
+                      {selectedRental.rentalType === 'booking' ? 'Đặt trước' : 
+                       selectedRental.rentalType === 'walkin' ? 'Thuê tại chỗ' : selectedRental.rentalType}
+                    </Badge>
+                  </div>
+                  <div>
+                    <Label className='text-sm font-medium text-muted-foreground'>Thời gian bắt đầu</Label>
+                    <p className='text-lg'>{new Date(selectedRental.startTime).toLocaleString('vi-VN')}</p>
+                  </div>
+                  <div>
+                    <Label className='text-sm font-medium text-muted-foreground'>Thời gian kết thúc</Label>
+                    <p className='text-lg'>
+                      {selectedRental.endTime ?
+                        new Date(selectedRental.endTime).toLocaleString('vi-VN') :
+                        'Chưa kết thúc'}
+                    </p>
+                  </div>
                 </div>
               </div>
 
-              <div className='grid grid-cols-2 gap-4'>
-                <div>
-                  <Label className='text-sm font-medium text-muted-foreground'>Loại thuê</Label>
-                  <p className='text-lg capitalize'>{selectedRental.rentalType}</p>
+              {/* Financial Information */}
+              <div className='bg-yellow-50 p-4 rounded-lg'>
+                <h3 className='font-semibold text-yellow-900 mb-3'>Thông tin tài chính</h3>
+                <div className='grid grid-cols-2 gap-4'>
+                  <div>
+                    <Label className='text-sm font-medium text-muted-foreground'>Tổng chi phí</Label>
+                    <p className='text-2xl font-bold text-green-600'>
+                      {selectedRental.totalCost > 0 ? formatCurrency(selectedRental.totalCost) : 'Chưa tính'}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className='text-sm font-medium text-muted-foreground'>Chi phí thuê</Label>
+                    <p className='text-lg font-bold'>
+                      {selectedRental.rentalCost ? formatCurrency(selectedRental.rentalCost) : 'Chưa tính'}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className='text-sm font-medium text-muted-foreground'>Tiền cọc</Label>
+                    <p className='text-lg font-bold'>
+                      {selectedRental.depositAmount ? formatCurrency(selectedRental.depositAmount) : 'Không có'}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className='text-sm font-medium text-muted-foreground'>Trạng thái cọc</Label>
+                    <Badge variant={
+                      selectedRental.depositStatus === 'held' ? 'secondary' :
+                      selectedRental.depositStatus === 'returned' ? 'default' :
+                      selectedRental.depositStatus === 'refunded' ? 'default' : 'outline'
+                    }>
+                      {selectedRental.depositStatus === 'held' ? 'Đang giữ' :
+                       selectedRental.depositStatus === 'returned' ? 'Đã trả' :
+                       selectedRental.depositStatus === 'refunded' ? 'Đã hoàn' :
+                       selectedRental.depositStatus === 'pending' ? 'Chờ xử lý' : selectedRental.depositStatus}
+                    </Badge>
+                  </div>
+                  <div>
+                    <Label className='text-sm font-medium text-muted-foreground'>Bảo hiểm</Label>
+                    <p className='text-lg font-bold'>
+                      {selectedRental.insurance > 0 ? formatCurrency(selectedRental.insurance) : 'Không có bảo hiểm'}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <Label className='text-sm font-medium text-muted-foreground'>Tiền cọc</Label>
-                  <p className='text-lg font-bold'>
-                    {selectedRental.depositAmount ? formatCurrency(selectedRental.depositAmount) : 'Không có'}
-                  </p>
-                  <p className='text-sm text-muted-foreground'>Trạng thái: {selectedRental.depositStatus}</p>
+              </div>
+
+              {/* Station Information */}
+              <div className='bg-indigo-50 p-4 rounded-lg'>
+                <h3 className='font-semibold text-indigo-900 mb-3'>Thông tin trạm</h3>
+                <div className='grid grid-cols-2 gap-4'>
+                  <div>
+                    <Label className='text-sm font-medium text-muted-foreground'>Trạm lấy xe</Label>
+                    <p className='text-lg font-bold'>{selectedRental.stationPickup?.name}</p>
+                    <p className='text-sm text-muted-foreground'>ID: #{selectedRental.stationPickup?.id}</p>
+                    <p className='text-sm text-muted-foreground'>{selectedRental.stationPickup?.address}</p>
+                    <div className='flex items-center gap-2 mt-1'>
+                      <Badge variant={selectedRental.stationPickup?.status === 'active' ? 'default' : 'secondary'}>
+                        {selectedRental.stationPickup?.status === 'active' ? 'Hoạt động' : selectedRental.stationPickup?.status}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div>
+                    <Label className='text-sm font-medium text-muted-foreground'>Trạm trả xe</Label>
+                    {selectedRental.stationReturn ? (
+                      <>
+                        <p className='text-lg font-bold'>{selectedRental.stationReturn.name}</p>
+                        <p className='text-sm text-muted-foreground'>ID: #{selectedRental.stationReturn.id}</p>
+                        <p className='text-sm text-muted-foreground'>{selectedRental.stationReturn.address}</p>
+                        <div className='flex items-center gap-2 mt-1'>
+                          <Badge variant={selectedRental.stationReturn.status === 'active' ? 'default' : 'secondary'}>
+                            {selectedRental.stationReturn.status === 'active' ? 'Hoạt động' : selectedRental.stationReturn.status}
+                          </Badge>
+                        </div>
+                      </>
+                    ) : (
+                      <p className='text-lg text-gray-500'>Chưa trả xe</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Staff Information */}
+              <div className='bg-teal-50 p-4 rounded-lg'>
+                <h3 className='font-semibold text-teal-900 mb-3'>Thông tin nhân viên</h3>
+                <div className='grid grid-cols-2 gap-4'>
+                  <div>
+                    <Label className='text-sm font-medium text-muted-foreground'>Nhân viên giao xe</Label>
+                    {selectedRental.staffPickup ? (
+                      <>
+                        <p className='text-lg font-bold'>{selectedRental.staffPickup.fullName}</p>
+                        <p className='text-sm text-muted-foreground'>ID: #{selectedRental.staffPickup.id}</p>
+                        <p className='text-sm text-muted-foreground'>{selectedRental.staffPickup.email}</p>
+                        <p className='text-sm text-muted-foreground'>{selectedRental.staffPickup.phone}</p>
+                        <div className='flex items-center gap-2 mt-1'>
+                          <Badge variant="outline">{selectedRental.staffPickup.role}</Badge>
+                        </div>
+                      </>
+                    ) : (
+                      <p className='text-lg text-gray-500'>Chưa có nhân viên</p>
+                    )}
+                  </div>
+                  <div>
+                    <Label className='text-sm font-medium text-muted-foreground'>Nhân viên nhận xe</Label>
+                    {selectedRental.staffReturn ? (
+                      <>
+                        <p className='text-lg font-bold'>{selectedRental.staffReturn.fullName}</p>
+                        <p className='text-sm text-muted-foreground'>ID: #{selectedRental.staffReturn.id}</p>
+                        <p className='text-sm text-muted-foreground'>{selectedRental.staffReturn.email}</p>
+                        <p className='text-sm text-muted-foreground'>{selectedRental.staffReturn.phone}</p>
+                        <div className='flex items-center gap-2 mt-1'>
+                          <Badge variant="outline">{selectedRental.staffReturn.role}</Badge>
+                        </div>
+                      </>
+                    ) : (
+                      <p className='text-lg text-gray-500'>Chưa trả xe</p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
