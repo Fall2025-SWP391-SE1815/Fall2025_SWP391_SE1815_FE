@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { 
   Car, 
   Search, 
@@ -16,7 +17,10 @@ import {
   Users,
   RefreshCw,
   Eye,
-  Book
+  Book,
+  Battery,
+  Gauge,
+  Settings
 } from 'lucide-react';
 import { useAuth } from '@/hooks/auth/useAuth';
 import vehicleService from '@/services/vehicles/vehicleService';
@@ -30,7 +34,9 @@ const VehiclesPage = () => {
   const [stations, setStations] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  
+  const [selectedVehicle, setSelectedVehicle] = useState(null);
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+
   // Filters
   const [filters, setFilters] = useState({
     type: '',
@@ -89,7 +95,12 @@ const VehiclesPage = () => {
           price_per_hour: v.pricePerHour || v.price_per_hour,
           station_id: v.station?.id || v.station_id || null,
           station: v.station || null,
-          imageUrl: imageUrl
+          imageUrl: imageUrl,
+          batteryType: v.batteryType || v.battery_type,
+          batteryLevel: v.batteryLevel || v.battery_level,
+          odo: v.odo || v.odo,
+          numberSeat: v.numberSeat || v.number_seat,
+          rangePerFullCharge: v.rangePerFullCharge || v.range_per_full_charge
         };
       });
 
@@ -119,13 +130,13 @@ const VehiclesPage = () => {
       price_max: urlParams.get('price_max') || '',
       search: urlParams.get('search') || ''
     };
-    
+
     // Only update if there are URL params to avoid unnecessary re-renders
     const hasUrlParams = Object.values(initialFilters).some(value => value !== '');
     if (hasUrlParams) {
       setFilters(initialFilters);
     }
-    
+
     loadStations();
   }, []); // Remove authentication dependency
 
@@ -169,11 +180,34 @@ const VehiclesPage = () => {
     return type === 'motorbike' ? 'Xe máy' : 'Ô tô';
   };
 
+  const getBatteryTypeLabel = (type) => {
+    const typeMap = {
+      'lithium-ion': 'Lithium-ion',
+      'Lithium Iron Phosphate': 'Lithium Iron Phosphate',
+      'Nickel Manganese Cobalt': 'Nickel Manganese Cobalt',
+      'Nickel Cobalt Aluminum': 'Nickel Cobalt Aluminum',
+      'lead-acid': 'Lead Acid'
+    };
+    return typeMap[type] || type;
+  };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
+    }).format(amount);
+  };
+
+  const handleViewVehicleDetail = (vehicle) => {
+    setSelectedVehicle(vehicle);
+    setIsDetailDialogOpen(true);
+  };
+
   const handleBookVehicle = (vehicle) => {
     // Navigate to booking page with vehicle pre-selected
     const bookingUrl = `/reservations?vehicle_id=${vehicle.id}&station_id=${vehicle.station_id}`;
     window.location.href = bookingUrl;
-    
+
     // Show feedback to user
     toast.success(`Chuyển đến trang đặt chỗ cho xe ${vehicle.license_plate}`);
   };
@@ -266,7 +300,7 @@ const VehiclesPage = () => {
               >
                 Xóa bộ lọc
               </Button>
-              
+
               <Button
                 onClick={loadVehicles}
                 disabled={loading}
@@ -312,7 +346,7 @@ const VehiclesPage = () => {
                       )}
                       {vehicle.license_plate}
                     </span>
-                    <Badge 
+                    <Badge
                       variant={vehicle.status === 'available' ? 'default' : 'secondary'}
                       className={vehicle.status === 'available' ? 'bg-green-100 text-green-800' : ''}
                     >
@@ -324,8 +358,8 @@ const VehiclesPage = () => {
                   {/* Vehicle Image */}
                   {vehicle.imageUrl && (
                     <div className="w-full h-48 rounded-lg overflow-hidden bg-gray-100">
-                      <img 
-                        src={vehicle.imageUrl} 
+                      <img
+                        src={vehicle.imageUrl}
                         alt={`${vehicle.brand} ${vehicle.model}`}
                         className="w-full h-full object-cover"
                         onError={(e) => {
@@ -335,7 +369,7 @@ const VehiclesPage = () => {
                       />
                     </div>
                   )}
-                  
+
                   {/* Vehicle Info */}
                   {/* Vehicle Info */}
                   <div className="space-y-2">{!vehicle.imageUrl && (
@@ -352,6 +386,10 @@ const VehiclesPage = () => {
                       <span className="text-sm">{getVehicleTypeLabel(vehicle.type)}</span>
                     </div>
                     <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-gray-700">Số ghế:</span>
+                      <span className="text-sm">{vehicle.numberSeat}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
                       <span className="text-sm font-medium text-gray-700">Hãng:</span>
                       <span className="text-sm">{vehicle.brand}</span>
                     </div>
@@ -360,10 +398,21 @@ const VehiclesPage = () => {
                       <span className="text-sm">{vehicle.model}</span>
                     </div>
                     <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-gray-700">Pin hiện tại:</span>
+                      <span className={`text-sm flex items-center ${
+                        (vehicle.batteryLevel || 0) > 80 ? 'text-green-600' :
+                        (vehicle.batteryLevel || 0) > 50 ? 'text-yellow-600' :
+                        'text-red-600'
+                      }`}>
+                        <Battery className="h-4 w-4 mr-1" />
+                        {vehicle.batteryLevel || 0}%
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
                       <span className="text-sm font-medium text-gray-700">Dung lượng pin</span>
                       <span className="text-sm flex items-center">
                         <Zap className="h-4 w-4 mr-1" />
-                        {vehicle.capacity}
+                        {vehicle.capacity} kWh
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
@@ -397,9 +446,7 @@ const VehiclesPage = () => {
                       Đặt xe
                     </Button>
                     <Button
-                      onClick={() => {
-                        toast.info('Tính năng xem chi tiết đang được phát triển');
-                      }}
+                      onClick={() => handleViewVehicleDetail(vehicle)}
                       variant="outline"
                       size="sm"
                     >
@@ -442,11 +489,188 @@ const VehiclesPage = () => {
         <div className="mt-12 text-center text-sm text-gray-500">
           <p>
             Hiển thị {filteredVehicles.length} xe
-            {(filters.search || filters.type || filters.station_id || filters.price_min || filters.price_max) && 
+            {(filters.search || filters.type || filters.station_id || filters.price_min || filters.price_max) &&
               ` (lọc từ ${vehicles.length} xe)`
             }
           </p>
         </div>
+
+        {/* Vehicle Detail Dialog */}
+        <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Car className="h-5 w-5" />
+                Chi tiết phương tiện
+              </DialogTitle>
+            </DialogHeader>
+
+            {selectedVehicle && (
+              <div className="space-y-6 pr-2">
+                {/* Vehicle Image */}
+                {selectedVehicle.imageUrl && (
+                  <div className="w-full h-64 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
+                    <img 
+                      src={selectedVehicle.imageUrl}
+                      alt={selectedVehicle.license_plate}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.parentElement.innerHTML = '<div class="text-center text-gray-500"><svg class="h-16 w-16 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"></path></svg><p class="mt-2">Không thể tải ảnh</p></div>';
+                      }}
+                    />
+                  </div>
+                )}
+
+                {/* Header với biển số và trạng thái */}
+                <div className="flex items-center justify-between pb-4 border-b">
+                  <div>
+                    <h3 className="text-2xl font-bold">{selectedVehicle.license_plate}</h3>
+                    <p className="text-muted-foreground">{selectedVehicle.brand} {selectedVehicle.model}</p>
+                  </div>
+                  <div>
+                    <Badge 
+                      variant={selectedVehicle.status === 'available' ? 'default' : 'secondary'}
+                      className={selectedVehicle.status === 'available' ? 'bg-green-100 text-green-800' : ''}
+                    >
+                      {selectedVehicle.status === 'available' ? 'Có sẵn' : 'Không có sẵn'}
+                    </Badge>
+                  </div>
+                </div>
+
+                {/* Grid thông tin chi tiết */}
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-3">
+                      <Car className="h-5 w-5 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Loại xe</p>
+                        <p className="font-medium">{getVehicleTypeLabel(selectedVehicle.type)}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3">
+                      <Users className="h-5 w-5 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Số chỗ ngồi</p>
+                        <p className="font-medium">{selectedVehicle.numberSeat || 'N/A'} chỗ</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3">
+                      <Battery className="h-5 w-5 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Dung lượng pin</p>
+                        <p className="font-medium">{selectedVehicle.capacity} kWh</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3">
+                      <Zap className="h-5 w-5 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Loại pin</p>
+                        <p className="font-medium">{getBatteryTypeLabel(selectedVehicle.batteryType) || 'N/A'}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3">
+                      <Settings className="h-5 w-5 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Quãng đường/sạc đầy</p>
+                        <p className="font-medium">{selectedVehicle.rangePerFullCharge} km</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-3">
+                      <Battery className="h-5 w-5 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Mức pin hiện tại</p>
+                        <p className={`font-medium ${
+                          (selectedVehicle.batteryLevel || 0) > 80 ? 'text-green-600' :
+                          (selectedVehicle.batteryLevel || 0) > 50 ? 'text-yellow-600' :
+                          'text-red-600'
+                        }`}>
+                          {selectedVehicle.batteryLevel || 'N/A'}%
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3">
+                      <Gauge className="h-5 w-5 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Odometer</p>
+                        <p className="font-medium">{selectedVehicle.odo ? `${selectedVehicle.odo.toLocaleString()} km` : 'N/A'}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3">
+                      <DollarSign className="h-5 w-5 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Giá thuê</p>
+                        <p className="font-medium text-lg">{formatCurrency(selectedVehicle.price_per_hour)}/giờ</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3">
+                      <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Trạm</p>
+                        <p className="font-medium">{selectedVehicle.station?.name || getStationName(selectedVehicle.station_id)}</p>
+                        {selectedVehicle.station?.address && (
+                          <p className="text-sm text-muted-foreground mt-1">{selectedVehicle.station.address}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Thông tin trạm chi tiết */}
+                {selectedVehicle.station && (
+                  <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+                    <h4 className="font-semibold text-sm">Thông tin trạm</h4>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">ID Trạm:</span>
+                        <span className="ml-2 font-medium">{selectedVehicle.station.id}</span>
+                      </div>
+                      {selectedVehicle.station.latitude && selectedVehicle.station.longitude && (
+                        <div>
+                          <span className="text-muted-foreground">Tọa độ:</span>
+                          <span className="ml-2 font-medium">
+                            {selectedVehicle.station.latitude.toFixed(5)}, {selectedVehicle.station.longitude.toFixed(5)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex gap-2 pt-4 border-t">
+                  <Button
+                    onClick={() => {
+                      setIsDetailDialogOpen(false);
+                      handleBookVehicle(selectedVehicle);
+                    }}
+                    disabled={selectedVehicle.status !== 'available'}
+                    className="flex-1 bg-green-600 hover:bg-green-700"
+                  >
+                    <Calendar className="h-4 w-4 mr-2" />
+                    Đặt xe này
+                  </Button>
+                  <Button
+                    onClick={() => setIsDetailDialogOpen(false)}
+                    variant="outline"
+                  >
+                    Đóng
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

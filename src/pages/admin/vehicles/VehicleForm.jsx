@@ -184,10 +184,11 @@ export default function VehicleForm({ initialValues, onSubmit, onCancel, station
               </SelectValue>
             </SelectTrigger>
             <SelectContent position="popper" side="bottom" className="z-[9999] bg-white border border-gray-200 shadow-lg rounded-md p-1 min-w-[var(--radix-select-trigger-width)]">
-              <SelectItem value="lithium-ion" className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Lithium-ion</SelectItem>
-              <SelectItem value="lithium-polymer" className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Lithium Polymer</SelectItem>
-              <SelectItem value="nickel-metal" className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Nickel Metal Hydride</SelectItem>
-              <SelectItem value="lead-acid" className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Lead Acid</SelectItem>
+              <SelectItem value="Lithium-ion" className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Lithium-ion</SelectItem>
+              <SelectItem value="Lithium Iron Phosphate" className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Lithium Iron Phosphate</SelectItem>
+              <SelectItem value="Nickel Manganese Cobalt" className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Nickel Manganese Cobalt</SelectItem>
+              <SelectItem value="Nickel Cobalt Aluminum" className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Nickel Cobalt Aluminum</SelectItem>
+              <SelectItem value="Lead Acid" className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Lead Acid</SelectItem>
             </SelectContent>
           </Select>
           {formik.touched.batteryType && formik.errors.batteryType && (
