@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Car, MapPin, Battery, DollarSign, Users, Gauge } from 'lucide-react';
+import { Car, MapPin, Battery, DollarSign, Users, Gauge, Zap, Settings } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api/apiConfig';
 
 export default function VehicleDetailDialog({ vehicle, open, onOpenChange }) {
@@ -31,7 +31,7 @@ export default function VehicleDetailDialog({ vehicle, open, onOpenChange }) {
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <Car className="h-5 w-5" />
@@ -39,7 +39,7 @@ export default function VehicleDetailDialog({ vehicle, open, onOpenChange }) {
                     </DialogTitle>
                 </DialogHeader>
 
-                <div className="space-y-6">
+                <div className="space-y-6 pr-2">
                     {/* Vehicle Image */}
                     {vehicle.imageUrl && (
                         <div className="w-full h-64 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
@@ -81,13 +81,29 @@ export default function VehicleDetailDialog({ vehicle, open, onOpenChange }) {
                             <div className="flex items-start gap-3">
                                 <Users className="h-5 w-5 text-muted-foreground mt-0.5" />
                                 <div>
+                                    <p className="text-sm text-muted-foreground">Số chỗ ngồi</p>
+                                    <p className="font-medium">{vehicle.numberSeat || 'N/A'} chỗ</p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-start gap-3">
+                                <Battery className="h-5 w-5 text-muted-foreground mt-0.5" />
+                                <div>
                                     <p className="text-sm text-muted-foreground">Dung lượng pin</p>
                                     <p className="font-medium">{vehicle.capacity} kWh</p>
                                 </div>
                             </div>
 
                             <div className="flex items-start gap-3">
-                                <Battery className="h-5 w-5 text-muted-foreground mt-0.5" />
+                                <Zap className="h-5 w-5 text-muted-foreground mt-0.5" />
+                                <div>
+                                    <p className="text-sm text-muted-foreground">Loại pin</p>
+                                    <p className="font-medium">{vehicle.batteryType || 'N/A'}</p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-start gap-3">
+                                <Settings className="h-5 w-5 text-muted-foreground mt-0.5" />
                                 <div>
                                     <p className="text-sm text-muted-foreground">Quãng đường/sạc đầy</p>
                                     <p className="font-medium">{vehicle.rangePerFullCharge} km</p>
@@ -96,6 +112,22 @@ export default function VehicleDetailDialog({ vehicle, open, onOpenChange }) {
                         </div>
 
                         <div className="space-y-4">
+                            <div className="flex items-start gap-3">
+                                <Battery className="h-5 w-5 text-muted-foreground mt-0.5" />
+                                <div>
+                                    <p className="text-sm text-muted-foreground">Mức pin hiện tại</p>
+                                    <p className="font-medium">{vehicle.batteryLevel || 'N/A'}%</p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-start gap-3">
+                                <Gauge className="h-5 w-5 text-muted-foreground mt-0.5" />
+                                <div>
+                                    <p className="text-sm text-muted-foreground">Odometer</p>
+                                    <p className="font-medium">{vehicle.odo ? `${vehicle.odo.toLocaleString()} km` : 'N/A'}</p>
+                                </div>
+                            </div>
+
                             <div className="flex items-start gap-3">
                                 <DollarSign className="h-5 w-5 text-muted-foreground mt-0.5" />
                                 <div>

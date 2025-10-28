@@ -18,6 +18,10 @@ const validationSchema = Yup.object({
   rangePerFullCharge: Yup.number().required('Quãng đường bắt buộc').min(0),
   pricePerHour: Yup.number().required('Giá theo giờ bắt buộc').min(0),
   stationId: Yup.number().required('Trạm bắt buộc'),
+  batteryType: Yup.string().required('Loại pin bắt buộc'),
+  batteryLevel: Yup.number().required('Phần trăm pin bắt buộc').min(0, 'Phần trăm pin phải >= 0').max(100, 'Phần trăm pin phải <= 100'),
+  odo: Yup.number().required('Odometer bắt buộc').min(0, 'Odometer phải >= 0'),
+  numberSeat: Yup.number().required('Số chỗ ngồi bắt buộc').min(1, 'Số chỗ ngồi phải >= 1'),
   image: Yup.mixed().nullable()
 });
 
@@ -32,6 +36,14 @@ export default function VehicleForm({ initialValues, onSubmit, onCancel, station
       onSubmit(values, imageFile);
     }
   });
+
+  // Auto set numberSeat to 2 when type is motorbike
+  const handleTypeChange = (value) => {
+    formik.setFieldValue('type', value);
+    if (value === 'motorbike') {
+      formik.setFieldValue('numberSeat', 2);
+    }
+  };
 
   const handleImageChange = (e) => {
     const file = e.target.files?.[0];
@@ -142,7 +154,7 @@ export default function VehicleForm({ initialValues, onSubmit, onCancel, station
         <label className="block text-sm font-medium mb-1">Loại xe</label>
         <Select
           value={formik.values.type || ''}
-          onValueChange={(value) => formik.setFieldValue('type', value)}
+          onValueChange={handleTypeChange}
         >
           <SelectTrigger className="w-full bg-background">
             <SelectValue placeholder="Chọn loại xe">
@@ -157,6 +169,74 @@ export default function VehicleForm({ initialValues, onSubmit, onCancel, station
         {formik.touched.type && formik.errors.type && (
           <p className="text-sm text-red-500 mt-1">{formik.errors.type}</p>
         )}
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">Loại pin</label>
+          <Select
+            value={formik.values.batteryType || ''}
+            onValueChange={(value) => formik.setFieldValue('batteryType', value)}
+          >
+            <SelectTrigger className="w-full bg-background">
+              <SelectValue placeholder="Chọn loại pin">
+                {formik.values.batteryType || 'Chọn loại pin'}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent position="popper" side="bottom" className="z-[9999] bg-white border border-gray-200 shadow-lg rounded-md p-1 min-w-[var(--radix-select-trigger-width)]">
+              <SelectItem value="lithium-ion" className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Lithium-ion</SelectItem>
+              <SelectItem value="lithium-polymer" className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Lithium Polymer</SelectItem>
+              <SelectItem value="nickel-metal" className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Nickel Metal Hydride</SelectItem>
+              <SelectItem value="lead-acid" className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Lead Acid</SelectItem>
+            </SelectContent>
+          </Select>
+          {formik.touched.batteryType && formik.errors.batteryType && (
+            <p className="text-sm text-red-500 mt-1">{formik.errors.batteryType}</p>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-1">Phần trăm pin (%)</label>
+          <Input 
+            type="number" 
+            {...formik.getFieldProps('batteryLevel')} 
+            placeholder="VD: 85"
+            min="0"
+            max="100"
+          />
+          {formik.touched.batteryLevel && formik.errors.batteryLevel && (
+            <p className="text-sm text-red-500 mt-1">{formik.errors.batteryLevel}</p>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">Odometer (km)</label>
+          <Input 
+            type="number" 
+            {...formik.getFieldProps('odo')} 
+            placeholder="VD: 15000"
+            min="0"
+          />
+          {formik.touched.odo && formik.errors.odo && (
+            <p className="text-sm text-red-500 mt-1">{formik.errors.odo}</p>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-1">Số chỗ ngồi</label>
+          <Input 
+            type="number" 
+            {...formik.getFieldProps('numberSeat')} 
+            placeholder={formik.values.type === 'motorbike' ? '2 (mặc định)' : 'VD: 4, 5, 7...'}
+            min="1"
+            disabled={formik.values.type === 'motorbike'}
+          />
+          {formik.touched.numberSeat && formik.errors.numberSeat && (
+            <p className="text-sm text-red-500 mt-1">{formik.errors.numberSeat}</p>
+          )}
+        </div>
       </div>
 
       <div>

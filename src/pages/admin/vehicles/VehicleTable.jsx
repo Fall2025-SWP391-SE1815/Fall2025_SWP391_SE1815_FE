@@ -25,6 +25,8 @@ export default function VehicleTable({ vehicles, onEdit, onDelete, onView }) {
                         <TableHead>Biển số</TableHead>
                         <TableHead>Loại</TableHead>
                         <TableHead>Thương hiệu</TableHead>
+                        <TableHead>Chỗ ngồi</TableHead>
+                        <TableHead>Pin (%)</TableHead>
                         <TableHead>Trạm</TableHead>
                         <TableHead>Trạng thái</TableHead>
                         <TableHead>Giá/giờ</TableHead>
@@ -34,7 +36,7 @@ export default function VehicleTable({ vehicles, onEdit, onDelete, onView }) {
                 <TableBody>
                     {vehicles.length === 0 ? (
                         <TableRow>
-                            <TableCell colSpan={8} className="text-center text-gray-500 py-4">
+                            <TableCell colSpan={10} className="text-center text-gray-500 py-4">
                                 Không có phương tiện
                             </TableCell>
                         </TableRow>
@@ -61,8 +63,18 @@ export default function VehicleTable({ vehicles, onEdit, onDelete, onView }) {
                                         </div>
                                     </TableCell>
                                     <TableCell>{v.licensePlate}</TableCell>
-                                    <TableCell>{v.type}</TableCell>
+                                    <TableCell>{v.type === 'car' ? 'Ô tô' : 'Xe máy'}</TableCell>
                                     <TableCell>{v.brand}</TableCell>
+                                    <TableCell>{v.numberSeat || 'N/A'}</TableCell>
+                                    <TableCell>
+                                        <span className={`${
+                                            (v.batteryLevel || 0) > 80 ? 'text-green-600' :
+                                            (v.batteryLevel || 0) > 50 ? 'text-yellow-600' :
+                                            'text-red-600'
+                                        }`}>
+                                            {v.batteryLevel || 0}%
+                                        </span>
+                                    </TableCell>
                                     <TableCell>{v.station?.name || 'Chưa phân bổ'}</TableCell>
                                     <TableCell>
                                         <Badge variant={v.status === 'available' ? 'default' : 'secondary'}>

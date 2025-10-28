@@ -294,7 +294,7 @@ const ReservationsPage = () => {
       const res = await renterService.reservations.getById(reservation.id);
       const r = res?.data || res;
       setReservationDetail(r);
-      
+
       // Map API response to normalized format
       const normalized = {
         id: r.id,
@@ -364,6 +364,7 @@ const ReservationsPage = () => {
     const statusMap = {
       'pending': { text: 'Chờ xác nhận', color: 'bg-yellow-100 text-yellow-700', icon: Clock },
       'confirmed': { text: 'Đã xác nhận', color: 'bg-green-100 text-green-700', icon: CheckCircle },
+      'expired': { text: 'Hết hạn', color: 'bg-red-100 text-red-700', icon: XCircle },
     };
     const config = statusMap[status] || { text: status, color: 'bg-gray-100 text-gray-700', icon: AlertCircle };
     const IconComponent = config.icon;
@@ -415,7 +416,7 @@ const ReservationsPage = () => {
                 className="bg-green-600 hover:bg-green-700"
               >
                 <Calendar className="h-4 w-4 mr-2" />
-                Tạo booking mới
+                Tạo lịch hẹn mới
               </Button>
               <Button
                 variant="outline"
@@ -504,10 +505,10 @@ const ReservationsPage = () => {
                 <SelectTrigger>
                   <SelectValue placeholder="Trạng thái" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tất cả trạng thái</SelectItem>
-                  <SelectItem value="pending">Chờ xác nhận</SelectItem>
-                  <SelectItem value="confirmed">Đã xác nhận</SelectItem>
+                <SelectContent position="popper" side="bottom" className="z-[9999] bg-white border border-gray-200 shadow-lg rounded-md p-1 min-w-[var(--radix-select-trigger-width)]">
+                  <SelectItem value="all" className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Tất cả trạng thái</SelectItem>
+                  <SelectItem value="pending" className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Chờ xác nhận</SelectItem>
+                  <SelectItem value="confirmed" className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Đã xác nhận</SelectItem>
                 </SelectContent>
               </Select>
               <Select
@@ -517,11 +518,11 @@ const ReservationsPage = () => {
                 <SelectTrigger>
                   <SelectValue placeholder="Thời gian" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tất cả thời gian</SelectItem>
-                  <SelectItem value="upcoming">Sắp tới</SelectItem>
-                  <SelectItem value="active">Đang diễn ra</SelectItem>
-                  <SelectItem value="past">Đã qua</SelectItem>
+                <SelectContent position="popper" side="bottom" className="z-[9999] bg-white border border-gray-200 shadow-lg rounded-md p-1 min-w-[var(--radix-select-trigger-width)]">
+                  <SelectItem value="all" className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Tất cả thời gian</SelectItem>
+                  <SelectItem value="upcoming" className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Sắp tới</SelectItem>
+                  <SelectItem value="active" className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Đang diễn ra</SelectItem>
+                  <SelectItem value="past" className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Đã qua</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -631,9 +632,9 @@ const ReservationsPage = () => {
                 {/* Vehicle Image */}
                 {selectedReservation.vehicle?.imageUrl && (
                   <div className="w-full h-64 rounded-lg overflow-hidden bg-gray-100">
-                    <img 
-                      src={selectedReservation.vehicle.imageUrl.startsWith('http') 
-                        ? selectedReservation.vehicle.imageUrl 
+                    <img
+                      src={selectedReservation.vehicle.imageUrl.startsWith('http')
+                        ? selectedReservation.vehicle.imageUrl
                         : `${API_BASE_URL}${selectedReservation.vehicle.imageUrl}`
                       }
                       alt={`${selectedReservation.vehicle?.brand} ${selectedReservation.vehicle?.model}`}
@@ -660,9 +661,9 @@ const ReservationsPage = () => {
                       <div>
                         <p className="text-sm font-medium text-gray-600">Loại xe</p>
                         <p className="font-semibold">
-                          {selectedReservation.vehicle?.type === 'MOTORBIKE' ? 'Xe máy điện' : 
-                           selectedReservation.vehicle?.type === 'CAR' ? 'Ô tô điện' : 
-                           selectedReservation.vehicle?.type || 'N/A'}
+                          {selectedReservation.vehicle?.type === 'MOTORBIKE' ? 'Xe máy điện' :
+                            selectedReservation.vehicle?.type === 'CAR' ? 'Ô tô điện' :
+                              selectedReservation.vehicle?.type || 'N/A'}
                         </p>
                       </div>
                       <div>
@@ -682,7 +683,7 @@ const ReservationsPage = () => {
                       <div>
                         <p className="text-sm font-medium text-gray-600">Giá/giờ</p>
                         <p className="font-semibold">
-                          {selectedReservation.vehicle?.pricePerHour ? 
+                          {selectedReservation.vehicle?.pricePerHour ?
                             `${selectedReservation.vehicle.pricePerHour.toLocaleString('vi-VN')} ₫` : 'N/A'}
                         </p>
                       </div>
@@ -725,7 +726,7 @@ const ReservationsPage = () => {
                         <div className="col-span-2">
                           <p className="text-sm font-medium text-gray-600">Hủy bởi</p>
                           <p className="font-semibold text-red-600">
-                            {selectedReservation.cancelledBy} 
+                            {selectedReservation.cancelledBy}
                             {selectedReservation.cancelledReason && ` — ${selectedReservation.cancelledReason}`}
                           </p>
                         </div>
@@ -755,7 +756,7 @@ const ReservationsPage = () => {
                         const hours = Math.ceil((endTime - startTime) / (1000 * 60 * 60));
                         const pricePerHour = selectedReservation.vehicle?.pricePerHour || 0;
                         const totalCost = hours * pricePerHour;
-                        
+
                         return (
                           <>
                             <div className="flex justify-between">
@@ -771,7 +772,7 @@ const ReservationsPage = () => {
                               <span className="text-green-600">{totalCost.toLocaleString('vi-VN')} ₫</span>
                             </div>
                             <p className="text-xs text-gray-500 mt-2">
-                              * Chi phí thực tế sẽ được tính dựa trên thời gian sử dụng thực tế
+                              * Chi phí thực tế sẽ được tính dựa trên thời gian sử dụng thực tế và chi phí phát sinh (nếu có).
                             </p>
                           </>
                         );
@@ -790,10 +791,10 @@ const ReservationsPage = () => {
             <DialogHeader>
               <DialogTitle className="flex items-center">
                 <Calendar className="h-5 w-5 mr-2 text-green-600" />
-                Tạo booking mới
+                Tạo lịch hẹn mới
               </DialogTitle>
               <DialogDescription>
-                Tạo booking xe điện mới với thông tin chi tiết
+                Tạo lịch hẹn xe điện mới với thông tin chi tiết
               </DialogDescription>
             </DialogHeader>
 
@@ -821,7 +822,7 @@ const ReservationsPage = () => {
                   <SelectTrigger>
                     <SelectValue placeholder="Chọn trạm để đặt xe" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent position="popper" side="bottom" className="z-[9999] bg-white border border-gray-200 shadow-lg rounded-md p-1 min-w-[var(--radix-select-trigger-width)]">
                     {stations.map((station) => (
                       <SelectItem key={station.id} value={station.id.toString()}>
                         {station.name}
@@ -844,10 +845,10 @@ const ReservationsPage = () => {
                     <SelectTrigger>
                       <SelectValue placeholder="Chọn loại xe" />
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Không chọn cụ thể</SelectItem>
-                      <SelectItem value="motorbike">Xe máy</SelectItem>
-                      <SelectItem value="car">Ô tô</SelectItem>
+                    <SelectContent position="popper" side="bottom" className="z-[9999] bg-white border border-gray-200 shadow-lg rounded-md p-1 min-w-[var(--radix-select-trigger-width)]">
+                      <SelectItem value="none" className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Không chọn cụ thể</SelectItem>
+                      <SelectItem value="motorbike" className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Xe máy</SelectItem>
+                      <SelectItem value="car" className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Ô tô</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -916,7 +917,7 @@ const ReservationsPage = () => {
                   className="bg-green-600 hover:bg-green-700"
                 >
                   {loading ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-2" />}
-                  Tạo booking
+                  Tạo
                 </Button>
               </div>
             </div>

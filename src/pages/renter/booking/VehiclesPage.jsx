@@ -219,7 +219,7 @@ const VehiclesPage = () => {
                 <SelectTrigger>
                   <SelectValue placeholder="Loại xe" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper" side="bottom" className="z-[9999] bg-white border border-gray-200 shadow-lg rounded-md p-1 min-w-[var(--radix-select-trigger-width)]">
                   <SelectItem value="all">Tất cả loại xe</SelectItem>
                   <SelectItem value="motorbike">Xe máy</SelectItem>
                   <SelectItem value="car">Ô tô</SelectItem>
@@ -231,7 +231,7 @@ const VehiclesPage = () => {
                 <SelectTrigger>
                   <SelectValue placeholder="Trạm" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper" side="bottom" className="z-[9999] bg-white border border-gray-200 shadow-lg rounded-md p-1 min-w-[var(--radix-select-trigger-width)]">
                   <SelectItem value="all">Tất cả trạm</SelectItem>
                   {stations.map((station) => (
                     <SelectItem key={station.id} value={station.id.toString()}>
@@ -362,7 +362,7 @@ const VehiclesPage = () => {
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-medium text-gray-700">Dung lượng pin</span>
                       <span className="text-sm flex items-center">
-                        <Users className="h-4 w-4 mr-1" />
+                        <Zap className="h-4 w-4 mr-1" />
                         {vehicle.capacity}
                       </span>
                     </div>

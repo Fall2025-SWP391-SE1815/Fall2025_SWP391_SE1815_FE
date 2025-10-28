@@ -67,6 +67,10 @@ export default function VehiclesManagement() {
       formData.append('status', values.status);
       formData.append('pricePerHour', Number(values.pricePerHour));
       formData.append('stationId', Number(values.stationId));
+      formData.append('batteryType', values.batteryType);
+      formData.append('batteryLevel', Number(values.batteryLevel));
+      formData.append('odo', Number(values.odo));
+      formData.append('numberSeat', Number(values.numberSeat));
       if (imageFile) formData.append('image', imageFile);
 
       if (selectedVehicle) {
@@ -133,7 +137,11 @@ export default function VehiclesManagement() {
           <VehicleForm
             initialValues={selectedVehicle ? {
               ...selectedVehicle,
-              stationId: selectedVehicle.station?.id || selectedVehicle.stationId || ''
+              stationId: selectedVehicle.station?.id || selectedVehicle.stationId || '',
+              batteryType: selectedVehicle.batteryType || '',
+              batteryLevel: selectedVehicle.batteryLevel || '',
+              odo: selectedVehicle.odo || '',
+              numberSeat: selectedVehicle.numberSeat || (selectedVehicle.type === 'motorbike' ? 2 : '')
             } : {
               licensePlate: '',
               brand: '',
@@ -144,6 +152,10 @@ export default function VehiclesManagement() {
               rangePerFullCharge: '',
               pricePerHour: '',
               stationId: '',
+              batteryType: '',
+              batteryLevel: 100,
+              odo: 0,
+              numberSeat: '',
               image: null
             }}
             onSubmit={handleSave}
