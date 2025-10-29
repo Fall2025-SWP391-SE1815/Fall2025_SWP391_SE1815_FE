@@ -107,14 +107,21 @@ export default function VehiclesManagement() {
       <VehicleStatsCard stats={stats} />
 
       <div className="flex gap-2 mb-4">
-        <Input placeholder="Tìm kiếm..." value={search} onChange={(e) => setSearch(e.target.value)} />
+        <Input placeholder="Tìm kiếm theo biển số, hãng xe, số ghế..." value={search} onChange={(e) => setSearch(e.target.value)} />
         <Button onClick={() => { setSelectedVehicle(null); setIsDialogOpen(true); }}>+ Thêm phương tiện</Button>
       </div>
 
       <VehicleTable
-        vehicles={vehicles.filter((v) =>
-          v.licensePlate.toLowerCase().includes(search.toLowerCase())
-        )}
+        vehicles={vehicles.filter((v) => {
+          const searchLower = search.toLowerCase();
+          return (
+            v.licensePlate?.toLowerCase().includes(searchLower) ||
+            v.brand?.toLowerCase().includes(searchLower) ||
+            v.numberSeat?.toString().includes(search) ||
+            v.model?.toLowerCase().includes(searchLower) ||
+            v.type?.toLowerCase().includes(searchLower)
+          );
+        })}
         onEdit={(v) => { setSelectedVehicle(v); setIsDialogOpen(true); }}
         onDelete={handleDelete}
         onView={async (v) => {

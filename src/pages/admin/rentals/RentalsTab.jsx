@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Search, Filter, Eye, RefreshCw } from 'lucide-react';
+import { Search, Filter, Eye } from 'lucide-react';
 import adminService from '@/services/admin/adminService';
 
 const RentalsTab = () => {
@@ -97,7 +97,7 @@ const RentalsTab = () => {
         <div className='relative flex-1 max-w-sm'>
           <Search className='absolute left-2 top-2.5 h-4 w-4 text-muted-foreground' />
           <Input
-            placeholder='Tìm kiếm lượt thuê...'
+            placeholder='Tìm kiếm người thuê hoặc xe...'
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className='pl-8'
@@ -118,11 +118,6 @@ const RentalsTab = () => {
             <SelectItem value='cancelled' className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Đã hủy</SelectItem>
           </SelectContent>
         </Select>
-
-        <Button variant="outline" onClick={fetchRentals} disabled={loading}>
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Làm mới
-        </Button>
       </div>
 
       <Card>
@@ -238,22 +233,13 @@ const RentalsTab = () => {
                     <Label className='text-sm font-medium text-muted-foreground'>Vai trò</Label>
                     <Badge variant="outline">{selectedRental.renter?.role}</Badge>
                   </div>
-                  <div>
-                    <Label className='text-sm font-medium text-muted-foreground'>Ngày tham gia</Label>
-                    <p className='text-sm text-muted-foreground'>
-                      {selectedRental.renter?.createdAt 
-                        ? new Date(selectedRental.renter.createdAt).toLocaleDateString('vi-VN')
-                        : 'N/A'
-                      }
-                    </p>
-                  </div>
                 </div>
               </div>
 
               {/* Vehicle Information */}
               <div className='bg-orange-50 p-4 rounded-lg'>
                 <h3 className='font-semibold text-orange-900 mb-3'>Thông tin xe</h3>
-                <div className='grid grid-cols-2 gap-4'>
+                <div className='grid grid-cols-3 gap-4'>
                   <div>
                     <Label className='text-sm font-medium text-muted-foreground'>Biển số xe</Label>
                     <p className='text-lg font-bold text-blue-600'>{selectedRental.vehicle?.licensePlate}</p>
@@ -269,8 +255,8 @@ const RentalsTab = () => {
                   <div>
                     <Label className='text-sm font-medium text-muted-foreground'>Loại xe</Label>
                     <Badge className={selectedRental.vehicle?.type === 'motorbike' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}>
-                      {selectedRental.vehicle?.type === 'motorbike' ? 'Xe máy điện' : 
-                       selectedRental.vehicle?.type === 'car' ? 'Ô tô điện' : selectedRental.vehicle?.type}
+                      {selectedRental.vehicle?.type === 'motorbike' ? 'Xe máy điện' :
+                        selectedRental.vehicle?.type === 'car' ? 'Ô tô điện' : selectedRental.vehicle?.type}
                     </Badge>
                   </div>
                   <div>
@@ -297,9 +283,17 @@ const RentalsTab = () => {
                     <Label className='text-sm font-medium text-muted-foreground'>Trạng thái xe</Label>
                     <Badge variant={selectedRental.vehicle?.status === 'available' ? 'default' : 'secondary'}>
                       {selectedRental.vehicle?.status === 'available' ? 'Có sẵn' :
-                       selectedRental.vehicle?.status === 'rented' ? 'Đang thuê' :
-                       selectedRental.vehicle?.status === 'maintenance' ? 'Bảo trì' : selectedRental.vehicle?.status}
+                        selectedRental.vehicle?.status === 'rented' ? 'Đang thuê' :
+                          selectedRental.vehicle?.status === 'maintenance' ? 'Bảo trì' : selectedRental.vehicle?.status}
                     </Badge>
+                  </div>
+                  <div>
+                    <Label className='text-sm font-medium text-muted-foreground'>Pin</Label>
+                    <p className='text-lg font-bold text-green-600'>{selectedRental.vehicle?.batteryLevel}%</p>
+                  </div>
+                  <div>
+                    <Label className='text-sm font-medium text-muted-foreground'>Odo hiện tại</Label>
+                    <p className='text-lg'>{selectedRental.vehicle?.odo?.toLocaleString()} km</p>
                   </div>
                 </div>
               </div>
@@ -358,8 +352,8 @@ const RentalsTab = () => {
                   <div>
                     <Label className='text-sm font-medium text-muted-foreground'>Loại thuê</Label>
                     <Badge className={selectedRental.rentalType === 'booking' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'}>
-                      {selectedRental.rentalType === 'booking' ? 'Đặt trước' : 
-                       selectedRental.rentalType === 'walkin' ? 'Thuê tại chỗ' : selectedRental.rentalType}
+                      {selectedRental.rentalType === 'booking' ? 'Đặt trước' :
+                        selectedRental.rentalType === 'walkin' ? 'Thuê tại chỗ' : selectedRental.rentalType}
                     </Badge>
                   </div>
                   <div>
@@ -379,43 +373,53 @@ const RentalsTab = () => {
 
               {/* Financial Information */}
               <div className='bg-yellow-50 p-4 rounded-lg'>
-                <h3 className='font-semibold text-yellow-900 mb-3'>Thông tin tài chính</h3>
-                <div className='grid grid-cols-2 gap-4'>
+                <h3 className='font-semibold text-yellow-900 mb-3'>Thông tin thanh toán</h3>
+                
+                {/* Chi tiết các loại tiền */}
+                <div className='grid grid-cols-3 gap-4 mb-4'>
                   <div>
-                    <Label className='text-sm font-medium text-muted-foreground'>Tổng chi phí</Label>
-                    <p className='text-2xl font-bold text-green-600'>
-                      {selectedRental.totalCost > 0 ? formatCurrency(selectedRental.totalCost) : 'Chưa tính'}
-                    </p>
-                  </div>
-                  <div>
-                    <Label className='text-sm font-medium text-muted-foreground'>Chi phí thuê</Label>
-                    <p className='text-lg font-bold'>
+                    <Label className='text-sm font-medium text-muted-foreground'>Chi phí thuê tạm tính</Label>
+                    <p className='text-lg font-bold text-blue-600'>
                       {selectedRental.rentalCost ? formatCurrency(selectedRental.rentalCost) : 'Chưa tính'}
                     </p>
                   </div>
                   <div>
-                    <Label className='text-sm font-medium text-muted-foreground'>Tiền cọc</Label>
-                    <p className='text-lg font-bold'>
-                      {selectedRental.depositAmount ? formatCurrency(selectedRental.depositAmount) : 'Không có'}
+                    <Label className='text-sm font-medium text-muted-foreground'>Bảo hiểm</Label>
+                    <p className='text-lg font-bold text-purple-600'>
+                      {selectedRental.insurance > 0 ? formatCurrency(selectedRental.insurance) : '0 ₫'}
                     </p>
                   </div>
                   <div>
-                    <Label className='text-sm font-medium text-muted-foreground'>Trạng thái cọc</Label>
+                    <Label className='text-sm font-medium text-muted-foreground'>Tiền cọc</Label>
+                    <p className='text-lg font-bold text-orange-600'>
+                      {selectedRental.depositAmount ? formatCurrency(selectedRental.depositAmount) : '0 ₫'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Trạng thái cọc */}
+                <div className='mb-4'>
+                  <Label className='text-sm font-medium text-muted-foreground'>Trạng thái cọc</Label>
+                  <div className='mt-1'>
                     <Badge variant={
                       selectedRental.depositStatus === 'held' ? 'secondary' :
-                      selectedRental.depositStatus === 'returned' ? 'default' :
-                      selectedRental.depositStatus === 'refunded' ? 'default' : 'outline'
+                        selectedRental.depositStatus === 'returned' ? 'default' :
+                          selectedRental.depositStatus === 'refunded' ? 'default' : 'outline'
                     }>
                       {selectedRental.depositStatus === 'held' ? 'Đang giữ' :
-                       selectedRental.depositStatus === 'returned' ? 'Đã trả' :
-                       selectedRental.depositStatus === 'refunded' ? 'Đã hoàn' :
-                       selectedRental.depositStatus === 'pending' ? 'Chờ xử lý' : selectedRental.depositStatus}
+                        selectedRental.depositStatus === 'returned' ? 'Đã trả' :
+                          selectedRental.depositStatus === 'refunded' ? 'Đã hoàn' :
+                            selectedRental.depositStatus === 'pending' ? 'Chờ xử lý' : selectedRental.depositStatus}
                     </Badge>
                   </div>
-                  <div>
-                    <Label className='text-sm font-medium text-muted-foreground'>Bảo hiểm</Label>
-                    <p className='text-lg font-bold'>
-                      {selectedRental.insurance > 0 ? formatCurrency(selectedRental.insurance) : 'Không có bảo hiểm'}
+                </div>
+
+                {/* Tổng chi phí ở góc phải */}
+                <div className='flex justify-end'>
+                  <div className='bg-white p-4 rounded-lg border-2 border-yellow-300 shadow-sm'>
+                    <Label className='text-sm font-medium text-muted-foreground block text-center'>Tổng chi phí</Label>
+                    <p className='text-3xl font-bold text-green-600 text-center mt-1'>
+                      {selectedRental.totalCost > 0 ? formatCurrency(selectedRental.totalCost) : 'Chưa tính'}
                     </p>
                   </div>
                 </div>
@@ -430,29 +434,35 @@ const RentalsTab = () => {
                     <p className='text-lg font-bold'>{selectedRental.stationPickup?.name}</p>
                     <p className='text-sm text-muted-foreground'>ID: #{selectedRental.stationPickup?.id}</p>
                     <p className='text-sm text-muted-foreground'>{selectedRental.stationPickup?.address}</p>
+                    {selectedRental.stationPickup?.latitude && selectedRental.stationPickup?.longitude && (
+                      <p className='text-xs text-muted-foreground'>
+                        GPS: {selectedRental.stationPickup.latitude.toFixed(6)}, {selectedRental.stationPickup.longitude.toFixed(6)}
+                      </p>
+                    )}
                     <div className='flex items-center gap-2 mt-1'>
                       <Badge variant={selectedRental.stationPickup?.status === 'active' ? 'default' : 'secondary'}>
                         {selectedRental.stationPickup?.status === 'active' ? 'Hoạt động' : selectedRental.stationPickup?.status}
                       </Badge>
                     </div>
                   </div>
-                  <div>
-                    <Label className='text-sm font-medium text-muted-foreground'>Trạm trả xe</Label>
-                    {selectedRental.stationReturn ? (
-                      <>
-                        <p className='text-lg font-bold'>{selectedRental.stationReturn.name}</p>
-                        <p className='text-sm text-muted-foreground'>ID: #{selectedRental.stationReturn.id}</p>
-                        <p className='text-sm text-muted-foreground'>{selectedRental.stationReturn.address}</p>
-                        <div className='flex items-center gap-2 mt-1'>
-                          <Badge variant={selectedRental.stationReturn.status === 'active' ? 'default' : 'secondary'}>
-                            {selectedRental.stationReturn.status === 'active' ? 'Hoạt động' : selectedRental.stationReturn.status}
-                          </Badge>
-                        </div>
-                      </>
-                    ) : (
-                      <p className='text-lg text-gray-500'>Chưa trả xe</p>
-                    )}
-                  </div>
+                  {selectedRental.vehicle?.station && (
+                    <div>
+                      <Label className='text-sm font-medium text-muted-foreground'>Trạm trả xe</Label>
+                      <p className='text-lg font-bold'>{selectedRental.vehicle.station.name}</p>
+                      <p className='text-sm text-muted-foreground'>ID: #{selectedRental.vehicle.station.id}</p>
+                      <p className='text-sm text-muted-foreground'>{selectedRental.vehicle.station.address}</p>
+                      {selectedRental.vehicle.station?.latitude && selectedRental.vehicle.station?.longitude && (
+                        <p className='text-xs text-muted-foreground'>
+                          GPS: {selectedRental.vehicle.station.latitude.toFixed(6)}, {selectedRental.vehicle.station.longitude.toFixed(6)}
+                        </p>
+                      )}
+                      <div className='flex items-center gap-2 mt-1'>
+                        <Badge variant={selectedRental.vehicle.station?.status === 'active' ? 'default' : 'secondary'}>
+                          {selectedRental.vehicle.station?.status === 'active' ? 'Hoạt động' : selectedRental.vehicle.station?.status}
+                        </Badge>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 

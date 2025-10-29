@@ -733,6 +733,10 @@ const PaymentManagement = () => {
                           <span>{formatCurrency(rentalBill.rentalCost || 0)}</span>
                         </div>
                         <div className="flex justify-between">
+                          <span>Tiền bảo hiểm xe:</span>
+                          <span>{formatCurrency(rentalBill.insurance || 0)}</span>
+                        </div>
+                        <div className="flex justify-between">
                           <span>Phí vi phạm:</span>
                           <span className="text-red-600">
                             {formatCurrency(rentalBill.violationCost || 0)}
