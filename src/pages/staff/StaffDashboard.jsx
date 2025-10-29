@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/auth/useAuth.jsx';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,22 +20,75 @@ import {
   Shield,
   Activity
 } from 'lucide-react';
+import staffRentalService from '@/services/staff/staffRentalService';
+import vehicleService from '@/services/vehicles/vehicleService';
 
 const StaffDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [todayStats, setTodayStats] = useState({
-    assignedTasks: 12,
-    completedTasks: 8,
-    pendingMaintenance: 3,
-    customerSupport: 5,
-    vehiclesChecked: 15,
-    stationVisits: 4,
-    pendingPickups: 6,
-    pendingReturns: 4,
-    pendingPayments: 8,
-    documentsToVerify: 12
-  });
+  const [todayStats, setTodayStats] = useState(null);
+  const [pendingPayments, setPendingPayments] = useState([]);
+  const [maintenanceVehicles, setMaintenanceVehicles] = useState([]);
+
+  useEffect(() => {
+    // Fetch dashboard stats and tasks for staff
+    const fetchDashboard = async () => {
+      try {
+  let stats = {};
+  let pendingPaymentsArr = [];
+  let maintenanceVehiclesArr = [];
+
+        // Tính documentsToVerify
+        try {
+          const rentersRes = await staffRentalService.getRenters();
+          const renters = Array.isArray(rentersRes) ? rentersRes : rentersRes?.data || [];
+          let totalDocsToVerify = 0;
+          let totalPendingPayments = 0;
+          let totalVehiclesChecked = 0;
+          let totalVehiclesMaintenance = 0;
+          for (const renter of renters) {
+            try {
+              const docs = await staffRentalService.getRenterDocuments(renter.id);
+              if (Array.isArray(docs) && docs.length > 0) {
+                totalDocsToVerify += docs.filter(doc => !doc.verified).length;
+              }
+            } catch {}
+          }
+          // Lấy danh sách rentals để tính toán các chỉ số khác
+          try {
+            const rentalsRes = await staffRentalService.getRentals();
+            const rentals = Array.isArray(rentalsRes) ? rentalsRes : rentalsRes?.data || [];
+            // Thanh toán chờ xử lý: chỉ tính các rental có status 'waiting_for_payment'
+            const pending = rentals.filter(r => r.status === 'waiting_for_payment');
+            totalPendingPayments = pending.length;
+            pendingPaymentsArr = pending;
+            // Xe đã kiểm tra
+            totalVehiclesChecked = rentals.length;
+          } catch {}
+          // Lấy danh sách xe staff quản lý để đếm số xe đang bảo trì
+          try {
+            const vehiclesRes = await vehicleService.staff.getAllStaffVehicles();
+            const vehicles = Array.isArray(vehiclesRes) ? vehiclesRes : vehiclesRes?.data || [];
+            const maintenance = vehicles.filter(v => v.status === 'maintenance');
+            totalVehiclesMaintenance = maintenance.length;
+            maintenanceVehiclesArr = maintenance;
+          } catch {}
+          stats.documentsToVerify = totalDocsToVerify;
+          stats.pendingPayments = totalPendingPayments;
+          stats.vehiclesChecked = totalVehiclesChecked;
+          stats.vehiclesMaintenance = totalVehiclesMaintenance;
+        } catch {}
+
+  setTodayStats(stats);
+  setPendingPayments(pendingPaymentsArr);
+  setMaintenanceVehicles(maintenanceVehiclesArr);
+      } catch (error) {
+        setTodayStats({});
+        setTaskList([]);
+      }
+    };
+    fetchDashboard();
+  }, []);
 
   // Staff management functions
   const staffFunctions = [
@@ -44,76 +97,39 @@ const StaffDashboard = () => {
       description: 'Xử lý giao xe và nhận xe từ khách hàng, lập biên bản',
       icon: Car,
       color: 'bg-blue-500',
-      stats: `${todayStats.pendingPickups} giao xe, ${todayStats.pendingReturns} nhận xe`,
+      stats: todayStats ? `${todayStats.pendingPickups || 0} giao xe, ${todayStats.pendingReturns || 0} nhận xe` : '',
       path: '/staff/rental-management',
-      urgent: todayStats.pendingPickups > 5
+      urgent: todayStats ? (todayStats.pendingPickups || 0) > 5 : false
     },
     {
       title: 'Xác thực khách hàng',
       description: 'Xem và xác thực tài liệu CCCD/GPLX của khách hàng',
       icon: Shield,
       color: 'bg-green-500',
-      stats: `${todayStats.documentsToVerify} tài liệu chờ xác thực`,
+      stats: todayStats ? `${todayStats.documentsToVerify || 0} tài liệu chờ xác thực` : '',
       path: '/staff/customer-verification',
-      urgent: todayStats.documentsToVerify > 10
+      urgent: todayStats ? (todayStats.documentsToVerify || 0) > 10 : false
     },
     {
       title: 'Thanh toán tại trạm',
       description: 'Ghi nhận thanh toán trực tiếp (tiền mặt, thẻ, ví điện tử)',
       icon: CreditCard,
       color: 'bg-purple-500',
-      stats: `${todayStats.pendingPayments} giao dịch chờ xử lý`,
+      stats: todayStats ? `${todayStats.pendingPayments || 0} giao dịch chờ xử lý` : '',
       path: '/staff/payment-management',
-      urgent: todayStats.pendingPayments > 7
+      urgent: todayStats ? (todayStats.pendingPayments || 0) > 7 : false
     },
     {
       title: 'Quản lý tại điểm',
       description: 'Quản lý xe, vi phạm, sự cố và lượt thuê tại trạm',
       icon: MapPin,
       color: 'bg-orange-500',
-      stats: `${todayStats.vehiclesChecked} xe, ${todayStats.pendingMaintenance} bảo trì`,
+      stats: todayStats ? `${todayStats.vehiclesChecked || 0} xe đã kiểm tra, ${todayStats.vehiclesMaintenance || 0} bảo trì` : '',
       path: '/staff/station-management',
-      urgent: todayStats.pendingMaintenance > 2
+      urgent: todayStats ? (todayStats.vehiclesMaintenance || 0) > 2 : false
     }
   ];
 
-  const taskList = [
-    { id: 1, type: 'maintenance', vehicle: 'EV-001', station: 'Quận 1', priority: 'high', status: 'pending' },
-    { id: 2, type: 'inspection', vehicle: 'EV-023', station: 'Quận 3', priority: 'medium', status: 'in-progress' },
-    { id: 3, type: 'customer-support', customer: 'Nguyễn Văn A', issue: 'Xe không khởi động', priority: 'high', status: 'pending' },
-    { id: 4, type: 'cleaning', vehicle: 'EV-045', station: 'Quận 7', priority: 'low', status: 'completed' },
-  ];
-
-  const quickActions = [
-    { 
-      title: 'Giao xe khẩn cấp',
-      description: 'Xử lý các lượt giao xe ưu tiên',
-      icon: Car,
-      color: 'bg-red-500',
-      action: () => navigate('/staff/rental-management')
-    },
-    { 
-      title: 'Xác thực tài liệu',
-      description: 'Xác thực CCCD/GPLX khách hàng',
-      icon: Shield,
-      color: 'bg-blue-500',
-      action: () => navigate('/staff/customer-verification')
-    },
-    { 
-      title: 'Thanh toán chờ xử lý',
-      description: 'Ghi nhận thanh toán tại trạm',
-      icon: CreditCard,
-      color: 'bg-green-500',
-      action: () => navigate('/staff/payment-management')
-    },
-    { 
-      title: 'Báo cáo sự cố',
-      description: 'Báo cáo sự cố xe hoặc trạm',
-      icon: AlertCircle,
-      color: 'bg-purple-500',
-      action: () => navigate('/staff/station-management')
-    }
-  ];
 
   const getPriorityColor = (priority) => {
     switch (priority) {
@@ -135,28 +151,6 @@ const StaffDashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            Dashboard Nhân viên
-          </h1>
-          <p className="mt-1 text-sm text-gray-600">
-            Chào mừng, {user?.full_name || 'Staff'} - Ca làm hôm nay
-          </p>
-        </div>
-        <div className="flex items-center space-x-4">
-          <Button variant="outline" size="sm">
-            <Calendar className="h-4 w-4 mr-2" />
-            Lịch làm việc
-          </Button>
-          <Button size="sm">
-            <CheckCircle className="h-4 w-4 mr-2" />
-            Báo cáo ca
-          </Button>
-        </div>
-      </div>
-
       {/* Today's Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <Card>
@@ -165,9 +159,9 @@ const StaffDashboard = () => {
             <Car className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{todayStats.pendingPickups + todayStats.pendingReturns}</div>
+            <div className="text-2xl font-bold">{(todayStats?.pendingPickups || 0) + (todayStats?.pendingReturns || 0)}</div>
             <p className="text-xs text-muted-foreground">
-              {todayStats.pendingPickups} giao, {todayStats.pendingReturns} nhận
+              {(todayStats?.pendingPickups || 0)} giao, {(todayStats?.pendingReturns || 0)} nhận
             </p>
           </CardContent>
         </Card>
@@ -178,7 +172,7 @@ const StaffDashboard = () => {
             <Shield className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{todayStats.documentsToVerify}</div>
+            <div className="text-2xl font-bold">{todayStats?.documentsToVerify || 0}</div>
             <p className="text-xs text-muted-foreground">
               Tài liệu chờ xác thực
             </p>
@@ -191,7 +185,7 @@ const StaffDashboard = () => {
             <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{todayStats.pendingPayments}</div>
+            <div className="text-2xl font-bold">{todayStats?.pendingPayments || 0}</div>
             <p className="text-xs text-muted-foreground">
               Giao dịch cần ghi nhận
             </p>
@@ -204,9 +198,9 @@ const StaffDashboard = () => {
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{todayStats.vehiclesChecked}</div>
+            <div className="text-2xl font-bold">{todayStats?.vehiclesChecked || 0}</div>
             <p className="text-xs text-muted-foreground">
-              {todayStats.pendingMaintenance} xe cần bảo trì
+              {todayStats?.vehiclesMaintenance || 0} xe cần bảo trì
             </p>
           </CardContent>
         </Card>
@@ -259,106 +253,54 @@ const StaffDashboard = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Quick Actions */}
-        <div className="lg:col-span-1">
-          <Card>
-            <CardHeader>
-              <CardTitle>Thao tác nhanh</CardTitle>
-              <CardDescription>
-                Chức năng thường dùng trong ca làm
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {quickActions.map((action, index) => (
-                  <div
-                    key={index}
-                    className="p-3 border rounded-lg hover:shadow-md transition-shadow cursor-pointer"
-                    onClick={action.action}
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div className={`p-2 ${action.color} rounded-lg`}>
-                        <action.icon className="h-4 w-4 text-white" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-medium text-gray-900 text-sm">{action.title}</h3>
-                        <p className="text-xs text-gray-600">{action.description}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Task List */}
         <div className="lg:col-span-2">
           <Card>
             <CardHeader>
               <CardTitle>Nhiệm vụ cần xử lý</CardTitle>
               <CardDescription>
-                Danh sách công việc được giao trong ngày
+                Danh sách các nhiệm vụ phát sinh từ dữ liệu thực tế
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {taskList.map((task) => (
-                  <div key={task.id} className="p-4 border rounded-lg">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-2">
-                          {getStatusIcon(task.status)}
-                          <h3 className="font-medium text-gray-900">
-                            {task.type === 'maintenance' && 'Bảo trì xe'}
-                            {task.type === 'inspection' && 'Kiểm tra xe'}
-                            {task.type === 'customer-support' && 'Hỗ trợ khách hàng'}
-                            {task.type === 'cleaning' && 'Vệ sinh xe'}
-                          </h3>
-                          <span className={`px-2 py-1 text-xs rounded-full ${getPriorityColor(task.priority)}`}>
-                            {task.priority === 'high' && 'Khẩn cấp'}
-                            {task.priority === 'medium' && 'Trung bình'}
-                            {task.priority === 'low' && 'Thấp'}
-                          </span>
-                        </div>
-                        
-                        <div className="text-sm text-gray-600 space-y-1">
-                          {task.vehicle && (
-                            <p>Xe: <span className="font-medium">{task.vehicle}</span></p>
-                          )}
-                          {task.station && (
-                            <p>Trạm: <span className="font-medium">{task.station}</span></p>
-                          )}
-                          {task.customer && (
-                            <p>Khách hàng: <span className="font-medium">{task.customer}</span></p>
-                          )}
-                          {task.issue && (
-                            <p>Vấn đề: <span className="font-medium">{task.issue}</span></p>
-                          )}
-                        </div>
-                      </div>
-                      
-                      <div className="flex space-x-2 ml-4">
-                        {task.status === 'pending' && (
-                          <Button size="sm" variant="outline">
-                            Bắt đầu
-                          </Button>
-                        )}
-                        {task.status === 'in-progress' && (
-                          <Button size="sm">
-                            Hoàn thành
-                          </Button>
-                        )}
-                        {task.status === 'completed' && (
-                          <Button size="sm" variant="ghost" disabled>
-                            Đã xong
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                {pendingPayments.length === 0 && maintenanceVehicles.length === 0 ? (
+                  <div className="text-center text-muted-foreground py-8">Không có nhiệm vụ nào cho hôm nay.</div>
+                ) : (
+                  <>
+                    {pendingPayments.length > 0 && (
+                      <>
+                        <div className="font-semibold text-base text-purple-700 mb-2">Các giao dịch chờ xử lý thanh toán</div>
+                        {pendingPayments.map((rental) => (
+                          <div key={rental.id} className="p-4 border rounded-lg flex items-center justify-between">
+                            <div>
+                              <div className="font-medium text-gray-900">Mã giao dịch: {rental.id}</div>
+                              {rental.customer && <div>Khách hàng: <span className="font-medium">{rental.customer.name || rental.customer.fullName || rental.customer.phone}</span></div>}
+                              {rental.vehicle && <div>Xe: <span className="font-medium">{rental.vehicle.licensePlate || rental.vehicle.name}</span></div>}
+                            </div>
+                            <Button size="sm" variant="outline" onClick={() => navigate('/staff/payment-management')}>Xử lý thanh toán</Button>
+                          </div>
+                        ))}
+                      </>
+                    )}
+                    {maintenanceVehicles.length > 0 && (
+                      <>
+                        <div className="font-semibold text-base text-orange-700 mt-6 mb-2">Các xe cần bảo trì</div>
+                        {maintenanceVehicles.map((vehicle) => (
+                          <div key={vehicle.id} className="p-4 border rounded-lg flex items-center justify-between">
+                            <div>
+                              <div className="font-medium text-gray-900">Xe: {vehicle.licensePlate || vehicle.name}</div>
+                              {vehicle.type && <div>Loại: <span className="font-medium">{vehicle.type}</span></div>}
+                              {vehicle.station && <div>Trạm: <span className="font-medium">{vehicle.station.name}</span></div>}
+                            </div>
+                            <Button size="sm" variant="outline" onClick={() => navigate('/staff/station-management')}>Xử lý bảo trì</Button>
+                          </div>
+                        ))}
+                      </>
+                    )}
+                  </>
+                )}
               </div>
             </CardContent>
           </Card>

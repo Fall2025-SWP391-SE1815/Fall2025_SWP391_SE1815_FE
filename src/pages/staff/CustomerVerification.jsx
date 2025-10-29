@@ -65,28 +65,37 @@ const CustomerVerification = () => {
   const loadAllRenters = async () => {
     try {
       setLoading(true);
-      
       // Call API without phone parameter to get all renters
       const response = await staffRentalService.getRenters();
-      
-      // API returns array of renters
       const rentersData = Array.isArray(response) ? response : response?.data || [];
-      
       if (rentersData.length > 0) {
-        // Transform to component format
-        const renters = rentersData.map(renter => ({
-          id: renter.id,
-          full_name: renter.fullName,
-          phone: renter.phone,
-          email: renter.email,
-          registration_date: renter.createdAt || new Date().toISOString()
+        // For each renter, fetch their documents and determine verification status
+        const rentersWithStatus = await Promise.all(rentersData.map(async (renter) => {
+          let verification_status = 'pending';
+          try {
+            const docs = await staffRentalService.getRenterDocuments(renter.id);
+            if (Array.isArray(docs) && docs.length > 0) {
+              const verifiedCount = docs.filter(doc => doc.verified).length;
+              if (verifiedCount === 0) verification_status = 'pending';
+              else if (verifiedCount < docs.length) verification_status = 'partial';
+              else verification_status = 'verified';
+            }
+          } catch (e) {
+            // If error fetching documents, keep as pending
+          }
+          return {
+            id: renter.id,
+            full_name: renter.fullName,
+            phone: renter.phone,
+            email: renter.email,
+            registration_date: renter.createdAt || new Date().toISOString(),
+            verification_status
+          };
         }));
-        
-        setRentersList(renters);
+        setRentersList(rentersWithStatus);
       } else {
         setRentersList([]);
       }
-      
     } catch (error) {
       console.error('Error loading renters:', error);
       toast({
@@ -367,7 +376,9 @@ const CustomerVerification = () => {
             <AlertTriangle className="h-4 w-4 text-orange-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">-</div>
+            <div className="text-2xl font-bold text-orange-600">
+              {rentersList.filter(renter => renter.verification_status !== 'verified').length}
+            </div>
             <p className="text-xs text-muted-foreground">Tài liệu chờ xác thực</p>
           </CardContent>
         </Card>
