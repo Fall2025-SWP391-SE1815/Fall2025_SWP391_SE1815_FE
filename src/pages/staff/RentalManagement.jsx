@@ -13,6 +13,7 @@ import {
 import ReservationHandover from './rentals/ReservationHandover';
 import InUseRentals from './rentals/InUseRentals';
 import VehicleReturn from './rentals/VehicleReturn';
+import RentalHistory from './rentals/RentalHistory';
 
 const RentalManagement = () => {
   // Load saved tab from localStorage, default to 'handover' if not found
@@ -38,7 +39,7 @@ const RentalManagement = () => {
       </div>
 
       <Tabs value={selectedTab} onValueChange={setSelectedTab} className='w-full'>
-        <TabsList className='grid w-full grid-cols-3'>
+        <TabsList className='grid w-full grid-cols-4'>
           <TabsTrigger value='handover' className='flex items-center gap-2'>
             <ArrowRight className='h-4 w-4' />
             Đặt chỗ & Giao xe
@@ -50,6 +51,10 @@ const RentalManagement = () => {
           <TabsTrigger value='return' className='flex items-center gap-2'>
             <CheckCircle className='h-4 w-4' />
             Nhận xe
+          </TabsTrigger>
+          <TabsTrigger value='history' className='flex items-center gap-2'>
+            <Car className='h-4 w-4' />
+            Lịch sử thuê
           </TabsTrigger>
         </TabsList>
 
@@ -63,6 +68,10 @@ const RentalManagement = () => {
 
         <TabsContent value='return' className='space-y-4'>
           <VehicleReturn />
+        </TabsContent>
+
+        <TabsContent value='history' className='space-y-4'>
+          <RentalHistory />
         </TabsContent>
       </Tabs>
     </div>

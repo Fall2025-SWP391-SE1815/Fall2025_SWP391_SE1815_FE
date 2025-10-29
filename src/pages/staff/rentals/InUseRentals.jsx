@@ -150,10 +150,6 @@ const InUseRentals = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-80"
           />
-          <Button onClick={fetchInUseRentals} disabled={loading}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Làm mới
-          </Button>
         </div>
       </div>
 

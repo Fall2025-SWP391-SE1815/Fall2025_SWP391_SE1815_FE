@@ -147,7 +147,7 @@ const ReservationHandover = () => {
     setSelectedReservation(reservation);
     const totalCost = calculateTotalCost(reservation);
     const suggestedDeposit = totalCost > 0 ? Math.round(totalCost * 0.3) : 0;
-    
+
     setCheckInForm({
       depositAmount: suggestedDeposit.toString(),
       insurance: reservation?.insurance?.toString() || '0',
@@ -234,12 +234,12 @@ const ReservationHandover = () => {
   // Submit pickup check
   const submitPickupCheck = async () => {
     try {
-      if (!pickupForm.condition_report || 
-          !pickupForm.odo ||
-          !pickupForm.batteryLevel ||
-          !pickupForm.photo_url || 
-          !pickupForm.customer_signature_url || 
-          !pickupForm.staff_signature_url) {
+      if (!pickupForm.condition_report ||
+        !pickupForm.odo ||
+        !pickupForm.batteryLevel ||
+        !pickupForm.photo_url ||
+        !pickupForm.customer_signature_url ||
+        !pickupForm.staff_signature_url) {
         toast({
           title: "Thiếu thông tin",
           description: "Vui lòng điền đầy đủ thông tin biên bản, số km, mức pin và chọn 3 file ảnh",
@@ -269,8 +269,8 @@ const ReservationHandover = () => {
       };
 
       if (!validateFile(pickupForm.photo_url, "Ảnh xe") ||
-          !validateFile(pickupForm.customer_signature_url, "Chữ ký khách hàng") ||
-          !validateFile(pickupForm.staff_signature_url, "Chữ ký nhân viên")) {
+        !validateFile(pickupForm.customer_signature_url, "Chữ ký khách hàng") ||
+        !validateFile(pickupForm.staff_signature_url, "Chữ ký nhân viên")) {
         return;
       }
 
@@ -367,27 +367,27 @@ const ReservationHandover = () => {
     if (item?.totalCost && typeof item.totalCost === 'number') {
       return item.totalCost;
     }
-    
+
     if (!item || !item.vehicle || !item.reservedStartTime || !item.reservedEndTime) {
       return 0;
     }
-    
+
     const startTime = new Date(item.reservedStartTime);
     const endTime = new Date(item.reservedEndTime);
-    
+
     if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
       return 0;
     }
-    
+
     const durationInHours = Math.max(0, (endTime - startTime) / (1000 * 60 * 60));
     const pricePerHour = item.vehicle.pricePerHour || 0;
-    
+
     return Math.round(durationInHours * pricePerHour);
   };
 
   const filterReservations = (list) => {
     if (!searchTerm) return list;
-    return list.filter(item => 
+    return list.filter(item =>
       item.renter.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.renter.phone.includes(searchTerm) ||
       item.vehicle.licensePlate.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -397,7 +397,7 @@ const ReservationHandover = () => {
 
   const filterRentals = (list) => {
     if (!searchTerm) return list;
-    return list.filter(rental => 
+    return list.filter(rental =>
       rental.renter.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       rental.renter.phone.includes(searchTerm) ||
       rental.vehicle.licensePlate.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -421,10 +421,6 @@ const ReservationHandover = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-80"
           />
-          <Button onClick={loadData} disabled={loading}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Làm mới
-          </Button>
         </div>
       </div>
 
@@ -624,11 +620,11 @@ const ReservationHandover = () => {
                     </TableCell>
                     <TableCell>
                       <Badge variant={
-                        rental.depositStatus === 'held' ? 'default' : 
-                        rental.depositStatus === 'pending' ? 'secondary' : 'outline'
+                        rental.depositStatus === 'held' ? 'default' :
+                          rental.depositStatus === 'pending' ? 'secondary' : 'outline'
                       }>
                         {rental.depositStatus === 'held' ? 'Đã nhận cọc' :
-                         rental.depositStatus === 'pending' ? 'Chờ nhận cọc' : rental.depositStatus}
+                          rental.depositStatus === 'pending' ? 'Chờ nhận cọc' : rental.depositStatus}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -644,7 +640,7 @@ const ReservationHandover = () => {
                             Ghi nhận cọc
                           </Button>
                         )}
-                        
+
                         {rental.depositStatus === 'held' && (
                           <Button
                             size="sm"
@@ -727,7 +723,7 @@ const ReservationHandover = () => {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="mt-4 pt-4 border-t text-center">
                   <span className="text-sm font-medium text-gray-700">Tổng thanh toán</span>
                   <div className="text-xl font-bold text-purple-600">
@@ -748,9 +744,9 @@ const ReservationHandover = () => {
                   value={checkInForm.depositAmount}
                   onChange={(e) => setCheckInForm(prev => ({ ...prev, depositAmount: e.target.value }))}
                 />
-                <Button 
-                  type="button" 
-                  variant="outline" 
+                <Button
+                  type="button"
+                  variant="outline"
                   size="sm"
                   onClick={() => {
                     const suggestedAmount = Math.round(calculateTotalCost(selectedReservation) * 0.3);
@@ -948,13 +944,13 @@ const ReservationHandover = () => {
                     </div>
                   </div>
                 </div>
-                
+
                 {selectedReservation?.vehicle.imageUrl && (
                   <div className="mt-4">
                     <Label className="text-muted-foreground text-sm">Hình ảnh xe</Label>
                     <div className="mt-2">
-                      <img 
-                        src={selectedReservation.vehicle.imageUrl} 
+                      <img
+                        src={selectedReservation.vehicle.imageUrl}
                         alt={`${selectedReservation.vehicle.brand} ${selectedReservation.vehicle.model}`}
                         className="w-48 h-32 object-cover rounded-lg border"
                       />
@@ -1112,7 +1108,7 @@ const ReservationHandover = () => {
             <Button variant="outline" onClick={() => setDetailsDialogOpen(false)}>
               Đóng
             </Button>
-            <Button 
+            <Button
               onClick={() => {
                 setDetailsDialogOpen(false);
                 handleCheckIn(selectedReservation);
