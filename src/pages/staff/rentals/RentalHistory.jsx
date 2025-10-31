@@ -20,6 +20,7 @@ const RentalHistory = () => {
         waiting_for_payment: 'Chờ thanh toán',
         booked: 'Đã đặt chỗ',
         in_use: 'Đang thuê',
+        wait_confirm: 'Chờ xác nhận',
         cancelled: 'Đã huỷ',
     };
 
