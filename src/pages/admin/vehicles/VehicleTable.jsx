@@ -10,7 +10,8 @@ const getStatusText = (status) => {
         'available': 'Có sẵn',
         'reserved': 'Đã đặt',
         'rented': 'Đang thuê',
-        'maintenance': 'Bảo trì'
+        'maintenance': 'Bảo trì',
+        'deleted': 'Đã xóa'
     };
     return statusMap[status] || status;
 };

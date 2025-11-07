@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
 import { 
   MessageSquare, Edit, Search, Eye, Clock, CheckCircle, AlertTriangle, 
   X, Filter, RefreshCw, Users, Calendar, FileText
@@ -18,6 +18,7 @@ import complaintsService from '@/services/complaints/complaintsService';
 const ComplaintsManagement = () => {
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [renterFilter, setRenterFilter] = useState('');
@@ -72,7 +73,17 @@ const ComplaintsManagement = () => {
       setComplaints(mappedComplaints);
     } catch (error) {
       console.error('Error fetching complaints:', error);
-      toast.error('Không thể tải danh sách khiếu nại');
+      toast({
+        title: (
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-red-600" />
+            Tải danh sách khiếu nại thất bại
+          </div>
+        ),
+        description: 'Không thể tải danh sách khiếu nại. Vui lòng thử lại',
+        className: 'border-l-red-500 border-red-200 bg-red-50',
+        duration: 4000
+      });
     } finally {
       setLoading(false);
     }
@@ -86,7 +97,17 @@ const ComplaintsManagement = () => {
 
   const handleUpdateComplaint = async () => {
     if (!selectedComplaint || !resolutionData.status) {
-      toast.error('Vui lòng chọn trạng thái xử lý');
+      toast({
+        title: (
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-orange-600" />
+            Thông tin chưa đầy đủ
+          </div>
+        ),
+        description: 'Vui lòng chọn trạng thái xử lý',
+        className: 'border-l-orange-500 border-orange-200 bg-orange-50',
+        duration: 3000
+      });
       return;
     }
 
@@ -111,13 +132,33 @@ const ComplaintsManagement = () => {
           : complaint
       ));
 
-      toast.success('Cập nhật trạng thái khiếu nại thành công');
+      toast({
+        title: (
+          <div className="flex items-center gap-2">
+            <CheckCircle className="h-5 w-5 text-green-600" />
+            Cập nhật khiếu nại thành công!
+          </div>
+        ),
+        description: `Đã ${resolutionData.status === 'resolved' ? 'giải quyết' : 'từ chối'} khiếu nại của ${selectedComplaint.renter_name}`,
+        className: 'border-l-green-500 border-green-200 bg-green-50',
+        duration: 4000
+      });
       setShowResolveDialog(false);
       setSelectedComplaint(null);
       setResolutionData({ status: '', resolution: '' });
     } catch (error) {
       console.error('Error updating complaint:', error);
-      toast.error('Không thể cập nhật trạng thái khiếu nại');
+      toast({
+        title: (
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-red-600" />
+            Cập nhật khiếu nại thất bại
+          </div>
+        ),
+        description: error?.response?.data?.message || 'Không thể cập nhật trạng thái khiếu nại. Vui lòng thử lại',
+        className: 'border-l-red-500 border-red-200 bg-red-50',
+        duration: 4000
+      });
     }
   };
 
@@ -125,12 +166,34 @@ const ComplaintsManagement = () => {
     setSelectedComplaint(complaint);
     prepareComplaintDetail(complaint);
     setShowDetailDialog(true);
+    toast({
+      title: (
+        <div className="flex items-center gap-2">
+          <Eye className="h-5 w-5 text-blue-600" />
+          Đang xem chi tiết khiếu nại
+        </div>
+      ),
+      description: `Khiếu nại của ${complaint.renter_name}`,
+      className: 'border-l-blue-500 border-blue-200 bg-blue-50',
+      duration: 2000
+    });
   };
 
   const handleResolveComplaint = (complaint) => {
     setSelectedComplaint(complaint);
     setResolutionData({ status: complaint.status, resolution: '' });
     setShowResolveDialog(true);
+    toast({
+      title: (
+        <div className="flex items-center gap-2">
+          <Edit className="h-5 w-5 text-orange-600" />
+          Bắt đầu xử lý khiếu nại
+        </div>
+      ),
+      description: `Đang xử lý khiếu nại của ${complaint.renter_name}`,
+      className: 'border-l-orange-500 border-orange-200 bg-orange-50',
+      duration: 2000
+    });
   };
 
   // Helper functions
@@ -201,7 +264,20 @@ const ComplaintsManagement = () => {
             Xử lý và theo dõi khiếu nại từ khách hàng
           </p>
         </div>
-        <Button variant="outline" onClick={fetchComplaints}>
+        <Button variant="outline" onClick={() => {
+          fetchComplaints();
+          toast({
+            title: (
+              <div className="flex items-center gap-2">
+                <RefreshCw className="h-5 w-5 text-blue-600" />
+                Đã làm mới dữ liệu
+              </div>
+            ),
+            description: 'Danh sách khiếu nại đã được cập nhật',
+            className: 'border-l-blue-500 border-blue-200 bg-blue-50',
+            duration: 2000
+          });
+        }}>
           <RefreshCw className="h-4 w-4 mr-2" />
           Làm mới
         </Button>

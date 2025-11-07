@@ -99,7 +99,7 @@ const StationStaffForm = ({
               <SelectContent className="z-50 bg-white border border-gray-200 shadow-lg rounded-md max-h-64 overflow-y-auto">
                 {stationsList.length === 0 ? (
                   <div className="py-4 px-3 text-sm text-gray-500 text-center">
-                    Không có trạm nào
+                    Không có trạm hoạt động
                   </div>
                 ) : (
                   stationsList.map((station) => (
@@ -113,6 +113,11 @@ const StationStaffForm = ({
                 )}
               </SelectContent>
             </Select>
+            {stationsList.length === 0 && (
+              <p className="text-sm text-red-500">
+                Không có trạm nào đang hoạt động để phân công
+              </p>
+            )}
           </div>
         </div>
 
@@ -122,7 +127,7 @@ const StationStaffForm = ({
           </Button>
           <Button 
             onClick={handleSubmit}
-            disabled={!formData.staffId || !formData.stationId || availableStaff.length === 0}
+            disabled={!formData.staffId || !formData.stationId || availableStaff.length === 0 || stationsList.length === 0}
           >
             Phân công
           </Button>

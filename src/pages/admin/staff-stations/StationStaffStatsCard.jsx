@@ -18,12 +18,18 @@ const StationStaffStatsCard = ({ assignments = [], stationsList = [], staffList 
         <CardHeader>
           <CardTitle>Phân công theo trạm</CardTitle>
           <CardDescription>
-            Tình trạng nhân viên tại các trạm
+            Tình trạng nhân viên tại các trạm hoạt động
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {stationsList.map((station) => {
+            {stationsList.length === 0 ? (
+              <div className="text-center py-6">
+                <AlertCircle className="h-8 w-8 mx-auto text-gray-400 mb-2" />
+                <p className="text-sm text-gray-500">Không có trạm nào đang hoạt động</p>
+              </div>
+            ) : (
+              stationsList.map((station) => {
               const staffCount = getStationStaffCount(station.id);
               return (
                 <div key={station.id} className="flex items-center justify-between p-3 border rounded-lg">
@@ -41,7 +47,7 @@ const StationStaffStatsCard = ({ assignments = [], stationsList = [], staffList 
                   </div>
                 </div>
               );
-            })}
+            }))}
           </div>
         </CardContent>
       </Card>

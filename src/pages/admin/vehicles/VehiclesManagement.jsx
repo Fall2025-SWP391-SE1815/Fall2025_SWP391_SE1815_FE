@@ -3,7 +3,8 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
+import { Plus, Search, Car, CheckCircle, AlertTriangle, Edit, Trash2 } from 'lucide-react';
 import VehicleStatsCard from './VehicleStatsCard';
 import VehicleForm from './VehicleForm';
 import VehicleTable from './VehicleTable';
@@ -12,6 +13,7 @@ import vehicleService from '@/services/vehicles/vehicleService.js';
 import stationService from '@/services/stations/stationService.js';
 
 export default function VehiclesManagement() {
+  const { toast } = useToast();
   const [vehicles, setVehicles] = useState([]);
   const [stations, setStations] = useState([]);
   const [stats, setStats] = useState({ totalVehicles: 0, activeVehicles: 0, monthlyRevenue: 0 });
@@ -51,7 +53,18 @@ export default function VehiclesManagement() {
       });
     } catch (error) {
       console.error('Error fetching data:', error);
-      toast.error('Không thể tải dữ liệu');
+      toast({
+        title: (
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-red-600" />
+            Tải dữ liệu thất bại
+          </div>
+        ),
+        description: 'Không thể tải danh sách phương tiện. Vui lòng thử lại.',
+        variant: 'destructive',
+        className: 'border-l-red-500 border-red-200 bg-red-50',
+        duration: 5000
+      });
     }
   };
 
@@ -75,10 +88,30 @@ export default function VehiclesManagement() {
 
       if (selectedVehicle) {
         await vehicleService.admin.updateVehicle(selectedVehicle.id, formData);
-        toast.success('Cập nhật phương tiện thành công');
+        toast({
+          title: (
+            <div className="flex items-center gap-2">
+              <Edit className="h-5 w-5 text-blue-600" />
+              Cập nhật phương tiện thành công!
+            </div>
+          ),
+          description: `Đã cập nhật thông tin xe "${values.licensePlate}" - ${values.brand} ${values.model}`,
+          className: 'border-l-blue-500 border-blue-200 bg-blue-50',
+          duration: 3000
+        });
       } else {
         await vehicleService.admin.createVehicle(formData);
-        toast.success('Thêm phương tiện thành công');
+        toast({
+          title: (
+            <div className="flex items-center gap-2">
+              <Car className="h-5 w-5 text-green-600" />
+              Thêm phương tiện thành công!
+            </div>
+          ),
+          description: `Đã thêm xe mới "${values.licensePlate}" - ${values.brand} ${values.model}`,
+          className: 'border-l-green-500 border-green-200 bg-green-50',
+          duration: 4000
+        });
       }
       
       setIsDialogOpen(false);
@@ -86,7 +119,17 @@ export default function VehiclesManagement() {
       fetchData();
     } catch (error) {
       console.error('Error saving vehicle:', error);
-      toast.error(error?.response?.data?.message || 'Lỗi khi lưu dữ liệu');
+      toast({
+        title: (
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-red-600" />
+            Lưu phương tiện thất bại
+          </div>
+        ),
+        description: error?.response?.data?.message || 'Có lỗi xảy ra khi lưu thông tin phương tiện',
+        className: 'border-l-red-500 border-red-200 bg-red-50',
+        duration: 4000
+      });
     }
   };
 
@@ -94,11 +137,31 @@ export default function VehiclesManagement() {
     if (!confirm(`Xóa phương tiện ${v.licensePlate}?`)) return;
     try {
       await vehicleService.admin.deleteVehicle(v.id);
-      toast.success('Xóa phương tiện thành công');
+      toast({
+        title: (
+          <div className="flex items-center gap-2">
+            <CheckCircle className="h-5 w-5 text-green-600" />
+            Xóa phương tiện thành công!
+          </div>
+        ),
+        description: `Đã xóa xe "${v.licensePlate}" - ${v.brand} ${v.model} khỏi hệ thống`,
+        className: 'border-l-green-500 border-green-200 bg-green-50',
+        duration: 3000
+      });
       fetchData();
     } catch (error) {
       console.error('Error deleting vehicle:', error);
-      toast.error('Lỗi khi xóa phương tiện');
+      toast({
+        title: (
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-red-600" />
+            Xóa phương tiện thất bại
+          </div>
+        ),
+        description: 'Có lỗi xảy ra khi xóa phương tiện. Vui lòng thử lại',
+        className: 'border-l-red-500 border-red-200 bg-red-50',
+        duration: 4000
+      });
     }
   };
 
@@ -131,7 +194,17 @@ export default function VehiclesManagement() {
             setIsDetailDialogOpen(true);
           } catch (error) {
             console.error('Error fetching vehicle details:', error);
-            toast.error('Không thể tải thông tin chi tiết');
+            toast({
+              title: (
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-red-600" />
+                  Tải chi tiết thất bại
+                </div>
+              ),
+              description: 'Không thể tải thông tin chi tiết phương tiện. Vui lòng thử lại',
+              className: 'border-l-red-500 border-red-200 bg-red-50',
+              duration: 3000
+            });
           }
         }}
       />

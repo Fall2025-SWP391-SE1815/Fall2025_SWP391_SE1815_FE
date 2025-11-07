@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { UserCheck } from 'lucide-react';
+import { UserCheck, CheckCircle, AlertTriangle, UserX } from 'lucide-react';
 import staffStationService from '@/services/staffStations/staffStationService.js';
 import userService from '@/services/users/userService.js';
 import stationService from '@/services/stations/stationService.js';
@@ -44,15 +44,29 @@ const StationStaffManagement = () => {
     try {
       const res = await userService.admin.getUsers({ role: 'staff' });
       const staffData = Array.isArray(res) ? res : (res?.data || []);
-      const list = staffData.map((u) => ({
-        id: u.id,
-        name: u.fullName,
-        phone: u.phone
-      }));
+      // Chỉ lấy nhân viên có isActive: true
+      const list = staffData
+        .filter((u) => u.isActive === true)
+        .map((u) => ({
+          id: u.id,
+          name: u.fullName,
+          phone: u.phone
+        }));
       setStaffList(list);
     } catch (error) {
       console.error('Error fetching staff list:', error);
       setStaffList([]);
+      toast({
+        title: (
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-red-600" />
+            Tải danh sách nhân viên thất bại
+          </div>
+        ),
+        description: 'Không thể tải danh sách nhân viên. Vui lòng thử lại',
+        className: 'border-l-red-500 border-red-200 bg-red-50',
+        duration: 4000
+      });
     }
   };
 
@@ -76,9 +90,15 @@ const StationStaffManagement = () => {
       console.error('Error fetching assignments:', error);
       setAssignments([]);
       toast({
-        title: 'Lỗi',
-        description: 'Không thể tải danh sách phân công',
-        variant: 'destructive'
+        title: (
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-red-600" />
+            Tải danh sách phân công thất bại
+          </div>
+        ),
+        description: 'Không thể tải danh sách phân công. Vui lòng thử lại',
+        className: 'border-l-red-500 border-red-200 bg-red-50',
+        duration: 4000
       });
     }
   };
@@ -87,15 +107,30 @@ const StationStaffManagement = () => {
     try {
       const res = await stationService.admin.getStations();
       const stationsData = Array.isArray(res) ? res : (res?.data || []);
-      const list = stationsData.map((st) => ({
-        id: st.id,
-        name: st.name,
-        address: st.address
-      }));
+      // Chỉ lấy các trạm có status: 'active'
+      const list = stationsData
+        .filter((st) => st.status === 'active')
+        .map((st) => ({
+          id: st.id,
+          name: st.name,
+          address: st.address,
+          status: st.status
+        }));
       setStationsList(list);
     } catch (error) {
       console.error('Error fetching stations list:', error);
       setStationsList([]);
+      toast({
+        title: (
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-red-600" />
+            Tải danh sách trạm thất bại
+          </div>
+        ),
+        description: 'Không thể tải danh sách trạm. Vui lòng thử lại',
+        className: 'border-l-red-500 border-red-200 bg-red-50',
+        duration: 4000
+      });
     }
   };
 
@@ -105,16 +140,37 @@ const StationStaffManagement = () => {
         staffId: Number(formData.staffId),
         stationId: Number(formData.stationId)
       });
-      toast({ title: 'Thành công', description: 'Đã phân công nhân viên thành công' });
+      
+      // Tìm thông tin staff và station để hiển thị trong toast
+      const assignedStaff = staffList.find(s => s.id === Number(formData.staffId));
+      const assignedStation = stationsList.find(s => s.id === Number(formData.stationId));
+      
+      toast({
+        title: (
+          <div className="flex items-center gap-2">
+            <CheckCircle className="h-5 w-5 text-green-600" />
+            Phân công nhân viên thành công!
+          </div>
+        ),
+        description: `Đã phân công ${assignedStaff?.name || 'nhân viên'} vào trạm ${assignedStation?.name || 'được chọn'}`,
+        className: 'border-l-green-500 border-green-200 bg-green-50',
+        duration: 4000
+      });
       setShowAssignDialog(false);
       await fetchAssignments();
       await fetchStaffList();
     } catch (error) {
       console.error('Error assigning staff:', error);
       toast({
-        title: 'Lỗi',
-        description: 'Không thể phân công nhân viên',
-        variant: 'destructive'
+        title: (
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-red-600" />
+            Phân công nhân viên thất bại
+          </div>
+        ),
+        description: error?.response?.data?.message || 'Không thể phân công nhân viên. Vui lòng thử lại',
+        className: 'border-l-red-500 border-red-200 bg-red-50',
+        duration: 4000
       });
     }
   };
@@ -125,16 +181,35 @@ const StationStaffManagement = () => {
     }
 
     try {
+      // Tìm thông tin assignment để hiển thị trong toast
+      const assignment = assignments.find(a => a.id === assignmentId);
+      
       await staffStationService.admin.deactivateAssignment(assignmentId);
-      toast({ title: 'Thành công', description: 'Đã kết thúc phân công thành công' });
+      toast({
+        title: (
+          <div className="flex items-center gap-2">
+            <UserX className="h-5 w-5 text-blue-600" />
+            Kết thúc phân công thành công!
+          </div>
+        ),
+        description: `Đã kết thúc phân công của ${assignment?.staffName || 'nhân viên'} tại trạm ${assignment?.stationName || 'được chọn'}`,
+        className: 'border-l-blue-500 border-blue-200 bg-blue-50',
+        duration: 3000
+      });
       await fetchAssignments();
       await fetchStaffList();
     } catch (error) {
       console.error('Error deactivating assignment:', error);
       toast({
-        title: 'Lỗi',
-        description: 'Không thể kết thúc phân công',
-        variant: 'destructive'
+        title: (
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-red-600" />
+            Kết thúc phân công thất bại
+          </div>
+        ),
+        description: error?.response?.data?.message || 'Không thể kết thúc phân công. Vui lòng thử lại',
+        className: 'border-l-red-500 border-red-200 bg-red-50',
+        duration: 4000
       });
     }
   };
