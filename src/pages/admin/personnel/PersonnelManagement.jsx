@@ -77,6 +77,48 @@ export default function PersonnelManagement() {
 
   const handleCreateUser = async (values) => {
     try {
+      // Check for duplicate email
+      const existingEmailUser = users.find(user => 
+        user.email.toLowerCase() === values.email.toLowerCase()
+      );
+      
+      if (existingEmailUser) {
+        toast({
+          title: (
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-600" />
+              Email đã tồn tại
+            </div>
+          ),
+          description: `Email "${values.email}" đã được sử dụng bởi tài khoản khác. Vui lòng sử dụng email khác.`,
+          variant: 'destructive',
+          className: 'border-l-red-500 border-red-200 bg-red-50',
+          duration: 5000
+        });
+        return;
+      }
+
+      // Check for duplicate phone
+      const existingPhoneUser = users.find(user => 
+        user.phone === values.phone
+      );
+      
+      if (existingPhoneUser) {
+        toast({
+          title: (
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-600" />
+              Số điện thoại đã tồn tại
+            </div>
+          ),
+          description: `Số điện thoại "${values.phone}" đã được sử dụng bởi tài khoản khác. Vui lòng sử dụng số khác.`,
+          variant: 'destructive',
+          className: 'border-l-red-500 border-red-200 bg-red-50',
+          duration: 5000
+        });
+        return;
+      }
+
       const response = await userService.admin.createUser(values);
       const created = response?.user || response?.data || response;
       toast({ 
@@ -95,14 +137,32 @@ export default function PersonnelManagement() {
       await fetchUsers();
     } catch (error) {
       console.error('Error creating user:', error);
+      
+      let errorTitle = 'Tạo tài khoản thất bại';
+      let errorDescription = 'Không thể tạo tài khoản mới. Vui lòng kiểm tra thông tin và thử lại.';
+      
+      // Check for specific duplicate errors from server
+      const serverMessage = error?.response?.data?.message || error?.message || '';
+      const lowerMessage = serverMessage.toLowerCase();
+      
+      if (lowerMessage.includes('email') && (lowerMessage.includes('duplicate') || lowerMessage.includes('unique') || lowerMessage.includes('already exists'))) {
+        errorTitle = 'Email đã tồn tại';
+        errorDescription = `Email "${values.email}" đã được sử dụng. Vui lòng chọn email khác.`;
+      } else if (lowerMessage.includes('phone') && (lowerMessage.includes('duplicate') || lowerMessage.includes('unique') || lowerMessage.includes('already exists'))) {
+        errorTitle = 'Số điện thoại đã tồn tại';
+        errorDescription = `Số điện thoại "${values.phone}" đã được sử dụng. Vui lòng chọn số khác.`;
+      } else if (serverMessage) {
+        errorDescription = serverMessage;
+      }
+      
       toast({
         title: (
           <div className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-red-600" />
-            Tạo tài khoản thất bại
+            {errorTitle}
           </div>
         ),
-        description: error?.message || error?.response?.data?.message || 'Không thể tạo tài khoản mới. Vui lòng kiểm tra thông tin và thử lại.',
+        description: errorDescription,
         variant: 'destructive',
         className: 'border-l-red-500 border-red-200 bg-red-50',
         duration: 5000
@@ -114,6 +174,51 @@ export default function PersonnelManagement() {
     try {
       // Remove password from payload when updating
       const { password, ...updateData } = values;
+      
+      // Check for duplicate email (excluding current user)
+      const existingEmailUser = users.find(user => 
+        user.email.toLowerCase() === updateData.email.toLowerCase() && 
+        user.id !== selectedUser.id
+      );
+      
+      if (existingEmailUser) {
+        toast({
+          title: (
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-600" />
+              Email đã tồn tại
+            </div>
+          ),
+          description: `Email "${updateData.email}" đã được sử dụng bởi tài khoản khác. Vui lòng sử dụng email khác.`,
+          variant: 'destructive',
+          className: 'border-l-red-500 border-red-200 bg-red-50',
+          duration: 5000
+        });
+        return;
+      }
+
+      // Check for duplicate phone (excluding current user)
+      const existingPhoneUser = users.find(user => 
+        user.phone === updateData.phone && 
+        user.id !== selectedUser.id
+      );
+      
+      if (existingPhoneUser) {
+        toast({
+          title: (
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-600" />
+              Số điện thoại đã tồn tại
+            </div>
+          ),
+          description: `Số điện thoại "${updateData.phone}" đã được sử dụng bởi tài khoản khác. Vui lòng sử dụng số khác.`,
+          variant: 'destructive',
+          className: 'border-l-red-500 border-red-200 bg-red-50',
+          duration: 5000
+        });
+        return;
+      }
+
       await userService.admin.updateUser(selectedUser.id, updateData);
       toast({ 
         title: (
@@ -132,14 +237,32 @@ export default function PersonnelManagement() {
       await fetchUsers();
     } catch (error) {
       console.error('Error updating user:', error);
+      
+      let errorTitle = 'Cập nhật thất bại';
+      let errorDescription = 'Không thể cập nhật thông tin. Vui lòng thử lại.';
+      
+      // Check for specific duplicate errors from server
+      const serverMessage = error?.response?.data?.message || error?.message || '';
+      const lowerMessage = serverMessage.toLowerCase();
+      
+      if (lowerMessage.includes('email') && (lowerMessage.includes('duplicate') || lowerMessage.includes('unique') || lowerMessage.includes('already exists'))) {
+        errorTitle = 'Email đã tồn tại';
+        errorDescription = `Email "${updateData.email}" đã được sử dụng bởi tài khoản khác. Vui lòng chọn email khác.`;
+      } else if (lowerMessage.includes('phone') && (lowerMessage.includes('duplicate') || lowerMessage.includes('unique') || lowerMessage.includes('already exists'))) {
+        errorTitle = 'Số điện thoại đã tồn tại';
+        errorDescription = `Số điện thoại "${updateData.phone}" đã được sử dụng bởi tài khoản khác. Vui lòng chọn số khác.`;
+      } else if (serverMessage) {
+        errorDescription = serverMessage;
+      }
+      
       toast({
         title: (
           <div className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-red-600" />
-            Cập nhật thất bại
+            {errorTitle}
           </div>
         ),
-        description: error?.message || 'Không thể cập nhật thông tin. Vui lòng thử lại.',
+        description: errorDescription,
         variant: 'destructive',
         className: 'border-l-red-500 border-red-200 bg-red-50',
         duration: 5000
