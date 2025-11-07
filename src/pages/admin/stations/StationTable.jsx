@@ -8,7 +8,8 @@ export default function StationTable({ stations, onEdit, onDelete, onView }) {
         const statusMap = {
             'active': { label: 'Hoạt động', variant: 'default' },
             'inactive': { label: 'Không hoạt động', variant: 'secondary' },
-            'maintenance': { label: 'Bảo trì', variant: 'destructive' }
+            'maintenance': { label: 'Bảo trì', variant: 'destructive' },
+            'deleted': { label: 'Đã xóa', variant: 'outline' }
         };
         
         const statusInfo = statusMap[status] || { label: status, variant: 'secondary' };

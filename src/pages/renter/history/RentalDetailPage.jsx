@@ -381,14 +381,14 @@ const RentalDetailPage = () => {
                   <div className="text-xs text-gray-500">PIN ban đầu</div>
                   <div className="mt-1 text-lg font-semibold flex items-center justify-center gap-2">
                     <Battery className="h-4 w-4 text-green-600" />
-                    {rental.batteryLevelStart ?? 'N/A'}%
+                    {rental.batteryLevelStart ?? 'Chưa có dữ liệu'}%
                   </div>
                 </div>
                 <div className="p-3 bg-gray-50 rounded-lg text-center">
                   <div className="text-xs text-gray-500">PIN còn lại</div>
                   <div className="mt-1 text-lg font-semibold flex items-center justify-center gap-2">
                     <Battery className="h-4 w-4 text-green-600" />
-                    {rental.batteryLevelEnd ?? 'N/A'}%
+                    {rental.batteryLevelEnd ?? 'Chưa có dữ liệu'}%
                   </div>
                 </div>
                 <div className="p-3 bg-gray-50 rounded-lg text-center">
@@ -406,11 +406,11 @@ const RentalDetailPage = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-3 bg-gray-50 rounded-lg">
                   <div className="text-xs text-gray-500">Đồng hồ (bắt đầu)</div>
-                  <div className="mt-1 text-lg font-semibold">{rental.odoStart ?? 'N/A'} km</div>
+                  <div className="mt-1 text-lg font-semibold">{rental.odoStart ?? 'Chưa có dữ liệu'} km</div>
                 </div>
                 <div className="p-3 bg-gray-50 rounded-lg">
                   <div className="text-xs text-gray-500">Đồng hồ (kết thúc)</div>
-                  <div className="mt-1 text-lg font-semibold">{rental.odoEnd ?? 'N/A'} km</div>
+                  <div className="mt-1 text-lg font-semibold">{rental.odoEnd ?? 'Chưa có dữ liệu'} km</div>
                 </div>
               </div>
 

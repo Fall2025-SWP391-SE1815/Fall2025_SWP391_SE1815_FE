@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/auth/useAuth.jsx';
 import { Button } from '@/components/ui/button';
+import { Toaster } from '@/components/ui/toaster';
 import {
   LayoutDashboard,
   MapPin,
@@ -177,6 +178,7 @@ const AdminLayout = () => {
           <Outlet />
         </div>
       </div>
+      <Toaster />
     </div>
   );
 };

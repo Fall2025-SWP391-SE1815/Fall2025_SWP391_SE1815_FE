@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -16,11 +16,95 @@ import {
   AlertTriangle,
   Plus,
   User,
-  Car
+  Car,
+  CheckCircle,
+  Clock,
+  XCircle,
+  Eye,
+  ArrowRight
 } from 'lucide-react';
 
 // Services
 import { renterService } from '@/services/renter/renterService';
+import renterComplaintsService from '@/services/renter/complaintsService';
+
+// Complaint Card Component
+const ComplaintCard = ({ complaint, onViewDetail }) => {
+  const getStatusBadge = (status) => {
+    const statusConfig = {
+      pending: { color: 'bg-yellow-100 text-yellow-800', label: 'Chờ xử lý', icon: Clock },
+      in_progress: { color: 'bg-blue-100 text-blue-800', label: 'Đang xử lý', icon: RefreshCw },
+      resolved: { color: 'bg-green-100 text-green-800', label: 'Đã giải quyết', icon: CheckCircle },
+      rejected: { color: 'bg-red-100 text-red-800', label: 'Từ chối', icon: XCircle }
+    };
+    
+    const config = statusConfig[status] || statusConfig.pending;
+    const IconComponent = config.icon;
+    
+    return (
+      <div className="flex items-center space-x-1">
+        <IconComponent className="h-4 w-4" />
+        <Badge className={config.color}>
+          {config.label}
+        </Badge>
+      </div>
+    );
+  };
+
+  return (
+    <div className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex items-center space-x-3">
+          <Badge variant="outline" className="text-xs">
+            #{complaint.id}
+          </Badge>
+          {getStatusBadge(complaint.status)}
+        </div>
+        <div className="text-sm text-gray-500">
+          {new Date(complaint.created_at || complaint.createdAt).toLocaleDateString('vi-VN')}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div>
+          <p className="text-sm text-gray-600">Chuyến đi liên quan:</p>
+          <p className="font-medium">#{complaint.rental_id || complaint.rentalId}</p>
+        </div>
+        {complaint.staff_id && (
+          <div>
+            <p className="text-sm text-gray-600">Nhân viên liên quan:</p>
+            <p className="font-medium">#{complaint.staff_id}</p>
+          </div>
+        )}
+        <div className="md:col-span-2">
+          <p className="text-sm text-gray-600">Nội dung:</p>
+          <p className="font-medium text-gray-800 line-clamp-2">
+            {complaint.description}
+          </p>
+        </div>
+      </div>
+
+      <div className="flex justify-between items-center">
+        <div>
+          {complaint.resolved_at && (
+            <p className="text-xs text-gray-500">
+              Giải quyết: {new Date(complaint.resolved_at).toLocaleDateString('vi-VN')}
+            </p>
+          )}
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => onViewDetail(complaint.id)}
+        >
+          <Eye className="h-4 w-4 mr-1" />
+          Xem chi tiết
+          <ArrowRight className="h-4 w-4 ml-1" />
+        </Button>
+      </div>
+    </div>
+  );
+};
 
 // Rental Card Component
 const RentalCard = ({ rental, onCreateComplaint, loading }) => {
@@ -161,15 +245,23 @@ const ComplaintsPage = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   
+  // Tab state
+  const [activeTab, setActiveTab] = useState('create'); // 'create' or 'view'
+  
   // Form states for new complaint
   const [availableRentals, setAvailableRentals] = useState([]);
   const [showComplaintDialog, setShowComplaintDialog] = useState(false);
   const [selectedRentalForComplaint, setSelectedRentalForComplaint] = useState(null);
   const [selectedStaff, setSelectedStaff] = useState('');
   const [description, setDescription] = useState('');
+  
+  // View complaints states
+  const [myComplaints, setMyComplaints] = useState([]);
+  const [complaintsLoading, setComplaintsLoading] = useState(false);
 
   useEffect(() => {
     loadAvailableRentals();
+    loadMyComplaints();
   }, []);
 
   const loadAvailableRentals = async () => {
@@ -184,7 +276,23 @@ const ComplaintsPage = () => {
     }
   };
 
+  const loadMyComplaints = async () => {
+    try {
+      setComplaintsLoading(true);
+      // GET /api/renter/complaint - Get all complaints of current renter
+      const response = await renterComplaintsService.getAll();
+      setMyComplaints(response.data || []);
+    } catch (err) {
+      console.error('Error loading complaints:', err);
+      setError('Không thể tải danh sách khiếu nại');
+    } finally {
+      setComplaintsLoading(false);
+    }
+  };
 
+  const handleViewComplaintDetail = (complaintId) => {
+    navigate(`/renter/complaints/${complaintId}`);
+  };
 
   const handleCreateComplaint = (rentalId, staffId = null) => {
     const rental = availableRentals.find(r => r.id === rentalId);
@@ -213,11 +321,11 @@ const ComplaintsPage = () => {
         description: description.trim()
       };
       
-      const response = await renterService.complaints.submit(requestBody);
+      const response = await renterComplaintsService.create(requestBody);
       
       // Process response - API returns full complaint object with nested data
-      if (response && response.id) {
-        console.log('Complaint created successfully:', response);
+      if (response && response.data && response.data.id) {
+        console.log('Complaint created successfully:', response.data);
       }
       
       // Reset form
@@ -226,7 +334,10 @@ const ComplaintsPage = () => {
       setSelectedStaff('');
       setDescription('');
       
-      setSuccess(`Khiếu nại #${response?.id || 'mới'} đã được gửi thành công! Chúng tôi sẽ xử lý trong thời gian sớm nhất.`);
+      // Reload complaints list
+      loadMyComplaints();
+      
+      setSuccess(`Khiếu nại #${response?.data?.id || 'mới'} đã được gửi thành công! Chúng tôi sẽ xử lý trong thời gian sớm nhất.`);
     } catch (err) {
       console.error('Error submitting complaint:', err);
       setError('Không thể gửi khiếu nại. Vui lòng thử lại.');
@@ -242,19 +353,22 @@ const ComplaintsPage = () => {
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center">
             <AlertTriangle className="h-8 w-8 mr-3 text-red-600" />
-            Gửi khiếu nại
+            Khiếu nại
           </h1>
           <p className="text-gray-600 mt-2">
-            Gửi khiếu nại về chuyến đi hoặc dịch vụ
+            Gửi khiếu nại mới hoặc xem khiếu nại đã gửi
           </p>
         </div>
         
         <Button
-          onClick={loadAvailableRentals}
+          onClick={() => {
+            loadAvailableRentals();
+            loadMyComplaints();
+          }}
           variant="outline"
-          disabled={loading}
+          disabled={loading || complaintsLoading}
         >
-          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`h-4 w-4 mr-2 ${loading || complaintsLoading ? 'animate-spin' : ''}`} />
           Làm mới
         </Button>
       </div>
@@ -273,47 +387,118 @@ const ComplaintsPage = () => {
         </Alert>
       )}
 
-      {/* Submit Complaint Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Plus className="h-5 w-5 mr-2" />
+      {/* Tabs Navigation */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="create" className="flex items-center">
+            <Plus className="h-4 w-4 mr-2" />
             Gửi khiếu nại mới
-          </CardTitle>
-          <CardDescription>
-            Chọn chuyến đi và gửi khiếu nại trực tiếp
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="text-center py-8">
-              <RefreshCw className="h-8 w-8 animate-spin mx-auto text-gray-400 mb-4" />
-              <p className="text-gray-600">Đang tải danh sách chuyến đi...</p>
-            </div>
-          ) : availableRentals.length === 0 ? (
-            <div className="text-center py-8">
-              <Car className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                Không có chuyến đi nào
-              </h3>
-              <p className="text-gray-600">
-                Bạn chưa có chuyến đi nào để gửi khiếu nại.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {availableRentals.map((rental) => (
-                <RentalCard 
-                  key={rental.id} 
-                  rental={rental} 
-                  onCreateComplaint={(rentalId, staffId) => handleCreateComplaint(rentalId, staffId)}
-                  loading={loading}
-                />
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          </TabsTrigger>
+          <TabsTrigger value="view" className="flex items-center">
+            <MessageSquare className="h-4 w-4 mr-2" />
+            Khiếu nại đã gửi
+            {myComplaints.length > 0 && (
+              <Badge variant="secondary" className="ml-2">
+                {myComplaints.length}
+              </Badge>
+            )}
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Tab Content - Create New Complaint */}
+        <TabsContent value="create" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Plus className="h-5 w-5 mr-2" />
+                Gửi khiếu nại mới
+              </CardTitle>
+              <CardDescription>
+                Chọn chuyến đi và gửi khiếu nại trực tiếp
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="text-center py-8">
+                  <RefreshCw className="h-8 w-8 animate-spin mx-auto text-gray-400 mb-4" />
+                  <p className="text-gray-600">Đang tải danh sách chuyến đi...</p>
+                </div>
+              ) : availableRentals.length === 0 ? (
+                <div className="text-center py-8">
+                  <Car className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    Không có chuyến đi nào
+                  </h3>
+                  <p className="text-gray-600">
+                    Bạn chưa có chuyến đi nào để gửi khiếu nại.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {availableRentals.map((rental) => (
+                    <RentalCard 
+                      key={rental.id} 
+                      rental={rental} 
+                      onCreateComplaint={(rentalId, staffId) => handleCreateComplaint(rentalId, staffId)}
+                      loading={loading}
+                    />
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Tab Content - View Submitted Complaints */}
+        <TabsContent value="view" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <MessageSquare className="h-5 w-5 mr-2" />
+                Khiếu nại đã gửi
+              </CardTitle>
+              <CardDescription>
+                Xem tình trạng và chi tiết các khiếu nại đã gửi
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {complaintsLoading ? (
+                <div className="text-center py-8">
+                  <RefreshCw className="h-8 w-8 animate-spin mx-auto text-gray-400 mb-4" />
+                  <p className="text-gray-600">Đang tải danh sách khiếu nại...</p>
+                </div>
+              ) : myComplaints.length === 0 ? (
+                <div className="text-center py-8">
+                  <MessageSquare className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    Chưa có khiếu nại nào
+                  </h3>
+                  <p className="text-gray-600">
+                    Bạn chưa gửi khiếu nại nào. Hãy chuyển sang tab "Gửi khiếu nại mới" để tạo khiếu nại.
+                  </p>
+                  <Button
+                    className="mt-4"
+                    onClick={() => setActiveTab('create')}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Gửi khiếu nại mới
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {myComplaints.map((complaint) => (
+                    <ComplaintCard 
+                      key={complaint.id} 
+                      complaint={complaint} 
+                      onViewDetail={handleViewComplaintDetail}
+                    />
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Complaint Dialog */}
       <Dialog open={showComplaintDialog} onOpenChange={setShowComplaintDialog}>

@@ -278,7 +278,7 @@ const StationManagement = () => {
   const getVehicleStatusBadge = (status) => {
     const statusConfig = {
       available: { label: 'Khả dụng', variant: 'default', icon: Activity },
-      rented: { label: 'Đang thuê', variant: 'secondary', icon: Clock },
+      reserved: { label: 'Đã đặt', variant: 'secondary', icon: Clock },
       maintenance: { label: 'Bảo trì', variant: 'destructive', icon: Wrench }
     };
 
@@ -593,7 +593,7 @@ const StationManagement = () => {
           </DialogHeader>
 
           {selectedVehicle && (
-            <div className="space-y-4">
+            <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
               {/* Basic Info */}
               <Card>
                 <CardHeader className="pb-3">
@@ -651,6 +651,22 @@ const StationManagement = () => {
                         Quãng đường/lần sạc
                       </Label>
                       <p className="font-medium">{selectedVehicle.rangePerFullCharge} km</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Loại pin</Label>
+                      <p className="font-medium">{selectedVehicle.batteryType || '-'}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Mức pin hiện tại</Label>
+                      <p className="font-medium">{selectedVehicle.batteryLevel != null ? `${selectedVehicle.batteryLevel}%` : '-'}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Số km ODO</Label>
+                      <p className="font-medium">{selectedVehicle.odo != null ? selectedVehicle.odo.toLocaleString() + ' km' : '-'}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Số chỗ ngồi</Label>
+                      <p className="font-medium">{selectedVehicle.numberSeat != null ? selectedVehicle.numberSeat : '-'}</p>
                     </div>
                   </div>
                 </CardContent>

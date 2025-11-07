@@ -4,11 +4,11 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Edit, Trash2, Eye } from 'lucide-react';
 
-const PersonnelTable = ({ 
-  users, 
-  onViewUser, 
-  onEditUser, 
-  onDeleteUser, 
+const PersonnelTable = ({
+  users,
+  onViewUser,
+  onEditUser,
+  onDeleteUser,
   loading,
   searchTerm,
   roleFilter,
@@ -20,9 +20,9 @@ const PersonnelTable = ({
       'staff': { label: 'Nhân viên', variant: 'default' },
       'renter': { label: 'Khách hàng', variant: 'secondary' }
     };
-    
+
     const roleInfo = roleMap[role] || { label: role, variant: 'outline' };
-    
+
     return (
       <Badge variant={roleInfo.variant}>
         {roleInfo.label}
@@ -39,6 +39,7 @@ const PersonnelTable = ({
           <TableHead>Số điện thoại</TableHead>
           <TableHead>Vai trò</TableHead>
           <TableHead>Ngày tạo</TableHead>
+          <TableHead>Trạng thái</TableHead>
           {(permissions.view || permissions.edit || permissions.delete) && (
             <TableHead className='text-right'>Thao tác</TableHead>
           )}
@@ -58,12 +59,19 @@ const PersonnelTable = ({
             <TableCell>
               {new Date(user.createdAt).toLocaleDateString('vi-VN')}
             </TableCell>
+            <TableCell>
+              {user.isActive ? (
+                <Badge variant='success'>Hoạt động</Badge>
+              ) : (
+                <Badge variant='destructive'>Ngừng hoạt động</Badge>
+              )}
+            </TableCell>
             {(permissions.view || permissions.edit || permissions.delete) && (
               <TableCell className='text-right'>
                 <div className='flex justify-end gap-2'>
                   {permissions.view && (
-                    <Button 
-                      variant='ghost' 
+                    <Button
+                      variant='ghost'
                       size='sm'
                       onClick={() => onViewUser(user)}
                     >
@@ -71,8 +79,8 @@ const PersonnelTable = ({
                     </Button>
                   )}
                   {permissions.edit && (
-                    <Button 
-                      variant='ghost' 
+                    <Button
+                      variant='ghost'
                       size='sm'
                       onClick={() => onEditUser(user)}
                       disabled={user.role === 'renter'}
@@ -82,8 +90,8 @@ const PersonnelTable = ({
                     </Button>
                   )}
                   {permissions.delete && (
-                    <Button 
-                      variant='ghost' 
+                    <Button
+                      variant='ghost'
                       size='sm'
                       onClick={() => onDeleteUser(user.id)}
                       className='hover:bg-red-50 hover:text-red-600'

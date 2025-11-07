@@ -48,15 +48,6 @@ const getDashboardStats = async () => {
         const complaints = extractDataArray(complaintsResponse);
         const rentals = extractDataArray(rentalsResponse);
 
-        // Debug logging
-        console.log('Extracted data:', {
-            users: users.length,
-            vehicles: vehicles.length,
-            stations: stations.length,
-            complaints: complaints.length,
-            rentals: rentals.length
-        });
-
         // Calculate statistics with safe operations
         const stats = {
             totalUsers: users.length || 0,

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Plus, Search, Filter } from 'lucide-react';
+import { Plus, Search, Filter, CheckCircle, AlertTriangle, Trash2, Edit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import userService from '@/services/users/userService.js';
 import PersonnelStatsCard from './PersonnelStatsCard';
@@ -79,16 +79,33 @@ export default function PersonnelManagement() {
     try {
       const response = await userService.admin.createUser(values);
       const created = response?.user || response?.data || response;
-      toast({ title: 'Thành công', description: 'Đã tạo tài khoản mới thành công' });
+      toast({ 
+        title: (
+          <div className="flex items-center gap-2">
+            <CheckCircle className="h-5 w-5 text-green-600" />
+            Tạo tài khoản thành công!
+          </div>
+        ), 
+        description: `Đã tạo tài khoản mới cho ${values.fullName} với vai trò ${values.role === 'admin' ? 'Quản trị viên' : 'Nhân viên'}`,
+        className: 'border-l-green-500 border-green-200 bg-green-50',
+        duration: 4000
+      });
       setShowCreateDialog(false);
       resetForm();
       await fetchUsers();
     } catch (error) {
       console.error('Error creating user:', error);
       toast({
-        title: 'Lỗi',
-        description: error?.message || error?.response?.data?.message || 'Không thể tạo tài khoản mới',
-        variant: 'destructive'
+        title: (
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-red-600" />
+            Tạo tài khoản thất bại
+          </div>
+        ),
+        description: error?.message || error?.response?.data?.message || 'Không thể tạo tài khoản mới. Vui lòng kiểm tra thông tin và thử lại.',
+        variant: 'destructive',
+        className: 'border-l-red-500 border-red-200 bg-red-50',
+        duration: 5000
       });
     }
   };
@@ -98,7 +115,17 @@ export default function PersonnelManagement() {
       // Remove password from payload when updating
       const { password, ...updateData } = values;
       await userService.admin.updateUser(selectedUser.id, updateData);
-      toast({ title: 'Thành công', description: 'Đã cập nhật thông tin thành công' });
+      toast({ 
+        title: (
+          <div className="flex items-center gap-2">
+            <Edit className="h-5 w-5 text-blue-600" />
+            Cập nhật thành công!
+          </div>
+        ), 
+        description: `Đã cập nhật thông tin của ${updateData.fullName}`,
+        className: 'border-l-blue-500 border-blue-200 bg-blue-50',
+        duration: 3000
+      });
       setShowEditDialog(false);
       setSelectedUser(null);
       resetForm();
@@ -106,9 +133,16 @@ export default function PersonnelManagement() {
     } catch (error) {
       console.error('Error updating user:', error);
       toast({
-        title: 'Lỗi',
-        description: 'Không thể cập nhật thông tin',
-        variant: 'destructive'
+        title: (
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-red-600" />
+            Cập nhật thất bại
+          </div>
+        ),
+        description: error?.message || 'Không thể cập nhật thông tin. Vui lòng thử lại.',
+        variant: 'destructive',
+        className: 'border-l-red-500 border-red-200 bg-red-50',
+        duration: 5000
       });
     }
   };
@@ -129,8 +163,15 @@ export default function PersonnelManagement() {
       console.log('Deleting user with ID:', userToDelete.id);
       await userService.admin.deleteUser(userToDelete.id);
       toast({
-        title: 'Thành công',
-        description: `Đã xóa tài khoản "${userName}" thành công`
+        title: (
+          <div className="flex items-center gap-2">
+            <Trash2 className="h-5 w-5 text-orange-600" />
+            Xóa tài khoản thành công!
+          </div>
+        ),
+        description: `Đã xóa tài khoản "${userName}" khỏi hệ thống`,
+        className: 'border-l-orange-500 border-orange-200 bg-orange-50',
+        duration: 3000
       });
       await fetchUsers();
       setShowDeleteDialog(false);
@@ -153,9 +194,16 @@ export default function PersonnelManagement() {
       }
 
       toast({
-        title: 'Không thể xóa tài khoản',
+        title: (
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-red-600" />
+            Không thể xóa tài khoản
+          </div>
+        ),
         description: errorMessage,
-        variant: 'destructive'
+        variant: 'destructive',
+        className: 'border-l-red-500 border-red-200 bg-red-50',
+        duration: 6000
       });
     }
   };

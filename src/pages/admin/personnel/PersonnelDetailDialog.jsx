@@ -12,9 +12,9 @@ const PersonnelDetailDialog = ({ isOpen, onClose, user }) => {
       'staff': { label: 'Nhân viên', variant: 'default' },
       'renter': { label: 'Khách hàng', variant: 'secondary' }
     };
-    
+
     const roleInfo = roleMap[role] || { label: role, variant: 'outline' };
-    
+
     return (
       <Badge variant={roleInfo.variant}>
         {roleInfo.label}
@@ -31,7 +31,7 @@ const PersonnelDetailDialog = ({ isOpen, onClose, user }) => {
             Thông tin chi tiết của người dùng
           </DialogDescription>
         </DialogHeader>
-        
+
         {user && (
           <div className='grid gap-4 py-4'>
             <div className='grid grid-cols-2 gap-4'>
@@ -63,6 +63,16 @@ const PersonnelDetailDialog = ({ isOpen, onClose, user }) => {
                 <Label className='text-sm font-medium text-muted-foreground'>ID</Label>
                 <p className='text-lg'>{user.id}</p>
               </div>
+              <div>
+                <Label className='text-sm font-medium text-muted-foreground'>Trạng thái hoạt động</Label>
+                <div className='mt-1'>
+                  {user.isActive ? (
+                    <Badge variant='success'>Hoạt động</Badge>
+                  ) : (
+                    <Badge variant='destructive'>Ngừng hoạt động</Badge>
+                  )}
+                </div>
+              </div>
               {user.role === 'renter' && (
                 <div>
                   <Label className='text-sm font-medium text-muted-foreground'>Trạng thái xác minh</Label>
@@ -81,7 +91,7 @@ const PersonnelDetailDialog = ({ isOpen, onClose, user }) => {
                 <Label className='text-sm font-medium text-muted-foreground'>
                   Tài liệu của khách hàng ({user.documents.length})
                 </Label>
-                
+
                 {user.documents.map((doc, index) => (
                   <div key={doc.id || index} className='border rounded-lg p-4 space-y-3 bg-gray-50'>
                     {/* Document header */}
@@ -127,7 +137,7 @@ const PersonnelDetailDialog = ({ isOpen, onClose, user }) => {
                     {doc.documentUrl && (
                       <div className='space-y-2'>
                         <div className='border rounded-md p-2 bg-white'>
-                          <img 
+                          <img
                             src={`${API_BASE_URL}${doc.documentUrl}`}
                             alt={`${doc.type} - ${doc.documentNumber}`}
                             className='max-w-full h-auto max-h-48 object-contain mx-auto rounded cursor-pointer hover:opacity-80 transition-opacity'
@@ -138,25 +148,25 @@ const PersonnelDetailDialog = ({ isOpen, onClose, user }) => {
                             }}
                           />
                           {/* Fallback if image fails to load */}
-                          <div 
+                          <div
                             className='text-center py-4 text-gray-500 hidden'
-                            style={{display: 'none'}}
+                            style={{ display: 'none' }}
                           >
                             <p>Không thể hiển thị ảnh</p>
                           </div>
                         </div>
-                        
+
                         {/* Action buttons */}
                         <div className='flex gap-2'>
-                          <Button 
-                            variant='outline' 
+                          <Button
+                            variant='outline'
                             size='sm'
                             onClick={() => window.open(`${API_BASE_URL}${doc.documentUrl}`, '_blank')}
                           >
                             Xem toàn màn hình
                           </Button>
-                          <Button 
-                            variant='outline' 
+                          <Button
+                            variant='outline'
                             size='sm'
                             onClick={() => {
                               const link = document.createElement('a');
@@ -182,7 +192,7 @@ const PersonnelDetailDialog = ({ isOpen, onClose, user }) => {
                 <Label className='text-sm font-medium text-muted-foreground'>Ngày tạo</Label>
                 <p className='text-lg'>{user.createdAt ? new Date(user.createdAt).toLocaleDateString('vi-VN', {
                   year: 'numeric',
-                  month: 'long', 
+                  month: 'long',
                   day: 'numeric',
                   hour: '2-digit',
                   minute: '2-digit'
@@ -193,7 +203,7 @@ const PersonnelDetailDialog = ({ isOpen, onClose, user }) => {
                 <p className='text-lg'>{user.updatedAt ? new Date(user.updatedAt).toLocaleDateString('vi-VN', {
                   year: 'numeric',
                   month: 'long',
-                  day: 'numeric', 
+                  day: 'numeric',
                   hour: '2-digit',
                   minute: '2-digit'
                 }) : 'Chưa cập nhật'}</p>

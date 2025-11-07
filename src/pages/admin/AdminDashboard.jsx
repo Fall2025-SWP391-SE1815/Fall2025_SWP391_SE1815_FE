@@ -68,7 +68,6 @@ const AdminDashboard = () => {
         })
       ]);
 
-      console.log('Dashboard data loaded:', { statsData, activitiesData });
       setStats(statsData);
     } catch (err) {
       console.error('Error loading dashboard data:', err);

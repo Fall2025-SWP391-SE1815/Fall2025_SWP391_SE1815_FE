@@ -39,7 +39,8 @@ export const API_ENDPOINTS = {
     RATING_STAFF: '/api/renter/rating/staff',
 
     // Support
-    COMPLAINT: '/api/renter/complaint'
+    COMPLAINT: '/api/renter/complaint',
+    COMPLAINT_BY_ID: (id) => `/api/renter/complaint/${id}`
   },
 
   // Staff endpoints

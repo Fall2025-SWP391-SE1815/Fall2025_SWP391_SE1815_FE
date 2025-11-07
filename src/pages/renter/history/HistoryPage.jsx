@@ -122,8 +122,8 @@ const HistoryPage = () => {
         return <Badge className="bg-green-100 text-green-800">Hoàn thành</Badge>;
       case 'cancelled':
         return <Badge variant="destructive">Đã hủy</Badge>;
-      case 'pending':
-        return <Badge className="bg-yellow-100 text-yellow-800">Chờ xử lý</Badge>;
+      case 'booked':
+        return <Badge className="bg-yellow-100 text-yellow-800">Đã đặt</Badge>;
       case 'in_use':
         return <Badge className="bg-blue-100 text-blue-800">Đang sử dụng</Badge>;
       case 'expired':
@@ -182,7 +182,7 @@ const HistoryPage = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tất cả trạng thái</SelectItem>
-                <SelectItem value="booking">Đang đặt</SelectItem>
+                <SelectItem value="booked">Đang đặt</SelectItem>
                 <SelectItem value="returned">Hoàn thành</SelectItem>
                 <SelectItem value="in_use">Đang sử dụng</SelectItem>
                 <SelectItem value="waiting_for_payment">Chờ thanh toán</SelectItem>
@@ -294,7 +294,7 @@ const HistoryPage = () => {
                       <MapPin className="h-4 w-4 mr-2" />
                       <div>
                         <div className="font-medium">Quãng đường</div>
-                        <div>{rental.odoStart && rental.odoEnd ? `${rental.odoEnd - rental.odoStart} km` : 'N/A'}</div>
+                        <div>{rental.odoStart && rental.odoEnd ? `${rental.odoEnd - rental.odoStart} km` : '0 km'}</div>
                       </div>
                     </div>
 

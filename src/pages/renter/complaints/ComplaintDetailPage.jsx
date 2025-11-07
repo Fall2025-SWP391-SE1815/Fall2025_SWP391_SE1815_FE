@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 
 // Services
-import complaintsService from '@/services/complaints/complaintsService';
+import renterComplaintsService from '@/services/renter/complaintsService';
 
 const ComplaintDetailPage = () => {
   const { id } = useParams();
@@ -39,8 +39,8 @@ const ComplaintDetailPage = () => {
       setLoading(true);
       setError('');
       
-      // GET /api/admin/complaint/:id (using admin service as there's no renter-specific endpoint for complaint detail)
-      const response = await complaintsService.getById(id);
+      // GET /api/renter/complaint/:id
+      const response = await renterComplaintsService.getById(id);
       setComplaint(response.data);
     } catch (err) {
       setError('Không thể tải thông tin chi tiết khiếu nại');

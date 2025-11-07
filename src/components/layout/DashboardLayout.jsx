@@ -1,5 +1,6 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
+import { Toaster } from '@/components/ui/toaster';
 
 const DashboardLayout = () => {
     return (
@@ -17,6 +18,7 @@ const DashboardLayout = () => {
                     <Outlet />
                 </main>
             </div>
+            <Toaster />
         </div>
     );
 };
