@@ -1,5 +1,5 @@
 // User Service - thin wrapper over admin user APIs
-import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/api/apiClient.js';
+import { apiGet, apiPost, apiPut, apiDelete, apiPatch } from '@/lib/api/apiClient.js';
 import { API_ENDPOINTS } from '@/lib/api/apiConfig.js';
 
 const basePath = `${API_ENDPOINTS.ADMIN.USERS}`;
@@ -27,6 +27,10 @@ const remove = async (id) => {
   return apiDelete(`${basePath}/${id}`, 'Không thể xóa người dùng');
 };
 
+const toggleStatus = async (id) => {
+  return apiPatch(`${basePath}/toggle-status/${id}`, {}, 'Không thể thay đổi trạng thái người dùng');
+};
+
 const getByRole = async (role) => {
   const query = buildQuery({ role });
   return apiGet(`${basePath}${query}`, 'Không thể lấy người dùng theo role');
@@ -48,6 +52,7 @@ const admin = {
   getUserById: async (id) => getById(id),
   updateUser: async (id, userData) => update(id, userData),
   deleteUser: async (id) => remove(id),
+  toggleUserStatus: async (id) => toggleStatus(id),
   getRenters: async (params = {}) => getAll({ ...params, role: 'renter' }),
   getRenterProfile: async (renterId) => apiGet(API_ENDPOINTS.ADMIN.USER_PROFILE(renterId), 'Không thể lấy hồ sơ khách hàng'),
 };
@@ -58,6 +63,7 @@ export default {
   create,
   update,
   delete: remove,
+  toggleStatus,
   getByRole,
   changePassword,
   admin

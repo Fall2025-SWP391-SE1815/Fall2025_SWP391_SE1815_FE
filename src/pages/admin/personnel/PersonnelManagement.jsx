@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Plus, Search, Filter, CheckCircle, AlertTriangle, Trash2, Edit } from 'lucide-react';
+import { Plus, Search, Filter, CheckCircle, AlertTriangle, Trash2, Edit, ToggleLeft, ToggleRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import userService from '@/services/users/userService.js';
 import PersonnelStatsCard from './PersonnelStatsCard';
@@ -21,9 +21,7 @@ export default function PersonnelManagement() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showViewDialog, setShowViewDialog] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
-  const [userToDelete, setUserToDelete] = useState(null);
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -79,7 +77,7 @@ export default function PersonnelManagement() {
     try {
       // Check for duplicate email
       const existingEmailUser = users.find(user => 
-        user.email.toLowerCase() === values.email.toLowerCase()
+        user.email?.toLowerCase() === values.email?.toLowerCase()
       );
       
       if (existingEmailUser) {
@@ -143,7 +141,7 @@ export default function PersonnelManagement() {
       
       // Check for specific duplicate errors from server
       const serverMessage = error?.response?.data?.message || error?.message || '';
-      const lowerMessage = serverMessage.toLowerCase();
+      const lowerMessage = serverMessage ? serverMessage.toLowerCase() : '';
       
       if (lowerMessage.includes('email') && (lowerMessage.includes('duplicate') || lowerMessage.includes('unique') || lowerMessage.includes('already exists'))) {
         errorTitle = 'Email đã tồn tại';
@@ -177,7 +175,7 @@ export default function PersonnelManagement() {
       
       // Check for duplicate email (excluding current user)
       const existingEmailUser = users.find(user => 
-        user.email.toLowerCase() === updateData.email.toLowerCase() && 
+        user.email?.toLowerCase() === updateData.email?.toLowerCase() && 
         user.id !== selectedUser.id
       );
       
@@ -243,7 +241,7 @@ export default function PersonnelManagement() {
       
       // Check for specific duplicate errors from server
       const serverMessage = error?.response?.data?.message || error?.message || '';
-      const lowerMessage = serverMessage.toLowerCase();
+      const lowerMessage = serverMessage ? serverMessage.toLowerCase() : '';
       
       if (lowerMessage.includes('email') && (lowerMessage.includes('duplicate') || lowerMessage.includes('unique') || lowerMessage.includes('already exists'))) {
         errorTitle = 'Email đã tồn tại';
@@ -271,47 +269,53 @@ export default function PersonnelManagement() {
   };
 
   const handleDeleteUser = (userId) => {
-    // Find user to get more info for confirmation
+    // Find user and toggle their status instead of deleting
     const user = users.find(u => u.id === userId);
-    setUserToDelete(user);
-    setShowDeleteDialog(true);
+    if (user) {
+      handleToggleUserStatus(user);
+    }
   };
 
-  const confirmDeleteUser = async () => {
-    if (!userToDelete) return;
-
-    const userName = userToDelete.fullName || userToDelete.email || `User ID ${userToDelete.id}`;
+  const handleToggleUserStatus = async (user) => {
+    const userName = user.fullName || user.email || `User ID ${user.id}`;
+    const currentStatus = user.isActive;
+    const action = currentStatus ? 'vô hiệu hóa' : 'kích hoạt';
 
     try {
-      console.log('Deleting user with ID:', userToDelete.id);
-      await userService.admin.deleteUser(userToDelete.id);
+      console.log('Toggling user status for ID:', user.id);
+      const response = await userService.admin.toggleUserStatus(user.id);
+      
+      // Update local state immediately with the response
+      const updatedUser = response?.user || response?.data || { ...user, isActive: !currentStatus };
+      setUsers(prevUsers => 
+        prevUsers.map(u => u.id === user.id ? { ...u, isActive: updatedUser.isActive } : u)
+      );
+
       toast({
         title: (
           <div className="flex items-center gap-2">
-            <Trash2 className="h-5 w-5 text-orange-600" />
-            Xóa tài khoản thành công!
+            {!currentStatus ? (
+              <ToggleRight className="h-5 w-5 text-green-600" />
+            ) : (
+              <ToggleLeft className="h-5 w-5 text-orange-600" />
+            )}
+            {!currentStatus ? 'Kích hoạt tài khoản thành công!' : 'Vô hiệu hóa tài khoản thành công!'}
           </div>
         ),
-        description: `Đã xóa tài khoản "${userName}" khỏi hệ thống`,
-        className: 'border-l-orange-500 border-orange-200 bg-orange-50',
+        description: `Đã ${action} tài khoản "${userName}"`,
+        className: !currentStatus 
+          ? 'border-l-green-500 border-green-200 bg-green-50'
+          : 'border-l-orange-500 border-orange-200 bg-orange-50',
         duration: 3000
       });
-      await fetchUsers();
-      setShowDeleteDialog(false);
-      setUserToDelete(null);
     } catch (error) {
-      console.error('Error deleting user:', error);
+      console.error('Error toggling user status:', error);
 
-      let errorMessage = 'Không thể xóa tài khoản';
+      let errorMessage = `Không thể ${action} tài khoản`;
 
       // Handle specific error cases
       if (error?.response?.data?.message) {
-        const serverMessage = error.response.data.message.toLowerCase();
-        if (serverMessage.includes('reference constraint') || serverMessage.includes('foreign key')) {
-          errorMessage = 'Không thể xóa tài khoản này vì còn dữ liệu liên quan (đơn thuê, thanh toán, v.v.). Vui lòng xử lý dữ liệu liên quan trước khi xóa.';
-        } else {
-          errorMessage = error.response.data.message;
-        }
+        errorMessage = error.response.data.message;
       } else if (error?.message) {
         errorMessage = error.message;
       }
@@ -320,13 +324,12 @@ export default function PersonnelManagement() {
         title: (
           <div className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-red-600" />
-            Không thể xóa tài khoản
+            {`Không thể ${action} tài khoản`}
           </div>
         ),
         description: errorMessage,
-        variant: 'destructive',
         className: 'border-l-red-500 border-red-200 bg-red-50',
-        duration: 6000
+        duration: 4000
       });
     }
   };
@@ -530,34 +533,7 @@ export default function PersonnelManagement() {
         user={selectedUser}
       />
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Xác nhận xóa tài khoản</AlertDialogTitle>
-            <AlertDialogDescription>
-              Bạn có chắc chắn muốn xóa tài khoản "{userToDelete?.fullName || userToDelete?.email}"?
-              <br />
-              <span className="text-red-600 font-medium">Hành động này không thể hoàn tác.</span>
-              <br />
-              <span className="text-orange-600 text-sm">
-                Lưu ý: Tài khoản không thể xóa nếu trong thời gian phân công
-              </span>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setUserToDelete(null)}>
-              Hủy
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDeleteUser}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              Xóa tài khoản
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+
     </div>
   );
 }

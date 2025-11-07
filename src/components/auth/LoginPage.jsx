@@ -203,19 +203,8 @@ const LoginPage = () => {
                 )}
               </div>
 
-              {/* Remember Me & Forgot Password */}
+              {/* Forgot Password */}
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="rememberMe"
-                    checked={formData.rememberMe}
-                    onCheckedChange={(checked) => handleInputChange('rememberMe', checked)}
-                    disabled={isSubmitting}
-                  />
-                  <Label htmlFor="rememberMe" className="text-sm text-gray-600">
-                    Ghi nhớ đăng nhập
-                  </Label>
-                </div>
                 <Link
                   to="/auth/forgot-password"
                   className="text-sm text-green-600 hover:text-green-800 transition-colors"

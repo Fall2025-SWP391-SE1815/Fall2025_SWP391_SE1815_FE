@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Edit, Trash2, Eye } from 'lucide-react';
+import { Edit, ToggleLeft, ToggleRight, Eye } from 'lucide-react';
 
 const PersonnelTable = ({
   users,
@@ -94,10 +94,14 @@ const PersonnelTable = ({
                       variant='ghost'
                       size='sm'
                       onClick={() => onDeleteUser(user.id)}
-                      className='hover:bg-red-50 hover:text-red-600'
-                      title={user.role === 'renter' ? 'Xóa tài khoản (có thể bị hạn chế do dữ liệu liên quan)' : 'Xóa tài khoản'}
+                      className={user.isActive ? 'hover:bg-orange-50 hover:text-orange-600' : 'hover:bg-green-50 hover:text-green-600'}
+                      title={user.isActive ? 'Vô hiệu hóa tài khoản' : 'Kích hoạt tài khoản'}
                     >
-                      <Trash2 className='h-4 w-4' />
+                      {user.isActive ? (
+                        <ToggleRight className='h-4 w-4 text-green-600' />
+                      ) : (
+                        <ToggleLeft className='h-4 w-4 text-orange-400' />
+                      )}
                     </Button>
                   )}
                 </div>
