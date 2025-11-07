@@ -12,6 +12,7 @@ import StaffLayout from "../pages/staff/StaffLayout.jsx";
 import Home from "../components/layout/Home.jsx";
 import LoginPage from "../components/auth/LoginPage.jsx";
 import RegisterPage from "../components/auth/RegisterPage.jsx";
+import ForgotPasswordPage from "../components/auth/ForgotPasswordPage.jsx";
 import NotFoundPage from "../pages/NotFoundPage.jsx";
 
 // Admin Components
@@ -62,6 +63,7 @@ export const paths = {
   home: "/",
   login: "/login",
   register: "/register",
+  forgotPassword: "/forgot-password",
 
   // Admin routes
   admin: {
@@ -147,6 +149,14 @@ const router = createBrowserRouter([
     element: (
       <PublicRoute>
         <RegisterPage />
+      </PublicRoute>
+    ),
+  },
+  {
+    path: "/forgot-password",
+    element: (
+      <PublicRoute>
+        <ForgotPasswordPage />
       </PublicRoute>
     ),
   },

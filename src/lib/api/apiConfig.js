@@ -11,7 +11,12 @@ export const API_ENDPOINTS = {
     // Swagger backend uses /api/auth/* paths (see backend swagger UI)
     LOGIN: '/api/auth/sign-in',
     REGISTER: '/api/auth/register',
-    LOGOUT: '/api/auth/sign-out'
+    LOGOUT: '/api/auth/sign-out',
+    VERIFY_OTP: '/api/auth/verify-otp',
+    RESET_PASSWORD: '/api/auth/reset-password',
+    RESEND_OTP: '/api/auth/resend-otp',
+    FORGOT_PASSWORD: '/api/auth/forgot-password',
+    CHANGE_PASSWORD: '/api/auth/change-password'
   },
 
   // Renter endpoints

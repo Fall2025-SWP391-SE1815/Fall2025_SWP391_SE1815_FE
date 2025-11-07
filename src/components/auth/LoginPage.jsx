@@ -206,7 +206,7 @@ const LoginPage = () => {
               {/* Forgot Password */}
               <div className="flex items-center justify-between">
                 <Link
-                  to="/auth/forgot-password"
+                  to="/forgot-password"
                   className="text-sm text-green-600 hover:text-green-800 transition-colors"
                 >
                   Quên mật khẩu?
@@ -267,7 +267,7 @@ const LoginPage = () => {
                   'Đăng nhập'
                 )}
               </Button>
-
+              
               {/* Register Link */}
               <p className="text-center text-sm text-gray-600">
                 Chưa có tài khoản?{' '}

@@ -128,12 +128,108 @@ export const authService = {
         }
     },
 
-    // Not implemented
-    changePassword: async () => createErrorResponse('Not implemented on real API', 501),
-    forgotPassword: async () => createErrorResponse('Not implemented on real API', 501),
-    resetPassword: async () => createErrorResponse('Not implemented on real API', 501),
-    updateProfile: async () => createErrorResponse('Not implemented on real API', 501),
-    verifyEmail: async () => createErrorResponse('Not implemented on real API', 501),
+    // Verify OTP
+    verifyOtp: async (email, otp) => {
+        try {
+            const res = await apiClient.post(API_ENDPOINTS.AUTH.VERIFY_OTP, { email, otp });
+            const payload = res || {};
+            const user = payload.userInfo || payload.user || payload.data?.userInfo || null;
+            const accessToken = payload.accessToken || payload.token || payload.data?.accessToken || null;
+            const refreshToken = payload.refreshToken || payload.data?.refreshToken || null;
+
+            if (user) {
+                currentUser = user;
+                localStorage.setItem('userData', JSON.stringify(user));
+            }
+            if (accessToken) {
+                authToken = accessToken;
+                localStorage.setItem('accessToken', accessToken);
+            }
+            if (refreshToken) {
+                localStorage.setItem('refreshToken', refreshToken);
+            }
+            return createResponse({ user, accessToken, refreshToken }, true, 'OTP verified successfully');
+        } catch (error) {
+            const msg = error?.data?.message || error?.message || 'Xác thực OTP thất bại';
+            const status = error?.status || 400;
+            return createErrorResponse(msg, status);
+        }
+    },
+
+    // Forgot Password
+    forgotPassword: async (email) => {
+        try {
+            const res = await apiClient.post(API_ENDPOINTS.AUTH.FORGOT_PASSWORD, { email });
+            return createResponse(res, true, 'OTP đã được gửi đến email của bạn');
+        } catch (error) {
+            const msg = error?.data?.message || error?.message || 'Không thể gửi OTP';
+            const status = error?.status || 400;
+            return createErrorResponse(msg, status);
+        }
+    },
+
+    // Reset Password  
+    resetPassword: async (token, newPassword) => {
+        try {
+            const res = await apiClient.post(API_ENDPOINTS.AUTH.RESET_PASSWORD, { 
+                token, 
+                newPassword 
+            });
+            return createResponse(res, true, 'Mật khẩu đã được đặt lại thành công');
+        } catch (error) {
+            const msg = error?.data?.message || error?.message || 'Đặt lại mật khẩu thất bại';
+            const status = error?.status || 400;
+            return createErrorResponse(msg, status);
+        }
+    },
+
+    // Resend OTP
+    resendOtp: async (email) => {
+        try {
+            const res = await apiClient.post(API_ENDPOINTS.AUTH.RESEND_OTP, { email });
+            return createResponse(res, true, 'OTP mới đã được gửi');
+        } catch (error) {
+            const msg = error?.data?.message || error?.message || 'Không thể gửi lại OTP';
+            const status = error?.status || 400;
+            return createErrorResponse(msg, status);
+        }
+    },
+
+    // Change Password
+    changePassword: async (currentPassword, newPassword, confirmNewPassword) => {
+        try {
+            const res = await apiClient.post(API_ENDPOINTS.AUTH.CHANGE_PASSWORD, { 
+                currentPassword, 
+                newPassword,
+                confirmNewPassword 
+            });
+            return createResponse(res, true, 'Đổi mật khẩu thành công');
+        } catch (error) {
+            const msg = error?.data?.message || error?.message || 'Đổi mật khẩu thất bại';
+            const status = error?.status || 400;
+            return createErrorResponse(msg, status);
+        }
+    },
+
+    // Update Profile (placeholder for now)
+    updateProfile: async (profileData) => {
+        try {
+            // Note: This endpoint might be in user service instead of auth service
+            const endpoint = '/api/user/profile'; // This might need adjustment based on actual API
+            const res = await apiClient.put(endpoint, profileData);
+            const user = res?.userInfo || res?.user || res?.data || res;
+            
+            if (user) {
+                currentUser = user;
+                localStorage.setItem('userData', JSON.stringify(user));
+            }
+            return createResponse(user, true, 'Cập nhật hồ sơ thành công');
+        } catch (error) {
+            const msg = error?.data?.message || error?.message || 'Cập nhật hồ sơ thất bại';
+            const status = error?.status || 400;
+            return createErrorResponse(msg, status);
+        }
+    },
 
     // Utilities
     isAuthenticated: () => !!currentUser && !!authToken,
