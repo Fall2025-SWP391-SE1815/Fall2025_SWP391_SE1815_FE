@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import dashboardService from '@/services/admin/dashboardService.js';
 import {
   Users,
@@ -34,19 +36,33 @@ const AdminDashboard = () => {
 
   const [revenueData, setRevenueData] = useState({
     totalRevenue: 0,
-    completedRentals: 0,
-    avgRentalValue: 0,
-    dailyRevenueChart: [],
-    topDays: [],
-    topMonths: []
+    revenueByStation: []
+  });
+
+  // Date range for revenue filtering
+  const [dateRange, setDateRange] = useState(() => {
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - 30); // Default 30 days
+
+    return {
+      startDate: startDate.toISOString().split('T')[0],
+      endDate: endDate.toISOString().split('T')[0]
+    };
   });
 
   const [recentActivities, setRecentActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [loadingRevenue, setLoadingRevenue] = useState(false);
 
   useEffect(() => {
     loadDashboardData();
+  }, []);
+
+  // Load revenue data on component mount
+  useEffect(() => {
+    loadRevenueData();
   }, []);
 
   const loadDashboardData = async () => {
@@ -70,19 +86,24 @@ const AdminDashboard = () => {
             systemAlerts: 0
           };
         }),
-        dashboardService.getRevenueData().catch(err => {
+        dashboardService.getRevenueData(dateRange).catch(err => {
           console.error('Revenue data error:', err);
-          return {
+          console.error('Revenue API Error Details:', err);
+
+          // Return safe fallback data
+          const fallbackData = {
             totalRevenue: 0,
-            completedRentals: 0,
-            avgRentalValue: 0,
-            dailyRevenueChart: [],
-            topDays: [],
-            topMonths: []
+            revenueByStation: []
           };
+
+          // If it's an auth error, show specific message
+          if (err.message && err.message.includes('403')) {
+            setError('Lỗi xác thực: Vui lòng đăng nhập lại');
+          }
+
+          return fallbackData;
         })
       ]);
-
       setStats(statsData);
       setRevenueData(revenueDataResponse);
     } catch (err) {
@@ -93,7 +114,42 @@ const AdminDashboard = () => {
     }
   };
 
+  // Load revenue data separately with date range
+  const loadRevenueData = async (customDateRange = null) => {
+    try {
+      setLoadingRevenue(true);
+      const rangeToUse = customDateRange || dateRange;
 
+      console.log('Loading revenue data with date range:', rangeToUse);
+
+      const revenueDataResponse = await dashboardService.getRevenueData(rangeToUse);
+      console.log('Revenue data response:', revenueDataResponse);
+
+      setRevenueData(revenueDataResponse);
+    } catch (err) {
+      console.error('Error loading revenue data:', err);
+      setRevenueData({
+        totalRevenue: 0,
+        revenueByStation: []
+      });
+    } finally {
+      setLoadingRevenue(false);
+    }
+  };
+
+  // Handle date range change
+  const handleDateRangeChange = (field, value) => {
+    const newDateRange = {
+      ...dateRange,
+      [field]: value
+    };
+    setDateRange(newDateRange);
+  };
+
+  // Apply date filter
+  const applyDateFilter = () => {
+    loadRevenueData(dateRange);
+  };
 
   const StatCard = ({ title, value, icon: Icon, trend, trendValue, color = "text-blue-600" }) => (
     <Card>
@@ -190,14 +246,6 @@ const AdminDashboard = () => {
             color="bg-indigo-500"
           />
           <StatCard
-            title="Doanh thu (VND)"
-            value={stats.totalRevenue}
-            icon={DollarSign}
-            trend="up"
-            trendValue="+15%"
-            color="bg-emerald-500"
-          />
-          <StatCard
             title="Khiếu nại chờ xử lý"
             value={stats.pendingComplaints}
             icon={MessageSquare}
@@ -207,146 +255,156 @@ const AdminDashboard = () => {
 
         {/* Revenue Report Section */}
         <div className="mb-8">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Báo cáo Doanh thu</h2>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Revenue Summary Cards */}
-            <div className="lg:col-span-1">
-              <div className="grid gap-4">
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-medium text-gray-600">Tổng Doanh thu</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-bold text-green-600">
-                      {loading ? (
-                        <div className="animate-pulse bg-gray-200 h-8 w-32 rounded"></div>
-                      ) : (
-                        `${revenueData.totalRevenue.toLocaleString()} VNĐ`
-                      )}
-                    </div>
-                    <p className="text-xs text-gray-500 mt-2">
-                      Từ {revenueData.completedRentals} giao dịch hoàn thành
-                    </p>
-                  </CardContent>
-                </Card>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4 sm:mb-0">Báo cáo Doanh thu</h2>
 
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-medium text-gray-600">Giá trị TB/Giao dịch</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-blue-600">
-                      {loading ? (
-                        <div className="animate-pulse bg-gray-200 h-8 w-28 rounded"></div>
-                      ) : (
-                        `${Math.round(revenueData.avgRentalValue).toLocaleString()} VNĐ`
-                      )}
-                    </div>
-                    <p className="text-xs text-gray-500 mt-2">
-                      Trung bình mỗi lần thuê xe
-                    </p>
-                  </CardContent>
-                </Card>
+            {/* Date Range Picker */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Label htmlFor="startDate" className="text-sm font-medium">Từ:</Label>
+                <Input
+                  id="startDate"
+                  type="date"
+                  value={dateRange.startDate}
+                  onChange={(e) => handleDateRangeChange('startDate', e.target.value)}
+                  className="w-36"
+                />
               </div>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="endDate" className="text-sm font-medium">Đến:</Label>
+                <Input
+                  id="endDate"
+                  type="date"
+                  value={dateRange.endDate}
+                  onChange={(e) => handleDateRangeChange('endDate', e.target.value)}
+                  className="w-36"
+                />
+              </div>
+              <Button
+                onClick={applyDateFilter}
+                disabled={loadingRevenue}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <Calendar className="h-4 w-4 mr-2" />
+                {loadingRevenue ? 'Đang tải...' : 'Áp dụng'}
+              </Button>
             </div>
+          </div>
 
-            {/* Top Performance Days */}
-            <div className="lg:col-span-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Ngày có Doanh thu Cao nhất</CardTitle>
-                  <CardDescription>Top 5 ngày có doanh thu tốt nhất</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {loading ? (
-                    <div className="space-y-3">
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <div key={i} className="flex justify-between items-center">
-                          <div className="animate-pulse bg-gray-200 h-4 w-24 rounded"></div>
-                          <div className="animate-pulse bg-gray-200 h-4 w-20 rounded"></div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : revenueData.topDays.length > 0 ? (
-                    <div className="space-y-3">
-                      {revenueData.topDays.map((day, index) => (
-                        <div key={day.date} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Total Revenue Summary */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg font-medium text-gray-800">Tổng Doanh thu</CardTitle>
+                <CardDescription>Tổng doanh thu từ tất cả các trạm</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-4xl font-bold text-green-600 mb-4">
+                  {loading || loadingRevenue ? (
+                    <div className="animate-pulse bg-gray-200 h-12 w-40 rounded"></div>
+                  ) : (
+                    `${revenueData.totalRevenue.toLocaleString()} VNĐ`
+                  )}
+                </div>
+                <div className="flex items-center text-sm text-gray-500">
+                  <MapPin className="h-4 w-4 mr-1" />
+                  Từ {(revenueData.revenueByStation || []).length} trạm hoạt động
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Revenue by Station */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Doanh thu theo Trạm</CardTitle>
+                <CardDescription>Chi tiết doanh thu từng trạm</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {loading || loadingRevenue ? (
+                  <div className="space-y-3">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <div key={i} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                        <div className="animate-pulse bg-gray-200 h-4 w-32 rounded"></div>
+                        <div className="animate-pulse bg-gray-200 h-4 w-24 rounded"></div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (revenueData.revenueByStation || []).length > 0 ? (
+                  <div className="space-y-3 max-h-64 overflow-y-auto">
+                    {(revenueData.revenueByStation || []).map((station, index) => {
+                      const stationName = Object.keys(station)[0];
+                      const revenue = station[stationName];
+                      const percentage = revenueData.totalRevenue > 0 ? ((revenue / revenueData.totalRevenue) * 100).toFixed(1) : 0;
+
+                      return (
+                        <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                           <div className="flex items-center space-x-3">
                             <Badge variant="outline" className="w-6 h-6 rounded-full p-0 flex items-center justify-center text-xs">
                               {index + 1}
                             </Badge>
-                            <span className="font-medium">
-                              {new Date(day.date).toLocaleDateString('vi-VN', {
-                                weekday: 'short',
-                                day: '2-digit',
-                                month: '2-digit'
-                              })}
-                            </span>
+                            <div>
+                              <div className="font-medium text-gray-900">{stationName}</div>
+                              <div className="text-xs text-gray-500">{percentage}% tổng doanh thu</div>
+                            </div>
                           </div>
                           <div className="text-right">
                             <div className="font-bold text-green-600">
-                              {day.revenue.toLocaleString()} VNĐ
+                              {revenue.toLocaleString()} VNĐ
                             </div>
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-6 text-gray-500">
-                      <DollarSign className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                      <p>Chưa có dữ liệu doanh thu</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <DollarSign className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                    <p>Chưa có dữ liệu doanh thu theo trạm</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
 
-          {/* Monthly Revenue Chart - Placeholder for future chart implementation */}
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle>Xu hướng Doanh thu theo Tháng</CardTitle>
-              <CardDescription>Doanh thu trong 12 tháng gần nhất</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="h-64 flex items-center justify-center">
-                  <div className="animate-pulse bg-gray-200 h-32 w-full rounded"></div>
-                </div>
-              ) : revenueData.topMonths.length > 0 ? (
-                <div className="h-64">
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 h-full">
-                    {revenueData.topMonths.slice(0, 6).map((month, index) => (
-                      <div key={month.month} className="flex flex-col justify-end">
-                        <div className="text-center mb-2">
-                          <div className="text-sm font-semibold text-gray-700">
-                            {month.revenue.toLocaleString()}
-                          </div>
-                          <div className="text-xs text-gray-500">VNĐ</div>
-                        </div>
-                        <div 
-                          className="bg-blue-500 rounded-t-sm flex-shrink-0"
-                          style={{ 
-                            height: `${Math.max(20, (month.revenue / Math.max(...revenueData.topMonths.map(m => m.revenue))) * 160)}px` 
-                          }}
-                        ></div>
-                        <div className="text-xs text-center mt-2 text-gray-600">
-                          {month.month}
-                        </div>
-                      </div>
-                    ))}
+          {/* Revenue Statistics */}
+          {(revenueData.revenueByStation || []).length > 0 && (
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle>Thống kê Doanh thu</CardTitle>
+                <CardDescription>Phân tích chi tiết doanh thu</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="text-center p-4 bg-blue-50 rounded-lg">
+                    <div className="text-2xl font-bold text-blue-600">
+                      {(revenueData.revenueByStation || []).length}
+                    </div>
+                    <div className="text-sm text-blue-600 font-medium">Trạm có doanh thu</div>
+                  </div>
+
+                  <div className="text-center p-4 bg-green-50 rounded-lg">
+                    <div className="text-2xl font-bold text-green-600">
+                      {(revenueData.revenueByStation || []).length > 0
+                        ? Math.round(revenueData.totalRevenue / (revenueData.revenueByStation || []).length).toLocaleString()
+                        : 0
+                      } VNĐ
+                    </div>
+                    <div className="text-sm text-green-600 font-medium">Doanh thu TB/Trạm</div>
+                  </div>
+
+                  <div className="text-center p-4 bg-purple-50 rounded-lg">
+                    <div className="text-2xl font-bold text-purple-600">
+                      {(revenueData.revenueByStation || []).length > 0
+                        ? Math.max(...(revenueData.revenueByStation || []).map(station => Object.values(station)[0] || 0)).toLocaleString()
+                        : 0
+                      } VNĐ
+                    </div>
+                    <div className="text-sm text-purple-600 font-medium">Trạm có doanh thu cao nhất</div>
                   </div>
                 </div>
-              ) : (
-                <div className="h-64 flex items-center justify-center">
-                  <div className="text-center text-gray-500">
-                    <BarChart3 className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                    <p>Chưa có dữ liệu biểu đồ</p>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>
