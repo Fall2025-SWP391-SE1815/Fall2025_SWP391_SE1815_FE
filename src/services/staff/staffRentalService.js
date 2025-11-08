@@ -96,11 +96,17 @@ const staffRentalService = {
 
   // ==================== INCIDENT REPORT MANAGEMENT ====================
   
-  // Tạo báo cáo sự cố mới
-  createIncidentReport: (data) => apiPost(`/api/staff/incident-report`, data, 'Không thể tạo báo cáo sự cố'),
-
   // Lấy danh sách báo cáo sự cố
-  getIncidentReports: (params = {}) => apiClient.get(`/api/staff/incident-report`, params),
+  getIncidentReports: (params = {}) => {
+    const query = params && Object.keys(params).length ? `?${new URLSearchParams(params).toString()}` : '';
+    return apiGet(`${API_ENDPOINTS.STAFF.INCIDENT_REPORTS}${query}`, 'Không thể lấy danh sách báo cáo sự cố');
+  },
+
+  // Tạo báo cáo sự cố mới  
+  createIncidentReport: (data) => apiPost(API_ENDPOINTS.STAFF.INCIDENT_REPORTS, data, 'Không thể tạo báo cáo sự cố'),
+
+  // Lấy chi tiết một báo cáo sự cố
+  getIncidentReportById: (id) => apiGet(API_ENDPOINTS.STAFF.INCIDENT_REPORT_BY_ID(id), 'Không thể lấy chi tiết báo cáo sự cố'),
 };
 
 export default staffRentalService;
