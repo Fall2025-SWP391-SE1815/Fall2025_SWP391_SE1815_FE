@@ -70,7 +70,8 @@ export default {
   staff: {
     getAllStaffVehicles: async (params = {}) => apiGet(`${API_ENDPOINTS.STAFF.VEHICLES}${buildQuery(params)}`, 'Không thể lấy danh sách xe cho staff'),
     getStaffVehicleById: async (id) => apiGet(`${API_ENDPOINTS.STAFF.VEHICLE_BY_ID(id)}`, 'Không thể lấy thông tin xe cho staff'),
-    updateVehicleStatus: async (vehicleId, statusData) => apiPut(`${API_ENDPOINTS.STAFF.VEHICLE_BY_ID(vehicleId)}`, statusData, 'Không thể cập nhật trạng thái phương tiện')
+    updateVehicleStatus: async (vehicleId, statusData) => apiPut(`${API_ENDPOINTS.STAFF.VEHICLE_BY_ID(vehicleId)}`, statusData, 'Không thể cập nhật trạng thái phương tiện'),
+    updateVehicle: async (vehicleId, vehicleData) =>apiPut(`${API_ENDPOINTS.STAFF.VEHICLE_BY_ID(vehicleId)}`, vehicleData, 'Không thể cập nhật thông tin xe'),
   },
 
   admin: {
