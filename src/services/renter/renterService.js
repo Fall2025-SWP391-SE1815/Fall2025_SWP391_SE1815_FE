@@ -11,17 +11,18 @@ export const renterService = {
 
       // Build URL with metadata as query string per Swagger (metadata passed as JSON string)
       const metadataQuery = metadata && Object.keys(metadata).length ? `?metadata=${encodeURIComponent(JSON.stringify(metadata))}` : '';
-      return await apiClient.post(`${API_ENDPOINTS.RENTER.DOCUMENTS}${metadataQuery}`, formData);
+      return await apiPost(`${API_ENDPOINTS.RENTER.DOCUMENTS}${metadataQuery}`, formData, 'Không thể upload tài liệu');
     },
     
     // Xem danh sách tài liệu đã upload
     getAll: async (userId) => {
-      return await apiClient.get(API_ENDPOINTS.RENTER.DOCUMENTS, { userId });
+      const query = userId ? `?userId=${userId}` : '';
+      return await apiGet(`${API_ENDPOINTS.RENTER.DOCUMENTS}${query}`, 'Không thể lấy danh sách tài liệu');
     },
     
     // Xoá tài liệu
     delete: async (documentId) => {
-      return await apiClient.delete(API_ENDPOINTS.RENTER.DOCUMENT_BY_ID(documentId));
+      return await apiDelete(API_ENDPOINTS.RENTER.DOCUMENT_BY_ID(documentId), 'Không thể xóa tài liệu');
     }
   },
 
@@ -29,7 +30,8 @@ export const renterService = {
   stations: {
     // Xem danh sách trạm + vị trí
     getAll: async (params = {}) => {
-      return await apiClient.get(API_ENDPOINTS.RENTER.STATIONS, params);
+      const query = params && Object.keys(params).length ? `?${new URLSearchParams(params).toString()}` : '';
+      return await apiGet(`${API_ENDPOINTS.RENTER.STATIONS}${query}`, 'Không thể lấy danh sách trạm');
     }
   },
 
@@ -37,7 +39,8 @@ export const renterService = {
   vehicles: {
     // Xem danh sách xe đang có sẵn (lọc theo loại, trạm, giá)
     getAvailable: async (params = {}) => {
-      return await apiClient.get(API_ENDPOINTS.RENTER.VEHICLES, params);
+      const query = params && Object.keys(params).length ? `?${new URLSearchParams(params).toString()}` : '';
+      return await apiGet(`${API_ENDPOINTS.RENTER.VEHICLES}${query}`, 'Không thể lấy danh sách xe');
     }
   },
 
@@ -45,22 +48,24 @@ export const renterService = {
   reservations: {
     // Đặt trước xe
     create: async (reservationData) => {
-      return await apiClient.post(API_ENDPOINTS.RENTER.RESERVATIONS, reservationData);
+      return await apiPost(API_ENDPOINTS.RENTER.RESERVATIONS, reservationData, 'Không thể tạo đặt chỗ');
     },
     
     // Xem danh sách booking của mình
     // Accepts either a userId (number/string) or a params object { status, vehicleId, startFrom, startTo, userId, ... }
     getAll: async (queryOrUserId) => {
+      let query = '';
       if (queryOrUserId && (typeof queryOrUserId === 'string' || typeof queryOrUserId === 'number')) {
-        return await apiClient.get(API_ENDPOINTS.RENTER.RESERVATIONS, { userId: queryOrUserId });
+        query = `?userId=${queryOrUserId}`;
+      } else if (queryOrUserId && Object.keys(queryOrUserId).length) {
+        query = `?${new URLSearchParams(queryOrUserId).toString()}`;
       }
-      const params = queryOrUserId || {};
-      return await apiClient.get(API_ENDPOINTS.RENTER.RESERVATIONS, params);
+      return await apiGet(`${API_ENDPOINTS.RENTER.RESERVATIONS}${query}`, 'Không thể lấy danh sách đặt chỗ');
     },
     
     // Chi tiết 1 booking
     getById: async (reservationId) => {
-      return await apiClient.get(API_ENDPOINTS.RENTER.RESERVATION_BY_ID(reservationId));
+      return await apiGet(API_ENDPOINTS.RENTER.RESERVATION_BY_ID(reservationId), 'Không thể lấy chi tiết đặt chỗ');
     },
     
     // Hủy booking
@@ -68,10 +73,10 @@ export const renterService = {
       // PATCH /api/renter/reservations/{id}/cancel { cancelReason }
       const body = cancelReason ? { cancelReason } : {};
       try {
-        return await apiClient.patch(API_ENDPOINTS.RENTER.RESERVATION_CANCEL(reservationId), body);
+        return await apiPatch(API_ENDPOINTS.RENTER.RESERVATION_CANCEL(reservationId), body, 'Không thể hủy đặt chỗ');
       } catch (e) {
         // fallback legacy DELETE without body
-        return await apiClient.delete(API_ENDPOINTS.RENTER.RESERVATION_BY_ID(reservationId));
+        return await apiDelete(API_ENDPOINTS.RENTER.RESERVATION_BY_ID(reservationId), 'Không thể hủy đặt chỗ');
       }
     }
   },
@@ -99,12 +104,12 @@ export const renterService = {
   ratings: {
     // Gửi đánh giá chuyến đi (xe, trải nghiệm)
     submitTrip: async (ratingData) => {
-      return await apiClient.post(API_ENDPOINTS.RENTER.RATING_TRIP, ratingData);
+      return await apiPost(API_ENDPOINTS.RENTER.RATING_TRIP, ratingData, 'Không thể gửi đánh giá chuyến đi');
     },
     
     // Gửi đánh giá nhân viên
     submitStaff: async (ratingData) => {
-      return await apiClient.post(API_ENDPOINTS.RENTER.RATING_STAFF, ratingData);
+      return await apiPost(API_ENDPOINTS.RENTER.RATING_STAFF, ratingData, 'Không thể gửi đánh giá nhân viên');
     }
   },
 
@@ -112,7 +117,7 @@ export const renterService = {
   complaints: {
     // Gửi khiếu nại
     submit: async (complaintData) => {
-      return await apiClient.post(API_ENDPOINTS.RENTER.COMPLAINT, complaintData);
+      return await apiPost(API_ENDPOINTS.RENTER.COMPLAINT, complaintData, 'Không thể gửi khiếu nại');
     }
   },
 

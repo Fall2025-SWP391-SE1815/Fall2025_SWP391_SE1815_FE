@@ -34,11 +34,11 @@ const ProfilePage = () => {
       setLoadingDocs(true);
       setError('');
       const res = await documentService.getAll();
-      // backend returns array
-      const data = res && res.data ? res.data : res;
-      setDocs(Array.isArray(data) ? data : (data.documents || []));
+      // API trả về array trực tiếp hoặc trong data property
+      const data = Array.isArray(res) ? res : (res?.data || []);
+      setDocs(data);
     } catch (err) {
-      console.error(err);
+      console.error('Error loading documents:', err);
       setError('Không thể tải tài liệu.');
       setDocs([]);
     } finally {
@@ -53,16 +53,23 @@ const ProfilePage = () => {
     setUploading(true);
     setError('');
     try {
-      const metadata = { type: uploadType || 'CCCD', documentNumber: uploadNumber || '' };
+      const metadata = { type: uploadType || 'CMND', documentNumber: uploadNumber || '' };
       const res = await documentService.upload(uploadFile, metadata);
-      const payload = res && res.data ? res.data : res;
-      // API returns the created document object
-      setDocs(prev => [payload, ...prev]);
-      setUploadFile(null);
-      setUploadType('');
-      setUploadNumber('');
+      const newDoc = res?.data || res;
+      console.log('Document uploaded:', newDoc); // Debug log
+      
+      // API trả về document object, thêm vào đầu danh sách
+      if (newDoc) {
+        setDocs(prev => [newDoc, ...prev]);
+        setUploadFile(null);
+        setUploadType('');
+        setUploadNumber('');
+        // Reset file input
+        const fileInput = document.querySelector('input[type="file"]');
+        if (fileInput) fileInput.value = '';
+      }
     } catch (err) {
-      console.error(err);
+      console.error('Error uploading document:', err);
       setError('Không thể tải tài liệu lên.');
     } finally {
       setUploading(false);
@@ -175,7 +182,12 @@ const ProfilePage = () => {
 
                   {/* Documents list */}
                   <div className="space-y-3">
-                    {docs.length === 0 ? (
+                    {loadingDocs ? (
+                      <div className="text-center py-8 text-gray-500">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                        <div>Đang tải tài liệu...</div>
+                      </div>
+                    ) : docs.length === 0 ? (
                       <div className="text-center py-8 text-gray-500">
                         <FileText className="mx-auto h-10 w-10 mb-2 text-gray-300" />
                         <div>Chưa có tài liệu</div>
@@ -190,7 +202,26 @@ const ProfilePage = () => {
                                 {doc.type} {doc.documentNumber ? `- ${doc.documentNumber}` : ''}
                               </div>
                               <div className="text-sm text-gray-500">
-                                {new Date(doc.createdAt).toLocaleString('vi-VN')}
+                                Tải lên: {new Date(doc.createdAt).toLocaleString('vi-VN')}
+                              </div>
+                              <div className="flex items-center space-x-2 mt-1">
+                                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                  doc.verified 
+                                    ? 'bg-green-100 text-green-800' 
+                                    : 'bg-yellow-100 text-yellow-800'
+                                }`}>
+                                  {doc.verified ? '✓ Đã xác thực' : '⏳ Chờ xác thực'}
+                                </span>
+                                {doc.documentUrl && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => window.open(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}${doc.documentUrl}`, '_blank')}
+                                    className="text-xs"
+                                  >
+                                    Xem file
+                                  </Button>
+                                )}
                               </div>
                             </div>
                           </div>

@@ -440,7 +440,7 @@ const ReservationsPage = () => {
   };
 
   const canCancel = (reservation) => {
-    return ['pending', 'confirmed'].includes(reservation.status) &&
+    return reservation.status === 'pending' &&
       new Date(reservation.reservedStartTime || reservation.reserved_start_time) > new Date();
   };
 
