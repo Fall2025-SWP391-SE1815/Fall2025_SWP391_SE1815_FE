@@ -6,12 +6,15 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { FileText, Upload, Trash2 } from 'lucide-react';
+import { FileText, Upload, Trash2, Lock, Eye, EyeOff, CheckCircle, AlertTriangle } from 'lucide-react';
 import documentService from '@/services/documents/documentService.js';
+import authService from '@/services/auth/authService.js';
 import { useEffect } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 const ProfilePage = () => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const name = user?.fullName || 'Người dùng';
   const email = user?.email || 'Không có email';
   const phone = user?.phone || 'Không có số điện thoại';
@@ -24,6 +27,20 @@ const ProfilePage = () => {
   const [loadingDocs, setLoadingDocs] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
+
+  // Change password state
+  const [changePasswordData, setChangePasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmNewPassword: ''
+  });
+  const [showPasswords, setShowPasswords] = useState({
+    current: false,
+    new: false,
+    confirm: false
+  });
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
 
   useEffect(() => {
     loadDocuments();
@@ -88,12 +105,102 @@ const ProfilePage = () => {
     }
   };
 
+  // Handle change password
+  const handleChangePassword = async () => {
+    setPasswordError('');
+    
+    // Validation
+    if (!changePasswordData.currentPassword || !changePasswordData.newPassword || !changePasswordData.confirmNewPassword) {
+      setPasswordError('Vui lòng điền đầy đủ thông tin');
+      return;
+    }
+
+    if (changePasswordData.newPassword !== changePasswordData.confirmNewPassword) {
+      setPasswordError('Mật khẩu mới và xác nhận mật khẩu không khớp');
+      return;
+    }
+
+    if (changePasswordData.newPassword.length < 6) {
+      setPasswordError('Mật khẩu mới phải có ít nhất 6 ký tự');
+      return;
+    }
+
+    if (changePasswordData.currentPassword === changePasswordData.newPassword) {
+      setPasswordError('Mật khẩu mới phải khác mật khẩu hiện tại');
+      return;
+    }
+
+    try {
+      setChangingPassword(true);
+      await authService.changePassword(
+        changePasswordData.currentPassword,
+        changePasswordData.newPassword,
+        changePasswordData.confirmNewPassword
+      );
+      
+      // Reset form
+      setChangePasswordData({
+        currentPassword: '',
+        newPassword: '',
+        confirmNewPassword: ''
+      });
+      
+      toast({
+        title: (
+          <div className="flex items-center gap-2">
+            <CheckCircle className="h-5 w-5 text-green-600" />
+            Đổi mật khẩu thành công
+          </div>
+        ),
+        description: 'Mật khẩu của bạn đã được cập nhật thành công.',
+        className: 'border-l-green-500 border-green-200 bg-green-50',
+        duration: 5000
+      });
+    } catch (err) {
+      console.error('Change password error:', err);
+      const errorMessage = err.response?.data?.message || err.message || 'Không thể đổi mật khẩu';
+      setPasswordError(errorMessage);
+      toast({
+        title: (
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-red-600" />
+            Đổi mật khẩu thất bại
+          </div>
+        ),
+        description: errorMessage,
+        variant: 'destructive',
+        className: 'border-l-red-500 border-red-200 bg-red-50',
+        duration: 5000
+      });
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
+  const handlePasswordInputChange = (field, value) => {
+    setChangePasswordData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    // Clear error when user starts typing
+    if (passwordError) {
+      setPasswordError('');
+    }
+  };
+
+  const togglePasswordVisibility = (field) => {
+    setShowPasswords(prev => ({
+      ...prev,
+      [field]: !prev[field]
+    }));
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 py-6">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left: Profile Info */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle>Thông tin cá nhân</CardTitle>
@@ -112,6 +219,112 @@ const ProfilePage = () => {
                     <label className="text-sm text-gray-600 font-medium">Số điện thoại</label>
                     <div className="text-sm text-gray-700">{phone}</div>
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Change Password Card */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center space-x-2">
+                  <Lock className="h-5 w-5 text-gray-600" />
+                  <CardTitle>Đổi mật khẩu</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {passwordError && (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
+                      {passwordError}
+                    </div>
+                  )}
+                  
+                  {/* Current Password */}
+                  <div>
+                    <Label htmlFor="currentPassword" className="text-sm font-medium">Mật khẩu hiện tại</Label>
+                    <div className="relative mt-1">
+                      <Input
+                        id="currentPassword"
+                        type={showPasswords.current ? 'text' : 'password'}
+                        value={changePasswordData.currentPassword}
+                        onChange={(e) => handlePasswordInputChange('currentPassword', e.target.value)}
+                        placeholder="Nhập mật khẩu hiện tại"
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => togglePasswordVisibility('current')}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                      >
+                        {showPasswords.current ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* New Password */}
+                  <div>
+                    <Label htmlFor="newPassword" className="text-sm font-medium">Mật khẩu mới</Label>
+                    <div className="relative mt-1">
+                      <Input
+                        id="newPassword"
+                        type={showPasswords.new ? 'text' : 'password'}
+                        value={changePasswordData.newPassword}
+                        onChange={(e) => handlePasswordInputChange('newPassword', e.target.value)}
+                        placeholder="Nhập mật khẩu mới (tối thiểu 6 ký tự)"
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => togglePasswordVisibility('new')}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                      >
+                        {showPasswords.new ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Confirm New Password */}
+                  <div>
+                    <Label htmlFor="confirmNewPassword" className="text-sm font-medium">Xác nhận mật khẩu mới</Label>
+                    <div className="relative mt-1">
+                      <Input
+                        id="confirmNewPassword"
+                        type={showPasswords.confirm ? 'text' : 'password'}
+                        value={changePasswordData.confirmNewPassword}
+                        onChange={(e) => handlePasswordInputChange('confirmNewPassword', e.target.value)}
+                        placeholder="Nhập lại mật khẩu mới"
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => togglePasswordVisibility('confirm')}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                      >
+                        {showPasswords.confirm ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  <Button
+                    onClick={handleChangePassword}
+                    disabled={changingPassword || !changePasswordData.currentPassword || !changePasswordData.newPassword || !changePasswordData.confirmNewPassword}
+                    className="w-full bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Lock className="mr-2 h-4 w-4" />
+                    {changingPassword ? 'Đang đổi...' : 'Đổi mật khẩu'}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
