@@ -13,6 +13,8 @@ import Home from "../components/layout/Home.jsx";
 import LoginPage from "../components/auth/LoginPage.jsx";
 import RegisterPage from "../components/auth/RegisterPage.jsx";
 import ForgotPasswordPage from "../components/auth/ForgotPasswordPage.jsx";
+import OTPVerificationPage from "../components/auth/OTPVerificationPage.jsx";
+import ResetPasswordPage from "../components/auth/ResetPasswordPage.jsx";
 import NotFoundPage from "../pages/NotFoundPage.jsx";
 
 // Admin Components
@@ -64,6 +66,8 @@ export const paths = {
   login: "/login",
   register: "/register",
   forgotPassword: "/forgot-password",
+  verifyOtp: "/verify-otp",
+  resetPassword: "/reset-password",
 
   // Admin routes
   admin: {
@@ -157,6 +161,22 @@ const router = createBrowserRouter([
     element: (
       <PublicRoute>
         <ForgotPasswordPage />
+      </PublicRoute>
+    ),
+  },
+  {
+    path: "/verify-otp",
+    element: (
+      <PublicRoute>
+        <OTPVerificationPage />
+      </PublicRoute>
+    ),
+  },
+  {
+    path: "/reset-password",
+    element: (
+      <PublicRoute>
+        <ResetPasswordPage />
       </PublicRoute>
     ),
   },

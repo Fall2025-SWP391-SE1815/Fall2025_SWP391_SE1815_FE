@@ -89,8 +89,13 @@ const RegisterPage = () => {
       const result = await register(registerData);
       
       if (result.success) {
-        // Registration successful, redirect to login page
-        navigate('/login');
+        // Registration successful, redirect to OTP verification page
+        navigate('/verify-otp', { 
+          state: { 
+            email: formData.email,
+            isRegistration: true 
+          }
+        });
       } else {
         setSubmitError(result.message || 'Đăng ký thất bại');
       }

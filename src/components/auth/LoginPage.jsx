@@ -1,6 +1,6 @@
 // Login Page Component
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,12 +8,16 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth, useAuthValidation } from '@/hooks/auth/useAuth.jsx';
-import { Eye, EyeOff, Mail, Lock, Zap, AlertCircle, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, Zap, AlertCircle, Loader2, CheckCircle } from 'lucide-react';
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login, loading } = useAuth();
   const { validatePhone, validatePassword } = useAuthValidation();
+  
+  // Get success message from navigation state (from OTP verification)
+  const successMessage = location.state?.message || '';
 
   // Form state
   const [formData, setFormData] = useState({
@@ -143,6 +147,14 @@ const LoginPage = () => {
 
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-4">
+              {/* Success Message */}
+              {successMessage && (
+                <Alert className="border-green-200 bg-green-50 animate-in fade-in-50 slide-in-from-top-1">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <AlertDescription className="text-green-700">{successMessage}</AlertDescription>
+                </Alert>
+              )}
+
               {/* Error Alert */}
               {submitError && (
                 <Alert variant="destructive" className="animate-in fade-in-50 slide-in-from-top-1">
