@@ -14,6 +14,7 @@ import stationService from '@/services/stations/stationService';
 import vehicleService from '@/services/vehicles/vehicleService';
 import { API_BASE_URL } from '@/lib/api/apiConfig';
 import { Calendar, Car, MapPin, Clock, CreditCard, Trash2, Eye, RefreshCw, Search, Filter, CheckCircle, XCircle, AlertCircle, User, Phone, Mail, Shield, ShieldCheck, ShieldX, Battery, BatteryLow } from 'lucide-react';
+import { calculateRentalCost, formatCurrency } from '@/utils/pricing';
 
 const ReservationsPage = () => {
   const navigate = useNavigate();
@@ -876,37 +877,79 @@ const ReservationsPage = () => {
                       {(() => {
                         const startTime = new Date(selectedReservation.reservedStartTime);
                         const endTime = new Date(selectedReservation.reservedEndTime);
-                        const hours = Math.ceil((endTime - startTime) / (1000 * 60 * 60));
+                        const totalHours = (endTime - startTime) / (1000 * 60 * 60);
                         const pricePerHour = selectedReservation.vehicle?.pricePerHour || 0;
-                        const totalCost = hours * pricePerHour;
+                        
+                        if (pricePerHour === 0) {
+                          return (
+                            <div className="text-center py-4 text-gray-500">
+                              Chưa có thông tin giá cho xe này
+                            </div>
+                          );
+                        }
+
+                        const pricing = calculateRentalCost(totalHours, pricePerHour);
 
                         return (
                           <>
-                            <div className="flex justify-between">
-                              <span>Giá thuê ({hours} giờ × {pricePerHour.toLocaleString('vi-VN')} ₫/giờ)</span>
-                              <span>{totalCost.toLocaleString('vi-VN')} ₫</span>
-                            </div>
+                            {/* Chi tiết từng bậc giá */}
+                            {pricing.breakdown.map((tier, index) => (
+                              <div key={index} className="flex justify-between text-sm">
+                                <span>{tier.description}</span>
+                                <div className="text-right">
+                                  {tier.discount > 0 ? (
+                                    <>
+                                      <div className="line-through text-gray-400 text-xs">
+                                        {formatCurrency(tier.originalCost)}
+                                      </div>
+                                      <div className="text-green-600 font-medium">
+                                        {formatCurrency(tier.finalCost)}
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <span>{formatCurrency(tier.finalCost)}</span>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                            
+                            {/* Tổng cộng trước bảo hiểm */}
+                            {pricing.discountAmount > 0 && (
+                              <div className="flex justify-between text-sm border-t pt-2">
+                                <span className="text-green-600">💰 Tiết kiệm được</span>
+                                <span className="text-green-600 font-medium">
+                                  -{formatCurrency(pricing.discountAmount)}
+                                </span>
+                              </div>
+                            )}
+                            
                             <div className="flex justify-between text-sm text-gray-500">
                               <span>Phí dịch vụ</span>
                               <span>0 ₫</span>
                             </div>
+                            
                             <div className="flex justify-between text-sm">
                               <span>Bảo hiểm ({selectedReservation.vehicle?.type === 'MOTORBIKE' ? 'Xe máy' : 'Ô tô'})</span>
                               <span className={selectedReservation.insurance ? 'text-blue-600 font-medium' : 'text-gray-500'}>
                                 {selectedReservation.insurance ? 
-                                  `${selectedReservation.insurance.toLocaleString('vi-VN')} ₫` : 
+                                  formatCurrency(selectedReservation.insurance) : 
                                   'Không mua bảo hiểm'
                                 }
                               </span>
                             </div>
+                            
                             <div className="border-t pt-2 flex justify-between font-bold text-lg">
                               <span>Tổng cộng (dự tính)</span>
                               <span className="text-green-600">
-                                {(totalCost + (selectedReservation.insurance || 0)).toLocaleString('vi-VN')} ₫
+                                {formatCurrency(pricing.totalCost + (selectedReservation.insurance || 0))}
                               </span>
                             </div>
+                            
                             <p className="text-xs text-gray-500 mt-2">
                               * Chi phí thực tế sẽ được tính dựa trên thời gian sử dụng thực tế và chi phí phát sinh (nếu có).
+                              {pricing.discountAmount > 0 && (
+                                <><br />* Áp dụng giảm giá theo thời gian thuê dài hạn.</>
+                              )}
                             </p>
                           </>
                         );
@@ -1189,40 +1232,82 @@ const ReservationsPage = () => {
                   <h4 className="font-medium text-gray-800 mb-3">Tổng chi phí dự tính</h4>
                   <div className="space-y-2 text-sm">
                     {(() => {
-                      const hours = Math.ceil(getRentalDuration());
+                      const totalHours = getRentalDuration();
                       const selectedVehicle = getSelectedVehicleInfo();
                       const pricePerHour = selectedVehicle?.pricePerHour || 0;
-                      const rentalCost = hours * pricePerHour;
                       const insuranceCost = createForm.hasInsurance ? getInsuranceValue() : 0;
-                      const totalCost = rentalCost + insuranceCost;
+
+                      if (pricePerHour === 0) {
+                        return (
+                          <div className="text-center py-4">
+                            <p className="text-gray-500 text-sm">
+                              ⚠ Chưa có thông tin giá cho xe này
+                            </p>
+                            <p className="text-xs text-gray-400 mt-1">
+                              Vui lòng liên hệ để biết thêm chi tiết về giá thuê
+                            </p>
+                          </div>
+                        );
+                      }
+
+                      const pricing = calculateRentalCost(totalHours, pricePerHour);
 
                       return (
                         <>
-                          {pricePerHour > 0 ? (
-                            <>
-                              <div className="flex justify-between">
-                                <span>Thuê xe ({hours} giờ × {pricePerHour.toLocaleString('vi-VN')} ₫/giờ)</span>
-                                <span>{rentalCost.toLocaleString('vi-VN')} ₫</span>
+                          {/* Hiển thị breakdown giá theo bậc */}
+                          {pricing.breakdown.map((tier, index) => (
+                            <div key={index} className="flex justify-between">
+                              <span>{tier.description}</span>
+                              <div className="text-right">
+                                {tier.discount > 0 ? (
+                                  <>
+                                    <div className="line-through text-gray-400 text-xs">
+                                      {formatCurrency(tier.originalCost)}
+                                    </div>
+                                    <div className="text-green-600 font-medium">
+                                      {formatCurrency(tier.finalCost)}
+                                    </div>
+                                  </>
+                                ) : (
+                                  <span>{formatCurrency(tier.finalCost)}</span>
+                                )}
                               </div>
-                              {createForm.hasInsurance && (
-                                <div className="flex justify-between">
-                                  <span>Bảo hiểm</span>
-                                  <span>{insuranceCost.toLocaleString('vi-VN')} ₫</span>
-                                </div>
-                              )}
-                              <div className="border-t border-gray-300 pt-2 mt-2 flex justify-between font-medium text-base">
-                                <span>Tổng cộng</span>
-                                <span className="text-green-600">{totalCost.toLocaleString('vi-VN')} ₫</span>
-                              </div>
-                            </>
-                          ) : (
-                            <div className="text-center py-4">
-                              <p className="text-gray-500 text-sm">
-                                ⚠ Chưa có thông tin giá cho xe này
-                              </p>
-                              <p className="text-xs text-gray-400 mt-1">
-                                Vui lòng liên hệ để biết thêm chi tiết về giá thuê
-                              </p>
+                            </div>
+                          ))}
+
+                          {/* Hiển thị tiết kiệm nếu có */}
+                          {pricing.discountAmount > 0 && (
+                            <div className="bg-green-50 border border-green-200 rounded p-2 flex justify-between">
+                              <span className="text-green-700 font-medium">💰 Bạn tiết kiệm được</span>
+                              <span className="text-green-600 font-bold">
+                                -{formatCurrency(pricing.discountAmount)}
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Bảo hiểm */}
+                          {createForm.hasInsurance && (
+                            <div className="flex justify-between">
+                              <span>Bảo hiểm</span>
+                              <span>{formatCurrency(insuranceCost)}</span>
+                            </div>
+                          )}
+
+                          {/* Tổng cộng */}
+                          <div className="border-t border-gray-300 pt-2 mt-2 flex justify-between font-medium text-base">
+                            <span>Tổng cộng</span>
+                            <span className="text-green-600">
+                              {formatCurrency(pricing.totalCost + insuranceCost)}
+                            </span>
+                          </div>
+
+                          {/* Hiển thị giá gốc nếu có giảm giá */}
+                          {pricing.discountAmount > 0 && (
+                            <div className="flex justify-between text-xs text-gray-500">
+                              <span>Giá gốc (không giảm giá)</span>
+                              <span className="line-through">
+                                {formatCurrency(pricing.originalCost + insuranceCost)}
+                              </span>
                             </div>
                           )}
                         </>
@@ -1231,6 +1316,9 @@ const ReservationsPage = () => {
                   </div>
                   <p className="text-xs text-gray-500 mt-2">
                     * Đây là ước tính, chi phí thực tế có thể khác tùy theo thời gian sử dụng.
+                    {getRentalDuration() >= 4 && (
+                      <><br />* Áp dụng giảm giá theo thời gian thuê: 4h (5%), 8h (7.5%), 12h (10%), 24h+ (12.5%)</>
+                    )}
                   </p>
                 </div>
               )}

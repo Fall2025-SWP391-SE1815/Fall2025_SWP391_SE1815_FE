@@ -13,7 +13,6 @@ import {
   MapPin,
   Zap,
   Calendar,
-  DollarSign,
   Users,
   RefreshCw,
   Eye,
@@ -27,6 +26,7 @@ import vehicleService from '@/services/vehicles/vehicleService';
 import stationService from '@/services/stations/stationService';
 import { toast } from 'sonner';
 import { API_BASE_URL } from '@/lib/api/apiConfig';
+import { getDiscountInfo, formatCurrency } from '@/utils/pricing';
 
 const VehiclesPage = () => {
   const { user, isAuthenticated } = useAuth();
@@ -426,11 +426,18 @@ const VehiclesPage = () => {
 
                   {/* Price */}
                   <div className="bg-green-50 p-3 rounded-lg">
-                    <div className="flex items-center justify-center">
-                      <DollarSign className="h-5 w-5 text-green-600 mr-2" />
-                      <span className="text-lg font-bold text-green-700">
-                        {formatPrice(vehicle.price_per_hour)}
-                      </span>
+                    <div className="text-center">
+                      <div className="flex items-center justify-center mb-1">
+                        <span className="text-lg font-bold text-green-700">
+                          {formatPrice(vehicle.price_per_hour)}
+                        </span>
+                      </div>
+                      <div className="text-xs text-green-600 font-medium">
+                        💰 Thuê dài hạn giảm đến 12.5%
+                      </div>
+                      <div className="text-xs text-gray-600 mt-1">
+                        4h: -5% | 8h: -7.5% | 12h: -10% | 24h: -12.5%
+                      </div>
                     </div>
                   </div>
 
@@ -606,10 +613,21 @@ const VehiclesPage = () => {
                     </div>
 
                     <div className="flex items-start gap-3">
-                      <DollarSign className="h-5 w-5 text-muted-foreground mt-0.5" />
-                      <div>
+                      <div className="flex-1">
                         <p className="text-sm text-muted-foreground">Giá thuê</p>
                         <p className="font-medium text-lg">{formatCurrency(selectedVehicle.price_per_hour)}/giờ</p>
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-3 mt-2">
+                          <p className="text-green-800 font-medium text-sm mb-2">💰 Bảng giá giảm giá theo thời gian:</p>
+                          <div className="grid grid-cols-2 gap-2 text-xs text-green-700">
+                            <div>• 4-7 giờ: Giảm 5%</div>
+                            <div>• 8-11 giờ: Giảm 7.5%</div>
+                            <div>• 12-23 giờ: Giảm 10%</div>
+                            <div>• 24+ giờ: Giảm 12.5%</div>
+                          </div>
+                          <p className="text-xs text-green-600 mt-2 font-medium">
+                            Ví dụ: Thuê 16h = 12h (giảm 10%) + 4h (giảm 5%)
+                          </p>
+                        </div>
                       </div>
                     </div>
 
