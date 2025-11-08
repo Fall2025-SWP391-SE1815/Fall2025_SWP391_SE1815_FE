@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import staffRentalService from '@/services/staff/staffRentalService';
+import { formatCurrency as formatCurrencyUtil } from '@/utils/pricing';
 import {
   Car,
   Clock,
@@ -62,10 +63,7 @@ const InUseRentals = () => {
 
   // Utility functions
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND',
-    }).format(amount);
+    return formatCurrencyUtil(amount);
   };
 
   const formatDateTime = (dateString) => {

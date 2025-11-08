@@ -53,8 +53,10 @@ export const API_ENDPOINTS = {
     // Vehicle management
     VEHICLES: '/api/staff/vehicle',
     VEHICLE_BY_ID: (id) => `/api/staff/vehicle/${id}`,
+    VEHICLE_CONFIRM_INSPECTION: (plateNumber) => `/api/staff/vehicle/${plateNumber}/confirm-inspection`,
 
     // Document verification
+    RENTER_DOCUMENTS: '/api/staff/renter-document',
     RENTER_DOCUMENTS_BY_STAFF: (renterId) => `/api/staff/renter-document/${renterId}`,
     RENTER_DOCUMENT_VERIFY: (documentId) => `/api/staff/renter-document/verify/${documentId}`,
 

@@ -6,6 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { formatCurrency as formatCurrencyUtil } from '@/utils/pricing';
 import {
   Dialog,
   DialogContent,
@@ -203,10 +204,7 @@ const VehicleReturn = () => {
 
   // Utility functions
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND',
-    }).format(amount);
+    return formatCurrencyUtil(amount);
   };
 
   const formatDateTime = (dateString) => {

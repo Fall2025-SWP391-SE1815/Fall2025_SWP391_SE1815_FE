@@ -10,10 +10,10 @@ import {
   CheckCircle,
   ArrowRight,
 } from 'lucide-react';
-import ReservationHandover from './rentals/ReservationHandover';
-import InUseRentals from './rentals/InUseRentals';
-import VehicleReturn from './rentals/VehicleReturn';
-import RentalHistory from './rentals/RentalHistory';
+import ReservationHandover from './ReservationHandover';
+import InUseRentals from './InUseRentals';
+import VehicleReturn from './VehicleReturn';
+import RentalHistory from './RentalHistory';
 
 const RentalManagement = () => {
   // Load saved tab from localStorage, default to 'handover' if not found

@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import staffRentalService from '@/services/staff/staffRentalService';
+import { formatCurrency } from '@/utils/pricing';
 
 const RentalHistory = () => {
     const { toast } = useToast();
@@ -329,7 +330,7 @@ const RentalHistory = () => {
                                 <div className="font-semibold text-blue-700 mb-2">Tài chính</div>
                                 <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                                     <div>Tiền thuê:</div>
-                                    <div>{selected.rentalCost?.toLocaleString()} VND</div>
+                                    <div>{formatCurrency(selected.rentalCost || 0)}</div>
                                     <div>Bảo hiểm:</div>
                                     <div>{selected.insurance?.toLocaleString()} VND</div>
                                     <div>Tiền cọc:</div>
@@ -338,7 +339,7 @@ const RentalHistory = () => {
                                         {selected.depositStatus})
                                     </div>
                                     <div>Tổng chi phí:</div>
-                                    <div>{selected.totalCost?.toLocaleString()} VND</div>
+                                    <div>{formatCurrency(selected.totalCost || 0)}</div>
                                 </div>
                             </div>
                         </div>

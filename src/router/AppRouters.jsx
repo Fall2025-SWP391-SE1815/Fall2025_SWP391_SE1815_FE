@@ -48,10 +48,10 @@ import ComplaintDetailPage from "../pages/renter/complaints/ComplaintDetailPage.
 
 // Staff Components
 import StaffDashboard from "../pages/staff/StaffDashboard.jsx";
-import RentalManagement from "../pages/staff/RentalManagement.jsx";
+import RentalManagement from "../pages/staff/rentals/RentalManagement.jsx";
 import CustomerVerification from "../pages/staff/CustomerVerification.jsx";
 import PaymentManagement from "../pages/staff/PaymentManagement.jsx";
-import StationManagement from "../pages/staff/StationManagement.jsx";
+import StationManagement from "../pages/staff/station/StationManagement.jsx";
 
 // Routes wrapper
 import PublicRoute from "../routes/PublicRoute.jsx";
