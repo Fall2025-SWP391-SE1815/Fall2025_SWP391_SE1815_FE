@@ -151,10 +151,6 @@ export const authService = {
             if (refreshToken) {
                 localStorage.setItem('refreshToken', refreshToken);
             }
-            
-            console.log('AuthService verifyOtp - Full response:', payload);
-            console.log('AuthService verifyOtp - Reset token extracted:', resetToken);
-            
             return createResponse({ 
                 user, 
                 accessToken, 

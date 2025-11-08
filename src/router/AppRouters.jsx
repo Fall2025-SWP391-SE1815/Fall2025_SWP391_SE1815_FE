@@ -302,17 +302,6 @@ const router = createBrowserRouter([
     ]
   },
   {
-    path: "/complaint-detail/:id",
-    element: (
-      <ProtectedRoute requiredRole="renter">
-        <MainLayout />
-      </ProtectedRoute>
-    ),
-    children: [
-      { index: true, element: <ComplaintDetailPage /> }
-    ]
-  },
-  {
     path: "/complaints",
     element: (
       <ProtectedRoute requiredRole="renter">
@@ -320,7 +309,8 @@ const router = createBrowserRouter([
       </ProtectedRoute>
     ),
     children: [
-      { index: true, element: <ComplaintsPage /> }
+      { index: true, element: <ComplaintsPage /> },
+      { path: ":id", element: <ComplaintDetailPage /> }
     ]
   },
 

@@ -1,5 +1,5 @@
 // Renter Service - API calls for renter-specific functionality
-import apiClient from '@/lib/api/apiClient.js';
+import { apiGet, apiPost, apiPatch, apiDelete } from '@/lib/api/apiClient.js';
 import { API_ENDPOINTS } from '@/lib/api/apiConfig.js';
 
 export const renterService = {
@@ -80,17 +80,18 @@ export const renterService = {
   rentals: {
     // Lấy tất cả rental với filter (status, từ ngày, đến ngày)
     getAll: async (params = {}) => {
-      return await apiClient.get(API_ENDPOINTS.RENTER.RENTALS_ALL, params);
+      const query = params && Object.keys(params).length ? `?${new URLSearchParams(params).toString()}` : '';
+      return apiGet(`${API_ENDPOINTS.RENTER.RENTALS_ALL}${query}`, 'Không thể lấy danh sách chuyến đi');
     },
     
     // Xem biên bản giao/nhận xe
     getChecks: async (rentalId) => {
-      return await apiClient.get(API_ENDPOINTS.RENTER.RENTAL_CHECKS(rentalId));
+      return apiGet(API_ENDPOINTS.RENTER.RENTAL_CHECKS(rentalId), 'Không thể lấy biên bản giao/nhận xe');
     },
 
     // Xác nhận đã nhận xe
     confirmRental: async (rentalId) => {
-      return await apiClient.patch(API_ENDPOINTS.RENTER.RENTAL_CONFIRM(rentalId));
+      return apiPatch(API_ENDPOINTS.RENTER.RENTAL_CONFIRM(rentalId), {}, 'Không thể xác nhận nhận xe');
     }
   },
 

@@ -40,8 +40,8 @@ const ComplaintDetailPage = () => {
       setError('');
       
       // GET /api/renter/complaint/:id
-      const response = await renterComplaintsService.getById(id);
-      setComplaint(response.data);
+      const complaint = await renterComplaintsService.getById(id);
+      setComplaint(complaint);
     } catch (err) {
       setError('Không thể tải thông tin chi tiết khiếu nại');
       console.error('Error loading complaint detail:', err);
@@ -128,7 +128,7 @@ const ComplaintDetailPage = () => {
               Chi tiết khiếu nại #{complaint.id}
             </h1>
             <p className="text-gray-600">
-              Gửi ngày {new Date(complaint.created_at).toLocaleDateString('vi-VN')}
+              Gửi ngày {new Date(complaint.createdAt).toLocaleDateString('vi-VN')}
             </p>
           </div>
         </div>
@@ -157,27 +157,27 @@ const ComplaintDetailPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <p className="text-sm font-medium text-gray-600">Mã chuyến liên quan:</p>
-              <p className="font-semibold">#{complaint.rental_id}</p>
+              <p className="font-semibold">#{complaint.rental?.id || 'N/A'}</p>
             </div>
             <div>
               <p className="text-sm font-medium text-gray-600">Thời gian gửi:</p>
               <p className="font-semibold">
-                {new Date(complaint.created_at).toLocaleString('vi-VN')}
+                {new Date(complaint.createdAt).toLocaleString('vi-VN')}
               </p>
             </div>
           </div>
           
-          {complaint.resolved_at && (
+          {complaint.resolvedAt && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <p className="text-sm font-medium text-gray-600">Người xử lý:</p>
-                <p className="font-semibold">{complaint.admin.name}</p>
-                <p className="text-sm text-gray-500">{complaint.admin.department}</p>
+                <p className="font-semibold">{complaint.admin?.fullName || 'N/A'}</p>
+                <p className="text-sm text-gray-500">{complaint.admin?.email || 'N/A'}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-600">Thời gian giải quyết:</p>
                 <p className="font-semibold">
-                  {new Date(complaint.resolved_at).toLocaleString('vi-VN')}
+                  {new Date(complaint.resolvedAt).toLocaleString('vi-VN')}
                 </p>
               </div>
             </div>
@@ -194,39 +194,46 @@ const ComplaintDetailPage = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-start space-x-4">
-            <img
-              src={complaint.rental.vehicleImage}
-              alt={complaint.rental.vehicleModel}
-              className="w-20 h-20 rounded-lg object-cover"
-            />
-            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-gray-600">Biển số xe:</p>
-                <p className="font-semibold">{complaint.rental.licensePlate}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Loại xe:</p>
-                <p className="font-semibold">{complaint.rental.vehicleModel}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Điểm đi:</p>
-                <p className="font-semibold">{complaint.rental.startStation}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Điểm đến:</p>
-                <p className="font-semibold">{complaint.rental.endStation}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Thời gian thuê:</p>
-                <p className="text-sm">
-                  {new Date(complaint.rental.startTime).toLocaleString('vi-VN')}
-                  <br />
-                  đến {new Date(complaint.rental.endTime).toLocaleString('vi-VN')}
-                </p>
+          {complaint.rental ? (
+            <div className="flex items-start space-x-4">
+              <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-600">Biển số xe:</p>
+                  <p className="font-semibold">{complaint.rental.vehicle?.licensePlate || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Loại xe:</p>
+                  <p className="font-semibold">{complaint.rental.vehicle?.brand} {complaint.rental.vehicle?.model || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Điểm lấy xe:</p>
+                  <p className="font-semibold">{complaint.rental.stationPickup?.name || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Điểm trả xe:</p>
+                  <p className="font-semibold">{complaint.rental.stationReturn?.name || 'Chưa xác định'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Thời gian thuê:</p>
+                  <p className="text-sm">
+                    {complaint.rental.startTime ? new Date(complaint.rental.startTime).toLocaleString('vi-VN') : 'N/A'}
+                    <br />
+                    đến {complaint.rental.endTime ? new Date(complaint.rental.endTime).toLocaleString('vi-VN') : 'N/A'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Tổng chi phí:</p>
+                  <p className="font-semibold text-green-600">
+                    {complaint.rental.totalCost ? `${complaint.rental.totalCost.toLocaleString()} VNĐ` : 'N/A'}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="text-center py-4">
+              <p className="text-gray-500">Không có thông tin chuyến đi liên quan</p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -243,24 +250,24 @@ const ComplaintDetailPage = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <p className="text-sm text-gray-600">Tên nhân viên:</p>
-                <p className="font-semibold">{complaint.staff.name}</p>
+                <p className="font-semibold">{complaint.staff?.fullName || 'N/A'}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-600">Vai trò:</p>
-                <p className="font-semibold">{complaint.staff.role}</p>
+                <p className="font-semibold">{complaint.staff?.role || 'N/A'}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-600">Điện thoại:</p>
                 <p className="font-semibold flex items-center">
                   <Phone className="h-4 w-4 mr-1" />
-                  {complaint.staff.phone}
+                  {complaint.staff?.phone || 'N/A'}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-gray-600">Email:</p>
                 <p className="font-semibold flex items-center">
                   <Mail className="h-4 w-4 mr-1" />
-                  {complaint.staff.email}
+                  {complaint.staff?.email || 'N/A'}
                 </p>
               </div>
             </div>
@@ -297,7 +304,7 @@ const ComplaintDetailPage = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {complaint.timeline.map((item, index) => (
+            {complaint.timeline && complaint.timeline.length > 0 ? complaint.timeline.map((item, index) => (
               <div key={item.id} className="flex items-start space-x-3">
                 <div className="flex-shrink-0 mt-1">
                   <div className="w-8 h-8 bg-white border-2 border-gray-200 rounded-full flex items-center justify-center">
@@ -322,7 +329,11 @@ const ComplaintDetailPage = () => {
                   <div className="absolute left-4 mt-8 w-0.5 h-8 bg-gray-200"></div>
                 )}
               </div>
-            ))}
+            )) : (
+              <div className="text-center py-4">
+                <p className="text-gray-500">Chưa có thông tin tiến trình xử lý</p>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
