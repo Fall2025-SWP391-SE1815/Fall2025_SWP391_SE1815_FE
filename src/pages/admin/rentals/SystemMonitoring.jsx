@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Settings, Car, Shield } from 'lucide-react';
+import { Settings, Car, Shield, AlertTriangle } from 'lucide-react';
 
 // Import components
 import SystemStatsCards from '@/pages/admin/rentals/SystemStatsCards';
 import RentalsTab from '@/pages/admin/rentals/RentalsTab';
 import ViolationsTab from '@/pages/admin/rentals/ViolationsTab';
+import IncidentsTab from '@/pages/admin/rentals/IncidentsTab';
 
 const SystemMonitoring = () => {
   const [selectedTab, setSelectedTab] = useState('rentals');
@@ -28,7 +29,8 @@ const SystemMonitoring = () => {
       <div className="flex space-x-1 bg-muted p-1 rounded-lg w-fit">
         {[
           { id: 'rentals', label: 'Thuê xe', icon: Car },
-          { id: 'violations', label: 'Vi phạm', icon: Shield }
+          { id: 'violations', label: 'Vi phạm', icon: Shield },
+          { id: 'incidents', label: 'Báo cáo sự cố', icon: AlertTriangle }
         ].map((tab) => (
           <Button
             key={tab.id}
@@ -50,6 +52,10 @@ const SystemMonitoring = () => {
 
       {selectedTab === 'violations' && (
         <ViolationsTab />
+      )}
+
+      {selectedTab === 'incidents' && (
+        <IncidentsTab />
       )}
     </div>
   );
