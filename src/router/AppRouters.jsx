@@ -13,6 +13,7 @@ import Home from "../components/layout/Home.jsx";
 import LoginPage from "../components/auth/LoginPage.jsx";
 import RegisterPage from "../components/auth/RegisterPage.jsx";
 import ForgotPasswordPage from "../components/auth/ForgotPasswordPage.jsx";
+import VerifyEmailPage from "@/components/auth/VerifyEmailPage.jsx";
 import NotFoundPage from "../pages/NotFoundPage.jsx";
 
 // Admin Components
@@ -50,6 +51,7 @@ import RentalManagement from "../pages/staff/RentalManagement.jsx";
 import CustomerVerification from "../pages/staff/CustomerVerification.jsx";
 import PaymentManagement from "../pages/staff/PaymentManagement.jsx";
 import StationManagement from "../pages/staff/StationManagement.jsx";
+import IncidentReportManagement from "@/pages/staff/IncidentReportManagement.jsx";
 
 // Routes wrapper
 import PublicRoute from "../routes/PublicRoute.jsx";
@@ -64,6 +66,7 @@ export const paths = {
   login: "/login",
   register: "/register",
   forgotPassword: "/forgot-password",
+  verifyemail: "/verify-email",
 
   // Admin routes
   admin: {
@@ -104,7 +107,8 @@ export const paths = {
     rentalManagement: "rental-management",
     customerVerification: "customer-verification",
     paymentManagement: "payment-management",
-    stationManagement: "station-management"
+    stationManagement: "station-management",
+    incidentManagement: "incidents"
   },
 
   notFound: "*",
@@ -160,6 +164,14 @@ const router = createBrowserRouter([
       </PublicRoute>
     ),
   },
+  {
+    path: "/verify-email",
+    element: (
+      <PublicRoute>
+        <VerifyEmailPage />
+      </PublicRoute>
+    ),
+  },
 
   // Public pages - Guest có thể xem
   {
@@ -211,6 +223,7 @@ const router = createBrowserRouter([
       { path: "customer-verification", element: <CustomerVerification /> },
       { path: "payment-management", element: <PaymentManagement /> },
       { path: "station-management", element: <StationManagement /> },
+      { path: "incidents", element: <IncidentReportManagement /> },
     ],
   },
 

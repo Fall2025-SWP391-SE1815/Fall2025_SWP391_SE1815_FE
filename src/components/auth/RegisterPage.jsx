@@ -13,7 +13,7 @@ const RegisterPage = () => {
   const navigate = useNavigate();
   const { register, loading } = useAuth();
   const { validateEmail, validatePassword, validatePhone, validateFullName, validateConfirmPassword } = useAuthValidation();
-  
+
   // Form state
   const [formData, setFormData] = useState({
     email: '',
@@ -22,7 +22,7 @@ const RegisterPage = () => {
     full_name: '',
     phone: ''
   });
-  
+
   // UI state
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -33,7 +33,7 @@ const RegisterPage = () => {
   // Handle input changes
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    
+
     // Clear errors when user starts typing
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
@@ -46,22 +46,22 @@ const RegisterPage = () => {
   // Validate form
   const validateForm = () => {
     const newErrors = {};
-    
+
     const emailError = validateEmail(formData.email);
     if (emailError) newErrors.email = emailError;
-    
+
     const passwordError = validatePassword(formData.password);
     if (passwordError) newErrors.password = passwordError;
-    
+
     const confirmPasswordError = validateConfirmPassword(formData.password, formData.confirmPassword);
     if (confirmPasswordError) newErrors.confirmPassword = confirmPasswordError;
-    
+
     const fullNameError = validateFullName(formData.full_name);
     if (fullNameError) newErrors.full_name = fullNameError;
-    
+
     const phoneError = validatePhone(formData.phone);
     if (phoneError) newErrors.phone = phoneError;
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -69,14 +69,14 @@ const RegisterPage = () => {
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
-    
+
     setIsSubmitting(true);
     setSubmitError('');
-    
+
     try {
       const registerData = {
         fullName: formData.full_name, // API expects fullName (camelCase)
@@ -85,12 +85,12 @@ const RegisterPage = () => {
         password: formData.password,
         role: 'renter' // Default role for registration
       };
-      
+
       const result = await register(registerData);
-      
+
       if (result.success) {
         // Registration successful, redirect to login page
-        navigate('/login');
+        navigate('/verify-email', { state: { email: formData.email } });
       } else {
         setSubmitError(result.message || 'Đăng ký thất bại');
       }
@@ -104,7 +104,7 @@ const RegisterPage = () => {
   // Password strength indicator
   const getPasswordStrength = (password) => {
     if (!password) return { strength: 0, text: '', color: '' };
-    
+
     let strength = 0;
     if (password.length >= 6) strength++;
     if (password.length >= 8) strength++;
@@ -112,7 +112,7 @@ const RegisterPage = () => {
     if (/[a-z]/.test(password)) strength++;
     if (/[0-9]/.test(password)) strength++;
     if (/[^A-Za-z0-9]/.test(password)) strength++;
-    
+
     if (strength <= 2) return { strength, text: 'Yếu', color: 'text-red-500' };
     if (strength <= 4) return { strength, text: 'Trung bình', color: 'text-yellow-500' };
     return { strength, text: 'Mạnh', color: 'text-green-500' };
@@ -249,11 +249,10 @@ const RegisterPage = () => {
                   <div className="space-y-1">
                     <div className="flex items-center space-x-2">
                       <div className="flex-1 bg-gray-200 h-1 rounded-full overflow-hidden">
-                        <div 
-                          className={`h-full transition-all duration-300 ${
-                            passwordStrength.strength <= 2 ? 'bg-red-500' :
-                            passwordStrength.strength <= 4 ? 'bg-yellow-500' : 'bg-green-500'
-                          }`}
+                        <div
+                          className={`h-full transition-all duration-300 ${passwordStrength.strength <= 2 ? 'bg-red-500' :
+                              passwordStrength.strength <= 4 ? 'bg-yellow-500' : 'bg-green-500'
+                            }`}
                           style={{ width: `${(passwordStrength.strength / 6) * 100}%` }}
                         />
                       </div>

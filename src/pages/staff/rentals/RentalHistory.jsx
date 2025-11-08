@@ -310,7 +310,7 @@ const RentalHistory = () => {
                                                 : 'bg-yellow-100 text-yellow-700'
                                                 }`}
                                         >
-                                            {selected.status}
+                                            {getStatusVI(selected.status)}
                                         </span>
                                     </div>
                                     <div>ODO đầu/cuối:</div>

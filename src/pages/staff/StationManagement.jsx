@@ -123,26 +123,112 @@ const StationManagement = () => {
     }
   };
 
+  // Gọi API lấy danh sách lượt thuê hiện tại
   const fetchCurrentRentals = async () => {
     try {
       setLoading(true);
-      // Real API call to get current rentals (status = 'active' or 'in_use')
-      const response = await staffRentalService.getRentals({ status: 'in_use' });
-      const data = Array.isArray(response) ? response : response?.data || [];
-      setCurrentRentals(data);
 
+      // ✅ Chỉ dùng status mà backend thực sự có — ví dụ: "in_use"
+      let response = await staffRentalService.getRentals({ status: 'in_use' });
+
+      let data =
+        Array.isArray(response)
+          ? response
+          : response?.data || response?.content || response?.results || [];
+
+      console.log("📦 Rentals API raw:", response);
+      console.log("✅ Rentals mapped data:", data);
+
+      const formatted = data.map((rental) => ({
+        id: rental.id,
+        status: rental.status || 'in_use',
+        startTime:
+          rental.startTime ||
+          rental.start_time ||
+          rental.beginTime ||
+          rental.start_at ||
+          null,
+        endTime:
+          rental.endTime ||
+          rental.end_time ||
+          rental.expectedEndTime ||
+          rental.end_at ||
+          null,
+
+        renter: {
+          id: rental.renter?.id || rental.user?.id || rental.customer?.id || null,
+          fullName:
+            rental.renter?.fullName ||
+            rental.renter?.full_name ||
+            rental.user?.fullName ||
+            rental.customer?.name ||
+            'Không rõ tên',
+          phone:
+            rental.renter?.phone ||
+            rental.user?.phone ||
+            rental.customer?.phone ||
+            'Không có SĐT',
+          email:
+            rental.renter?.email ||
+            rental.user?.email ||
+            rental.customer?.email ||
+            '',
+        },
+
+        vehicle: {
+          id: rental.vehicle?.id,
+          licensePlate:
+            rental.vehicle?.licensePlate ||
+            rental.vehicle?.license_plate ||
+            'Không rõ biển số',
+          brand: rental.vehicle?.brand || '',
+          model: rental.vehicle?.model || '',
+          type: rental.vehicle?.type || '',
+        },
+
+        stationPickup: rental.stationPickup || rental.pickupStation || null,
+        stationReturn: rental.stationReturn || rental.returnStation || null,
+      }));
+
+      setCurrentRentals(formatted);
     } catch (error) {
-      console.error('Error fetching current rentals:', error);
+      console.error('❌ Lỗi khi tải danh sách lượt thuê:', error);
       toast({
-        title: "Lỗi",
-        description: "Không thể tải danh sách thuê xe hiện tại",
-        variant: "destructive",
+        title: 'Lỗi',
+        description:
+          error?.message?.includes('No enum constant')
+            ? 'Giá trị status không hợp lệ với backend. Hãy dùng status: in_use / waiting_for_payment / completed.'
+            : 'Không thể tải danh sách thuê xe hiện tại',
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
     }
   };
 
+  // --- CHUYỂN XE "RENTED" QUA TAB LƯỢT THUÊ ---
+  useEffect(() => {
+    // Lấy danh sách xe đang thuê từ danh sách xe
+    const rentedVehicles = vehicles
+      .filter((v) => v.status === 'rented')
+      .map((v) => ({
+        id: v.id,
+        vehicle: v,
+        renter: v.currentRenter || {},
+        startTime: v.startTime || v.start_time || null,
+        endTime: v.endTime || v.end_time || null,
+        status: 'rented',
+      }));
+
+    // Gộp danh sách với currentRentals tránh trùng ID
+    setCurrentRentals((prev) => {
+      const combined = [...prev, ...rentedVehicles];
+      const unique = combined.filter(
+        (item, index, arr) => arr.findIndex((x) => x.id === item.id) === index
+      );
+      return unique;
+    });
+  }, [vehicles]);
 
 
   const handleViewVehicleDetail = (vehicle) => {
@@ -174,7 +260,7 @@ const StationManagement = () => {
 
       const capacity = parseInt(updateForm.capacity);
       const range = parseInt(updateForm.rangePerFullCharge);
-      
+
       if (isNaN(capacity) || capacity <= 0 || isNaN(range) || range <= 0) {
         toast({
           title: "Thông tin không hợp lệ",
@@ -201,7 +287,7 @@ const StationManagement = () => {
 
       setVehicleUpdateDialogOpen(false);
       setUpdateForm({ brand: '', model: '', capacity: '', rangePerFullCharge: '' });
-      
+
       // Refresh vehicle list
       fetchVehicles();
 
@@ -437,55 +523,57 @@ const StationManagement = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {vehicles.map((vehicle) => (
-                      <TableRow key={vehicle.id}>
-                        <TableCell>
-                          <div className="flex flex-col space-y-1">
-                            <div className="font-medium flex items-center gap-2">
-                              <Car className="h-4 w-4" />
-                              {vehicle.licensePlate || vehicle.license_plate || 'N/A'}
+                    {vehicles
+                      .filter((v) => v.status !== 'rented' && v.status !== 'in_use')
+                      .map((vehicle) => (
+                        <TableRow key={vehicle.id}>
+                          <TableCell>
+                            <div className="flex flex-col space-y-1">
+                              <div className="font-medium flex items-center gap-2">
+                                <Car className="h-4 w-4" />
+                                {vehicle.licensePlate || vehicle.license_plate || 'N/A'}
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                {vehicle.brand} {vehicle.model}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {vehicle.type}
+                              </div>
                             </div>
+                          </TableCell>
+                          <TableCell>
+                            {getVehicleStatusBadge(vehicle.status)}
+                          </TableCell>
+                          <TableCell>
                             <div className="text-sm text-muted-foreground">
-                              {vehicle.brand} {vehicle.model}
+                              Trạm: {vehicle.station?.name || 'N/A'}
                             </div>
-                            <div className="text-xs text-muted-foreground">
-                              {vehicle.type}
+                          </TableCell>
+                          <TableCell>
+                            <div className="font-medium">
+                              {formatCurrency(vehicle.pricePerHour || vehicle.price_per_hour || 0)}/giờ
                             </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {getVehicleStatusBadge(vehicle.status)}
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm text-muted-foreground">
-                            Trạm: {vehicle.station?.name || 'N/A'}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="font-medium">
-                            {formatCurrency(vehicle.pricePerHour || vehicle.price_per_hour || 0)}/giờ
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleViewVehicleDetail(vehicle)}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleEditVehicle(vehicle)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleViewVehicleDetail(vehicle)}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleEditVehicle(vehicle)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
                   </TableBody>
                 </Table>
               )}
@@ -499,17 +587,19 @@ const StationManagement = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Clock className="h-5 w-5" />
-                Lượt thuê đang diễn ra
+                Danh sách lượt thuê đang diễn ra
               </CardTitle>
               <CardDescription>
-                Các lượt thuê xe hiện tại tại trạm
+                Quản lý các lượt thuê xe hiện tại đang được sử dụng tại trạm
               </CardDescription>
             </CardHeader>
             <CardContent>
               {currentRentals.length === 0 ? (
                 <div className="text-center py-8">
                   <Clock className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">Không có lượt thuê nào đang diễn ra</p>
+                  <p className="text-muted-foreground">
+                    Không có lượt thuê nào đang diễn ra
+                  </p>
                 </div>
               ) : (
                 <Table>
@@ -526,47 +616,73 @@ const StationManagement = () => {
                     {currentRentals.map((rental) => (
                       <TableRow key={rental.id || rental.rental_id}>
                         <TableCell>
-                          <div className="font-medium">
+                          <div className="font-medium text-sm">
                             #{rental.id || rental.rental_id}
                           </div>
                         </TableCell>
+
+                        {/* --- Thông tin xe --- */}
                         <TableCell>
                           <div className="flex flex-col space-y-1">
                             <div className="font-medium flex items-center gap-2">
                               <Car className="h-4 w-4" />
-                              {rental.vehicle?.licensePlate || rental.vehicle?.license_plate || 'N/A'}
+                              {rental.vehicle?.licensePlate ||
+                                rental.vehicle?.license_plate ||
+                                'N/A'}
                             </div>
                             <div className="text-sm text-muted-foreground">
+                              {rental.vehicle?.brand} {rental.vehicle?.model}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
                               {rental.vehicle?.type || 'N/A'}
                             </div>
                           </div>
                         </TableCell>
+
+                        {/* --- Khách hàng --- */}
                         <TableCell>
                           <div className="flex flex-col space-y-1">
                             <div className="font-medium flex items-center gap-2">
                               <User className="h-4 w-4" />
-                              {rental.renter?.fullName || rental.renter?.full_name || 'N/A'}
+                              {rental.renter?.fullName ||
+                                rental.renter?.full_name ||
+                                'N/A'}
                             </div>
                             <div className="text-sm text-muted-foreground flex items-center gap-2">
                               <Phone className="h-3 w-3" />
                               {rental.renter?.phone || 'N/A'}
                             </div>
+                            <div className="text-xs text-muted-foreground">
+                              {rental.renter?.email || ''}
+                            </div>
                           </div>
                         </TableCell>
+
+                        {/* --- Thời gian --- */}
                         <TableCell>
-                          <div className="flex flex-col space-y-1">
-                            <div className="text-sm">
-                              <strong>Bắt đầu:</strong> {formatDateTime(rental.startTime || rental.start_time)}
+                          <div className="flex flex-col space-y-1 text-sm">
+                            <div>
+                              <strong>Bắt đầu:</strong>{' '}
+                              {rental.startTime || rental.start_time
+                                ? formatDateTime(
+                                  rental.startTime || rental.start_time
+                                )
+                                : 'N/A'}
                             </div>
-                            <div className="text-sm">
-                              <strong>Dự kiến kết thúc:</strong> {formatDateTime(rental.endTime || rental.end_time)}
+                            <div>
+                              <strong>Dự kiến kết thúc:</strong>{' '}
+                              {rental.endTime || rental.end_time
+                                ? formatDateTime(rental.endTime || rental.end_time)
+                                : 'N/A'}
                             </div>
                           </div>
                         </TableCell>
+
+                        {/* --- Trạng thái --- */}
                         <TableCell>
                           <Badge variant="secondary" className="gap-1">
                             <Clock className="h-3 w-3" />
-                            {rental.status === 'active' ? 'Đang sử dụng' : rental.status}
+                            {rental.status === 'rented' ? 'Đang được thuê' : rental.status}
                           </Badge>
                         </TableCell>
                       </TableRow>
@@ -808,7 +924,7 @@ const StationManagement = () => {
 
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
               <p className="text-sm text-blue-800">
-                <strong>Lưu ý:</strong> Biển số xe, loại xe và giá thuê không thể thay đổi. 
+                <strong>Lưu ý:</strong> Biển số xe, loại xe và giá thuê không thể thay đổi.
                 Chỉ cập nhật thông số kỹ thuật của xe.
               </p>
             </div>
@@ -850,11 +966,13 @@ const StationManagement = () => {
                   <SelectValue placeholder="Chọn xe" />
                 </SelectTrigger>
                 <SelectContent>
-                  {vehicles.map((vehicle) => (
-                    <SelectItem key={vehicle.id} value={vehicle.id.toString()}>
-                      {vehicle.licensePlate || vehicle.license_plate || 'N/A'} - {vehicle.brand} {vehicle.model}
-                    </SelectItem>
-                  ))}
+                  {vehicles
+                    .filter((v) => v.status !== 'rented' && v.status !== 'in_use')
+                    .map((vehicle) => (
+                      <SelectItem key={vehicle.id} value={vehicle.id.toString()}>
+                        {vehicle.licensePlate || vehicle.license_plate || 'N/A'} - {vehicle.brand} {vehicle.model}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
