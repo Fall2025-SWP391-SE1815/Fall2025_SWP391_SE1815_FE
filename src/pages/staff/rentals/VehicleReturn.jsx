@@ -28,7 +28,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/hooks/use-toast';
+import { useGlobalToast } from '@/components/ui/global-toast';
 import staffRentalService from '@/services/staff/staffRentalService';
 import {
   Car,
@@ -48,7 +48,7 @@ import {
 } from 'lucide-react';
 
 const VehicleReturn = () => {
-  const { toast } = useToast();
+  const { success, error, warning, info } = useGlobalToast();
   const [loading, setLoading] = useState(false);
   const [returningRentals, setReturningRentals] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -80,11 +80,7 @@ const VehicleReturn = () => {
       setReturningRentals(response || []);
     } catch (error) {
       console.error('Error fetching returning rentals:', error);
-      toast({
-        title: "Lỗi",
-        description: error.message || "Không thể tải danh sách xe cần nhận",
-        variant: "destructive",
-      });
+      error("Không thể tải danh sách xe cần nhận", error.message);
     } finally {
       setLoading(false);
     }
@@ -108,44 +104,35 @@ const VehicleReturn = () => {
   const submitReturnCheck = async () => {
     try {
       // Validate all required fields and files
-      if (!returnForm.condition_report || 
-          !returnForm.odo ||
-          !returnForm.batteryLevel ||
-          !returnForm.photo_url || 
-          !returnForm.customer_signature_url || 
-          !returnForm.staff_signature_url) {
-        toast({
-          title: "Thiếu thông tin",
-          description: "Vui lòng điền đầy đủ thông tin biên bản, số km, mức pin và chọn 3 file ảnh (ảnh xe, chữ ký khách hàng, chữ ký nhân viên)",
-          variant: "destructive",
-        });
+      if (!returnForm.condition_report ||
+        !returnForm.odo ||
+        !returnForm.batteryLevel ||
+        !returnForm.photo_url ||
+        !returnForm.customer_signature_url ||
+        !returnForm.staff_signature_url) {
+        warning(
+          "Thiếu thông tin",
+          "Điền đủ biên bản, số km, mức pin và chọn 3 file ảnh (xe + chữ ký KH + NV)"
+        );
         return;
       }
 
       // Validate file types
       const validateFile = (file, name) => {
         if (!(file instanceof File)) {
-          toast({
-            title: "Lỗi file",
-            description: `${name} phải là file ảnh`,
-            variant: "destructive",
-          });
+          error("Lỗi file", `${name} phải là file ảnh`);
           return false;
         }
         if (!file.type.startsWith('image/')) {
-          toast({
-            title: "Lỗi định dạng",
-            description: `${name} phải là file ảnh (JPG, PNG, GIF, v.v.)`,
-            variant: "destructive",
-          });
+          error("Lỗi định dạng", `${name} phải là file ảnh (JPG, PNG, GIF, v.v.)`);
           return false;
         }
         return true;
       };
 
       if (!validateFile(returnForm.photo_url, "Ảnh xe") ||
-          !validateFile(returnForm.customer_signature_url, "Chữ ký khách hàng") ||
-          !validateFile(returnForm.staff_signature_url, "Chữ ký nhân viên")) {
+        !validateFile(returnForm.customer_signature_url, "Chữ ký khách hàng") ||
+        !validateFile(returnForm.staff_signature_url, "Chữ ký nhân viên")) {
         return;
       }
 
@@ -153,7 +140,7 @@ const VehicleReturn = () => {
 
       // Create FormData for multipart form submission
       const formData = new FormData();
-      
+
       // Add the required data field as JSON string
       const requestData = {
         rentalId: selectedReturnRental.id,
@@ -172,10 +159,7 @@ const VehicleReturn = () => {
       // Call the confirm-return API
       const response = await staffRentalService.confirmReturn(formData);
 
-      toast({
-        title: "Thành công",
-        description: "Xác nhận nhận xe thành công! Xe đã được trả về.",
-      });
+      success("Xác nhận nhận xe thành công", "Xe đã được trả về hệ thống.");
 
       setReturnDialogOpen(false);
       // Reset form after successful submission
@@ -192,11 +176,7 @@ const VehicleReturn = () => {
 
     } catch (error) {
       console.error('Error confirming return:', error);
-      toast({
-        title: "Lỗi",
-        description: error.message || "Không thể xác nhận nhận xe từ khách",
-        variant: "destructive",
-      });
+      error("Không thể xác nhận nhận xe từ khách", error.message);
     } finally {
       setLoading(false);
     }
@@ -229,7 +209,7 @@ const VehicleReturn = () => {
 
   const filterRentals = (list) => {
     if (!searchTerm) return list;
-    return list.filter(rental => 
+    return list.filter(rental =>
       rental.renter.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       rental.renter.phone.includes(searchTerm) ||
       rental.vehicle.licensePlate.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -305,7 +285,7 @@ const VehicleReturn = () => {
                         </Badge>
                       </div>
                     </TableCell>
-                    
+
                     <TableCell>
                       <div className="flex flex-col space-y-1">
                         <div className="font-medium flex items-center gap-2">
@@ -321,7 +301,7 @@ const VehicleReturn = () => {
                         </div>
                       </div>
                     </TableCell>
-                    
+
                     <TableCell>
                       <div className="flex flex-col space-y-1">
                         <div className="flex items-center gap-2">
@@ -349,7 +329,7 @@ const VehicleReturn = () => {
                         )}
                       </div>
                     </TableCell>
-                    
+
                     <TableCell>
                       <div className="flex flex-col space-y-2">
                         <div className="flex items-center gap-2">
@@ -377,7 +357,7 @@ const VehicleReturn = () => {
                         </Badge>
                       </div>
                     </TableCell>
-                    
+
                     <TableCell>
                       <Button
                         size="sm"

@@ -26,7 +26,6 @@ const RentalManagement = () => {
     localStorage.setItem('rentalManagementTab', selectedTab);
   }, [selectedTab]);
 
- 
   return (
     <div className='space-y-6'>
       <div className='flex justify-between items-center'>

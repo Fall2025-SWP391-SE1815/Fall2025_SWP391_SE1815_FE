@@ -1,21 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
+import { useGlobalToast } from '@/components/ui/global-toast';
 import staffRentalService from '@/services/staff/staffRentalService';
 import { formatCurrency } from '@/utils/pricing';
+import { Search, RefreshCw } from 'lucide-react';
 
 const RentalHistory = () => {
-    const { toast } = useToast();
+    const { success, error } = useGlobalToast();
     const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
+    const [fetchError, setFetchError] = useState(null);
     const [selected, setSelected] = useState(null);
     const [showDialog, setShowDialog] = useState(false);
     const [search, setSearch] = useState('');
 
-    // Mapping trạng thái sang tiếng Việt
     const STATUS_VI = {
         returned: 'Đã trả xe',
         waiting_for_payment: 'Chờ thanh toán',
@@ -27,7 +27,6 @@ const RentalHistory = () => {
 
     const getStatusVI = (status) => STATUS_VI[status] || status;
 
-    // Lọc theo từ khóa tìm kiếm
     const filteredHistory = history.filter((item) => {
         const searchText = search.trim().toLowerCase();
         return (
@@ -44,37 +43,30 @@ const RentalHistory = () => {
 
     const fetchHistory = async () => {
         setLoading(true);
-        setError(null);
+        setFetchError(null);
         try {
             const response = await staffRentalService.getRentals();
             setHistory(Array.isArray(response) ? response : response?.data || []);
         } catch (err) {
-            setError(err.message || 'Không thể tải lịch sử thuê');
+            setFetchError(err.message || 'Không thể tải lịch sử thuê');
+            error('Không thể tải lịch sử thuê', err.message);
         } finally {
             setLoading(false);
         }
     };
 
-    // ✅ Hàm xử lý trả cọc
     const handleReturnDeposit = async (rentalId) => {
         try {
             setLoading(true);
             await staffRentalService.returnDeposit(rentalId);
-            toast({
-                title: 'Thành công',
-                description: 'Đã trả lại tiền cọc cho khách hàng.',
-            });
+            success('Trả cọc thành công', 'Đã hoàn tiền cọc cho khách hàng.');
             await fetchHistory();
-        } catch (error) {
-            console.error('Error returning deposit:', error);
+        } catch (err) {
+            console.error('Error returning deposit:', err);
             const message =
-                error.response?.data?.message ||
+                err.response?.data?.message ||
                 'Không thể trả lại tiền cọc. Vui lòng kiểm tra trạng thái thuê.';
-            toast({
-                title: 'Lỗi',
-                description: message,
-                variant: 'destructive',
-            });
+            error('Không thể trả lại tiền cọc', message);
         } finally {
             setLoading(false);
         }
@@ -82,97 +74,107 @@ const RentalHistory = () => {
 
     return (
         <>
-            <div className="flex justify-between items-center">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Lịch sử thuê</h1>
+                    <h1 className="text-3xl font-bold tracking-tight">Lịch sử thuê xe</h1>
                     <p className="text-muted-foreground">
-                        Danh sách xe đã được khách hàng sử dụng
+                        Theo dõi các chuyến thuê và trạng thái hoàn cọc
                     </p>
                 </div>
-                <div className="flex gap-2">
-                    <Input
-                        placeholder="Tìm kiếm khách hàng, SĐT, biển số..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className="w-80"
-                    />
+
+                <div className="flex w-full sm:w-auto gap-2">
+                    <div className="relative w-full sm:w-80">
+                        <Input
+                            placeholder="Tìm kiếm khách hàng, SĐT, biển số..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="pl-8"
+                        />
+                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+                    </div>
+                    <Button
+                        variant="outline"
+                        onClick={fetchHistory}
+                        disabled={loading}
+                        className="flex items-center gap-1"
+                    >
+                        <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                        Làm mới
+                    </Button>
                 </div>
             </div>
 
-            <Card>
-                <CardContent>
+            {/* Table Card */}
+            <Card className="shadow-md border rounded-xl overflow-hidden">
+                <CardHeader className="bg-gray-50 border-b">
+                    <CardTitle className="text-lg font-semibold">
+                        Danh sách chuyến thuê ({filteredHistory.length})
+                    </CardTitle>
+                </CardHeader>
+
+                <CardContent className="p-0">
                     {loading ? (
-                        <div>Đang tải dữ liệu...</div>
-                    ) : error ? (
-                        <div className="text-red-500">{error}</div>
+                        <div className="text-center py-6 text-muted-foreground">Đang tải dữ liệu...</div>
+                    ) : fetchError ? (
+                        <div className="text-center text-red-500 py-6">{fetchError}</div>
                     ) : history.length === 0 ? (
-                        <div>Không có dữ liệu lịch sử thuê.</div>
+                        <div className="text-center py-6 text-muted-foreground">
+                            Không có dữ liệu lịch sử thuê.
+                        </div>
                     ) : (
                         <div className="overflow-x-auto">
-                            <table className="min-w-full text-sm border rounded-lg shadow-sm bg-white">
-                                <thead>
-                                    <tr className="bg-gray-50 text-gray-700 uppercase text-xs">
-                                        <th className="px-4 py-2 border-b text-center">Mã thuê</th>
-                                        <th className="px-4 py-2 border-b text-center">Khách hàng</th>
-                                        <th className="px-4 py-2 border-b text-center">Xe</th>
-                                        <th className="px-4 py-2 border-b text-center">Trạm nhận</th>
-                                        <th className="px-4 py-2 border-b text-center">Thời gian</th>
-                                        <th className="px-4 py-2 border-b text-center">Trạng thái</th>
-                                        <th className="px-4 py-2 border-b text-center">Trạng thái cọc</th>
-                                        <th className="px-4 py-2 border-b text-center">Thao tác</th>
+                            <table className="min-w-full text-sm border-collapse">
+                                <thead className="bg-gray-100 text-gray-700 uppercase text-xs">
+                                    <tr>
+                                        <th className="px-4 py-3 border-b text-center">Mã thuê</th>
+                                        <th className="px-4 py-3 border-b text-center">Khách hàng</th>
+                                        <th className="px-4 py-3 border-b text-center">Xe</th>
+                                        <th className="px-4 py-3 border-b text-center">Trạm nhận</th>
+                                        <th className="px-4 py-3 border-b text-center">Thời gian</th>
+                                        <th className="px-4 py-3 border-b text-center">Trạng thái</th>
+                                        <th className="px-4 py-3 border-b text-center">Cọc</th>
+                                        <th className="px-4 py-3 border-b text-center">Thao tác</th>
                                     </tr>
                                 </thead>
 
                                 <tbody>
                                     {filteredHistory.map((item) => (
-                                        <tr key={item.id} className="hover:bg-gray-100 transition">
-                                            <td className="border-b px-4 py-2 font-semibold text-blue-700 text-center">
-                                                {item.id}
+                                        <tr
+                                            key={item.id}
+                                            className="hover:bg-gray-50 border-b last:border-none transition-colors text-center"
+                                        >
+                                            <td className="px-4 py-3 font-semibold text-blue-700">{item.id}</td>
+
+                                            <td className="px-4 py-3">
+                                                <div className="font-medium">{item.renter?.fullName}</div>
+                                                <div className="text-xs text-gray-500">{item.renter?.phone}</div>
                                             </td>
 
-                                            <td className="border-b px-4 py-2 text-center">
-                                                <div className="font-medium">
-                                                    {item.renter?.fullName || item.renter?.name}
-                                                </div>
-                                                <div className="text-xs text-gray-500">
-                                                    {item.renter?.phone}
-                                                </div>
-                                            </td>
-
-                                            <td className="border-b px-4 py-2 text-center">
-                                                <div className="font-medium">
-                                                    {item.vehicle?.licensePlate}
-                                                </div>
+                                            <td className="px-4 py-3">
+                                                <div className="font-medium">{item.vehicle?.licensePlate}</div>
                                                 <div className="text-xs text-gray-500">
                                                     {item.vehicle?.brand} {item.vehicle?.model}
                                                 </div>
                                             </td>
 
-                                            <td className="border-b px-4 py-2 text-center">
-                                                {item.stationPickup?.name}
-                                            </td>
+                                            <td className="px-4 py-3">{item.stationPickup?.name}</td>
 
-                                            <td className="border-b px-4 py-2 align-middle text-center">
-                                                <div className="flex flex-col items-center gap-1">
-                                                    <div>
-                                                        <span className="font-semibold">Ngày thuê:</span>{' '}
-                                                        {item.startTime?.slice(0, 10)}
-                                                        <span className="ml-2 text-xs text-gray-500">
-                                                            {item.startTime?.slice(11, 19)}
-                                                        </span>
-                                                    </div>
-                                                    <div>
-                                                        <span className="font-semibold">Ngày trả:</span>{' '}
-                                                        {item.endTime?.slice(0, 10)}
-                                                        <span className="ml-2 text-xs text-gray-500">
-                                                            {item.endTime?.slice(11, 19)}
-                                                        </span>
-                                                    </div>
+                                            <td className="px-4 py-3 text-xs">
+                                                <div>
+                                                    <span className="font-medium text-gray-700">Thuê:</span>{' '}
+                                                    {item.startTime?.slice(0, 10)}{' '}
+                                                    <span className="text-gray-400">{item.startTime?.slice(11, 16)}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="font-medium text-gray-700">Trả:</span>{' '}
+                                                    {item.endTime?.slice(0, 10)}{' '}
+                                                    <span className="text-gray-400">{item.endTime?.slice(11, 16)}</span>
                                                 </div>
                                             </td>
 
                                             {/* Trạng thái thuê */}
-                                            <td className="border-b px-4 py-2 text-center">
+                                            <td className="px-4 py-3">
                                                 <span
                                                     className={`inline-block px-2 py-1 rounded text-xs font-semibold ${item.status === 'returned'
                                                         ? 'bg-green-100 text-green-700'
@@ -187,22 +189,20 @@ const RentalHistory = () => {
                                                 </span>
                                             </td>
 
-                                            {/* ✅ Trạng thái cọc */}
-                                            <td className="border-b px-4 py-2 text-center">
+                                            {/* Trạng thái cọc */}
+                                            <td className="px-4 py-3">
                                                 <span
                                                     className={`inline-block px-2 py-1 rounded text-xs font-semibold ${item.depositStatus === 'refunded'
                                                         ? 'bg-green-100 text-green-700'
                                                         : 'bg-yellow-100 text-yellow-700'
                                                         }`}
                                                 >
-                                                    {item.depositStatus === 'refunded'
-                                                        ? 'Đã trả cọc'
-                                                        : 'Đang giữ cọc'}
+                                                    {item.depositStatus === 'refunded' ? 'Đã trả' : 'Giữ cọc'}
                                                 </span>
                                             </td>
 
-                                            {/* ✅ Cột Thao tác */}
-                                            <td className="border-b px-4 py-2 text-center space-x-2">
+                                            {/* Thao tác */}
+                                            <td className="px-4 py-3 space-x-2">
                                                 <Button
                                                     size="sm"
                                                     variant="outline"
@@ -235,7 +235,7 @@ const RentalHistory = () => {
                 </CardContent>
             </Card>
 
-            {/* Dialog chi tiết */}
+            {/* Dialog giữ nguyên UI */}
             {showDialog && selected && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
                     <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-0 relative animate-fade-in">
@@ -255,47 +255,38 @@ const RentalHistory = () => {
                             </div>
                         </div>
 
+                        {/* giữ nguyên phần detail */}
                         <div className="p-8 pt-4 grid grid-cols-1 md:grid-cols-2 gap-8 max-h-[70vh] overflow-y-auto">
-                            {/* Khách hàng */}
                             <div className="bg-gray-50 rounded-lg p-4 shadow-sm flex flex-col gap-2">
                                 <div className="font-semibold text-blue-700 mb-2">Khách hàng</div>
                                 <div>
-                                    <span className="font-medium">Họ tên:</span>{' '}
-                                    {selected.renter?.fullName}
+                                    <span className="font-medium">Họ tên:</span> {selected.renter?.fullName}
                                 </div>
                                 <div>
-                                    <span className="font-medium">SĐT:</span>{' '}
-                                    {selected.renter?.phone}
+                                    <span className="font-medium">SĐT:</span> {selected.renter?.phone}
                                 </div>
                             </div>
 
-                            {/* Xe */}
                             <div className="bg-gray-50 rounded-lg p-4 shadow-sm flex flex-col gap-2">
                                 <div className="font-semibold text-blue-700 mb-2">Thông tin xe</div>
                                 <div>
-                                    <span className="font-medium">Biển số:</span>{' '}
-                                    {selected.vehicle?.licensePlate}
+                                    <span className="font-medium">Biển số:</span> {selected.vehicle?.licensePlate}
                                 </div>
                                 <div>
                                     <span className="font-medium">Hãng/Model:</span>{' '}
                                     {selected.vehicle?.brand} {selected.vehicle?.model}
                                 </div>
                                 <div>
-                                    <span className="font-medium">Loại xe:</span>{' '}
-                                    {selected.vehicle?.type}
+                                    <span className="font-medium">Loại xe:</span> {selected.vehicle?.type}
                                 </div>
                             </div>
 
-                            {/* Thông tin thuê */}
                             <div className="bg-gray-50 rounded-lg p-4 shadow-sm flex flex-col gap-2 md:col-span-2">
-                                <div className="font-semibold text-blue-700 mb-2">
-                                    Thông tin thuê
-                                </div>
+                                <div className="font-semibold text-blue-700 mb-2">Thông tin thuê</div>
                                 <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                                     <div>Trạm nhận:</div>
                                     <div>
-                                        {selected.stationPickup?.name} -{' '}
-                                        {selected.stationPickup?.address}
+                                        {selected.stationPickup?.name} - {selected.stationPickup?.address}
                                     </div>
                                     <div>Nhân viên giao xe:</div>
                                     <div>{selected.staffPickup?.fullName || '-'}</div>
@@ -325,7 +316,6 @@ const RentalHistory = () => {
                                 </div>
                             </div>
 
-                            {/* Tài chính */}
                             <div className="bg-gray-50 rounded-lg p-4 shadow-sm flex flex-col gap-2 md:col-span-2">
                                 <div className="font-semibold text-blue-700 mb-2">Tài chính</div>
                                 <div className="grid grid-cols-2 gap-x-4 gap-y-2">
@@ -335,8 +325,7 @@ const RentalHistory = () => {
                                     <div>{selected.insurance?.toLocaleString()} VND</div>
                                     <div>Tiền cọc:</div>
                                     <div>
-                                        {selected.depositAmount?.toLocaleString()} VND (
-                                        {selected.depositStatus})
+                                        {selected.depositAmount?.toLocaleString()} VND ({selected.depositStatus})
                                     </div>
                                     <div>Tổng chi phí:</div>
                                     <div>{formatCurrency(selected.totalCost || 0)}</div>

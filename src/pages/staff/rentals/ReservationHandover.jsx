@@ -29,7 +29,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { useToast } from '@/hooks/use-toast';
+import { useGlobalToast } from '@/components/ui/global-toast';
 import staffRentalService from '@/services/staff/staffRentalService';
 import {
   Calculator,
@@ -52,7 +52,7 @@ import {
 } from 'lucide-react';
 
 const ReservationHandover = () => {
-  const { toast } = useToast();
+  const { success, error, warning, info } = useGlobalToast();
   const [loading, setLoading] = useState(false);
   const [reservations, setReservations] = useState([]);
   const [pendingRentals, setPendingRentals] = useState([]);
@@ -81,16 +81,24 @@ const ReservationHandover = () => {
     staff_signature_url: null
   });
 
+  // ✅ Tự động format và validate khi dialog mở hoặc khi depositAmount đổi
   useEffect(() => {
-    loadData();
-  }, []);
+    if (checkInDialogOpen && checkInForm.depositAmount) {
+      const raw = checkInForm.depositAmount.toString().replace(/\./g, '');
+      const num = parseFloat(raw);
 
-  const loadData = async () => {
-    await Promise.all([
-      fetchReservations(),
-      fetchPendingRentals()
-    ]);
-  };
+      if (isNaN(num) || num <= 0) {
+        error("Lỗi dữ liệu", "Số tiền đặt cọc không hợp lệ hoặc bằng 0.");
+        setCheckInForm(prev => ({ ...prev, depositAmount: '' }));
+        return;
+      }
+
+      const formatted = num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+      if (formatted !== checkInForm.depositAmount) {
+        setCheckInForm(prev => ({ ...prev, depositAmount: formatted }));
+      }
+    }
+  }, [checkInDialogOpen, checkInForm.depositAmount]);
 
   // Fetch reservations with status=pending
   const fetchReservations = async () => {
@@ -101,11 +109,7 @@ const ReservationHandover = () => {
       setReservations(response || []);
     } catch (error) {
       console.error('Error fetching reservations:', error);
-      toast({
-        title: "Lỗi",
-        description: error.message || "Không thể tải danh sách đặt chỗ",
-        variant: "destructive",
-      });
+      error("Không thể tải danh sách đặt chỗ", error.message);
     } finally {
       setLoading(false);
     }
@@ -121,17 +125,9 @@ const ReservationHandover = () => {
     } catch (error) {
       console.error('Error fetching pending rentals:', error);
       if (error.status === 403) {
-        toast({
-          title: "Lỗi truy cập",
-          description: "Nhân viên chưa được phân công trạm làm việc",
-          variant: "destructive",
-        });
+        error("Lỗi truy cập", "Nhân viên chưa được phân công trạm làm việc");
       } else {
-        toast({
-          title: "Lỗi",
-          description: error.message || "Không thể tải danh sách xe cần giao",
-          variant: "destructive",
-        });
+        error("Không thể tải danh sách xe cần giao", error.message);
       }
     } finally {
       setLoading(false);
@@ -162,11 +158,7 @@ const ReservationHandover = () => {
   const submitCheckIn = async () => {
     try {
       if (!checkInForm.depositAmount || !selectedReservation) {
-        toast({
-          title: "Thiếu thông tin",
-          description: "Vui lòng nhập số tiền đặt cọc",
-          variant: "destructive",
-        });
+        warning("Thiếu thông tin", "Vui lòng nhập số tiền đặt cọc");
         return;
       }
 
@@ -175,11 +167,7 @@ const ReservationHandover = () => {
       const stationId = selectedReservation.vehicle?.station?.id;
 
       if (!stationId) {
-        toast({
-          title: "Lỗi dữ liệu",
-          description: "Không tìm thấy thông tin trạm trong đặt chỗ",
-          variant: "destructive",
-        });
+        error("Lỗi dữ liệu", "Không tìm thấy thông tin trạm trong đặt chỗ");
         return;
       }
 
@@ -190,7 +178,7 @@ const ReservationHandover = () => {
         stationId: parseInt(stationId),
         startTime: selectedReservation.reservedStartTime,
         endTime: selectedReservation.reservedEndTime,
-        depositAmount: parseFloat(checkInForm.depositAmount),
+        depositAmount: parseFloat(checkInForm.depositAmount.replace(/\./g, '')),
         insurance: parseFloat(checkInForm.insurance),
         highRisk: checkInForm.highRisk
       };
@@ -199,21 +187,14 @@ const ReservationHandover = () => {
 
       const response = await staffRentalService.checkIn(requestData);
 
-      toast({
-        title: "Thành công",
-        description: "Check-in thành công. Khách hàng đã nhận xe và đặt cọc đã được ghi nhận.",
-      });
+      success("Check-in thành công", "Khách hàng đã nhận xe và đặt cọc đã được ghi nhận.");
 
       setCheckInDialogOpen(false);
       await loadData(); // Refresh both lists
 
     } catch (error) {
       console.error('Error submitting check-in:', error);
-      toast({
-        title: "Lỗi",
-        description: error.message || "Không thể thực hiện check-in",
-        variant: "destructive",
-      });
+      error("Không thể thực hiện check-in", error.message);
     } finally {
       setLoading(false);
     }
@@ -242,29 +223,17 @@ const ReservationHandover = () => {
         !pickupForm.photo_url ||
         !pickupForm.customer_signature_url ||
         !pickupForm.staff_signature_url) {
-        toast({
-          title: "Thiếu thông tin",
-          description: "Vui lòng điền đầy đủ thông tin biên bản, số km, mức pin và chọn 3 file ảnh",
-          variant: "destructive",
-        });
+        warning("Thiếu thông tin", "Điền đầy đủ biên bản, số km, mức pin và 3 file ảnh");
         return;
       }
 
       const validateFile = (file, name) => {
         if (!(file instanceof File)) {
-          toast({
-            title: "Lỗi file",
-            description: `${name} phải là file ảnh`,
-            variant: "destructive",
-          });
+          error("Lỗi file", `${name} phải là file ảnh`);
           return false;
         }
         if (!file.type.startsWith('image/')) {
-          toast({
-            title: "Lỗi định dạng",
-            description: `${name} phải là file ảnh (JPG, PNG, GIF, v.v.)`,
-            variant: "destructive",
-          });
+          error("Lỗi định dạng", `${name} phải là file ảnh (JPG, PNG, GIF, v.v.)`);
           return false;
         }
         return true;
@@ -293,10 +262,7 @@ const ReservationHandover = () => {
 
       await staffRentalService.confirmPickup(formData);
 
-      toast({
-        title: "Thành công",
-        description: "Xác nhận giao xe thành công! Khách hàng đã nhận xe.",
-      });
+      success("Xác nhận giao xe thành công", "Khách hàng đã nhận xe.");
 
       setPickupDialogOpen(false);
       setPickupForm({
@@ -311,11 +277,7 @@ const ReservationHandover = () => {
 
     } catch (error) {
       console.error('Error confirming pickup:', error);
-      toast({
-        title: "Lỗi",
-        description: error.message || "Không thể xác nhận giao xe",
-        variant: "destructive",
-      });
+      error("Không thể xác nhận giao xe", error.message);
     } finally {
       setLoading(false);
     }
@@ -329,19 +291,12 @@ const ReservationHandover = () => {
         amount: depositAmount
       });
 
-      toast({
-        title: "Thành công",
-        description: "Đã ghi nhận đặt cọc từ khách hàng thành công",
-      });
+      success("Ghi nhận đặt cọc", "Đã ghi nhận đặt cọc từ khách hàng thành công.");
 
       fetchPendingRentals();
     } catch (error) {
       console.error('Error holding deposit:', error);
-      toast({
-        title: "Lỗi",
-        description: error.message || "Không thể ghi nhận đặt cọc",
-        variant: "destructive",
-      });
+      error("Không thể ghi nhận đặt cọc", error.message);
     } finally {
       setLoading(false);
     }
@@ -362,9 +317,9 @@ const ReservationHandover = () => {
     });
   };
 
-  const calculateTotalCost = (item) => {
+  const calculateTotalCost = (item, highRisk = false) => {
     if (item?.totalCost && typeof item.totalCost === 'number') {
-      return item.totalCost;
+      return highRisk ? item.totalCost * 1.1 : item.totalCost; // ✅ cộng 10%
     }
 
     if (!item || !item.vehicle || !item.reservedStartTime || !item.reservedEndTime) {
@@ -381,9 +336,10 @@ const ReservationHandover = () => {
     const durationInHours = Math.max(0, (endTime - startTime) / (1000 * 60 * 60));
     const pricePerHour = item.vehicle.pricePerHour || 0;
 
-    // Use pricing utility for tiered discount calculation
     const { totalCost } = calculateRentalCost(durationInHours, pricePerHour);
-    return totalCost;
+
+    // ✅ Nếu là khách hàng rủi ro cao => cộng 10%
+    return highRisk ? totalCost * 1.1 : totalCost;
   };
 
   // Calculate detailed pricing breakdown for pickup dialog
@@ -633,7 +589,6 @@ const ReservationHandover = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <DollarSign className="h-4 w-4" />
                         <span className="font-medium">
                           {formatCurrency(rental.depositAmount)}
                         </span>
@@ -641,7 +596,6 @@ const ReservationHandover = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <DollarSign className="h-4 w-4" />
                         <span className="font-medium">
                           {formatCurrency(calculateTotalCost(rental))}
                         </span>
@@ -665,7 +619,6 @@ const ReservationHandover = () => {
                             onClick={() => holdDeposit(rental.id, rental.depositAmount)}
                             disabled={loading}
                           >
-                            <DollarSign className="h-4 w-4 mr-2" />
                             Ghi nhận cọc
                           </Button>
                         )}
@@ -756,8 +709,14 @@ const ReservationHandover = () => {
                 <div className="mt-4 pt-4 border-t text-center">
                   <span className="text-sm font-medium text-gray-700">Tổng thanh toán</span>
                   <div className="text-xl font-bold text-purple-600">
-                    {formatCurrency(calculateTotalCost(selectedReservation) + (parseFloat(checkInForm.insurance) || 0))}
+                    {formatCurrency(calculateTotalCost(selectedReservation, checkInForm.highRisk) + (parseFloat(checkInForm.insurance) || 0))}
                   </div>
+                  {/* ✅ Dòng phụ phí 10% nếu đánh dấu rủi ro cao */}
+                  {checkInForm.highRisk && (
+                    <p className="text-sm text-red-600 mt-1">
+                      + Phụ phí 10% áp dụng cho khách hàng rủi ro cao
+                    </p>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -765,13 +724,30 @@ const ReservationHandover = () => {
             <div className="space-y-2">
               <Label htmlFor="deposit-amount">Số tiền đặt cọc (VND) *</Label>
               <div className="flex gap-2">
-                <DollarSign className="h-4 w-4 mt-3 text-muted-foreground" />
                 <Input
                   id="deposit-amount"
-                  type="number"
-                  placeholder="500000"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="500.000"
                   value={checkInForm.depositAmount}
-                  onChange={(e) => setCheckInForm(prev => ({ ...prev, depositAmount: e.target.value }))}
+                  onChange={(e) => {
+                    let value = e.target.value.replace(/\D/g, ''); // xóa ký tự không phải số
+                    if (!value) {
+                      setCheckInForm(prev => ({ ...prev, depositAmount: '' }));
+                      return;
+                    }
+                    if (value.length > 12) value = value.slice(0, 12); // giới hạn 12 số
+                    const formatted = value.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+                    setCheckInForm(prev => ({ ...prev, depositAmount: formatted }));
+                  }}
+                  onBlur={(e) => {
+                    const raw = e.target.value.replace(/\./g, '');
+                    const num = parseFloat(raw);
+                    if (isNaN(num) || num <= 0) {
+                      error("Lỗi nhập liệu", "Số tiền đặt cọc phải lớn hơn 0");
+                      setCheckInForm(prev => ({ ...prev, depositAmount: '' }));
+                    }
+                  }}
                 />
                 <Button
                   type="button"
@@ -1104,7 +1080,6 @@ const ReservationHandover = () => {
             <Card className="bg-blue-50 border-blue-200">
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center gap-2">
-                  <DollarSign className="h-5 w-5" />
                   Tổng kết chi phí
                 </CardTitle>
               </CardHeader>

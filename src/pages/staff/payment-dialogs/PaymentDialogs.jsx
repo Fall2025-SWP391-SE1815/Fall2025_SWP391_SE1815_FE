@@ -211,7 +211,7 @@ const PaymentDialogs = (props) => {
                                         <div>
                                             <Label className="text-muted-foreground">Giá thuê</Label>
                                             <p className="font-medium text-green-600">
-                                                {formatCurrency(selectedDetail.vehicle_price_per_hour)}/giờ
+                                                {formatCurrency(selectedDetail.pricePerHour)}/giờ
                                             </p>
                                         </div>
                                     </div>

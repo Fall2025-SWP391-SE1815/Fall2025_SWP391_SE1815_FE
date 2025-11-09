@@ -5,37 +5,45 @@ const staffRentalService = {
   // ==================== VEHICLE MANAGEMENT ====================
   
   // Xác nhận kiểm tra xe (chuyển từ AWAITING_INSPECTION sang AVAILABLE)
-  confirmVehicleInspection: (plateNumber) => apiPost(API_ENDPOINTS.STAFF.VEHICLE_CONFIRM_INSPECTION(plateNumber), {}, 'Không thể xác nhận kiểm tra xe'),
+  confirmVehicleInspection: (plateNumber) =>
+    apiPost(API_ENDPOINTS.STAFF.VEHICLE_CONFIRM_INSPECTION(plateNumber), {}, 'Không thể xác nhận kiểm tra xe'),
 
   // ==================== RENTAL MANAGEMENT ====================
-  
+
+  // ✅ Lấy thông tin chi tiết 1 lượt thuê (bổ sung để fix lỗi tiền không khớp)
+  getRentalById: (rentalId) =>
+    apiGet(API_ENDPOINTS.STAFF.RENTAL_BY_ID(rentalId), 'Không thể lấy thông tin lượt thuê'),
+
   // Xác nhận đã thanh toán bill
-  processPayment: (rentalId, data) => apiPost(API_ENDPOINTS.STAFF.RENTAL_PAYMENT(rentalId), data, 'Không thể xác nhận thanh toán'),
+  processPayment: (rentalId, data) =>
+    apiPost(API_ENDPOINTS.STAFF.RENTAL_PAYMENT(rentalId), data, 'Không thể xác nhận thanh toán'),
 
   // Tính tổng bill của rental
-  calculateBill: (rentalId, data) => apiPost(API_ENDPOINTS.STAFF.RENTAL_BILL(rentalId), data, 'Không thể tính tổng bill'),
+  calculateBill: (rentalId, data) =>
+    apiPost(API_ENDPOINTS.STAFF.RENTAL_BILL(rentalId), data, 'Không thể tính tổng bill'),
 
   // Ghi nhận trả cọc cho rental
-  returnDeposit: (id, data) => apiPost(API_ENDPOINTS.STAFF.RENTAL_RETURN_DEPOSIT(id), data, 'Không thể ghi nhận trả cọc'),
+  returnDeposit: (id, data) =>
+    apiPost(API_ENDPOINTS.STAFF.RENTAL_RETURN_DEPOSIT(id), data, 'Không thể ghi nhận trả cọc'),
 
   // Ghi nhận đặt cọc cho rental
-  holdDeposit: (id, data) => apiPost(API_ENDPOINTS.STAFF.RENTAL_HOLD_DEPOSIT(id), data, 'Không thể ghi nhận đặt cọc'),
+  holdDeposit: (id, data) =>
+    apiPost(API_ENDPOINTS.STAFF.RENTAL_HOLD_DEPOSIT(id), data, 'Không thể ghi nhận đặt cọc'),
 
   // Hủy thuê xe
-  cancelRental: (id, data) => apiPost(API_ENDPOINTS.STAFF.RENTAL_CANCEL(id), data, 'Không thể hủy thuê xe'),
+  cancelRental: (id, data) =>
+    apiPost(API_ENDPOINTS.STAFF.RENTAL_CANCEL(id), data, 'Không thể hủy thuê xe'),
 
-  // Xác nhận xe từ khách (confirm return) - với FormData cho file upload
+  // Xác nhận xe trả từ khách (confirm return) - có upload ảnh
   confirmReturn: async (formData) => {
     const token = localStorage.getItem('token') || localStorage.getItem('accessToken');
-    
     const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.STAFF.RENTAL_CONFIRM_RETURN}`, {
       method: 'POST',
       body: formData,
       headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {})
-        // Don't set Content-Type, let browser set it for FormData
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
-      credentials: 'include'
+      credentials: 'include',
     });
 
     if (!response.ok) {
@@ -46,18 +54,16 @@ const staffRentalService = {
     return response.json();
   },
 
-  // Xác nhận đã giao xe cho khách (confirm pickup) - với FormData cho file upload
+  // Xác nhận giao xe cho khách (confirm pickup) - có upload ảnh
   confirmPickup: async (formData) => {
     const token = localStorage.getItem('token') || localStorage.getItem('accessToken');
-    
     const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.STAFF.RENTAL_CONFIRM_PICKUP}`, {
       method: 'POST',
       body: formData,
       headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {})
-        // Don't set Content-Type, let browser set it for FormData
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
-      credentials: 'include'
+      credentials: 'include',
     });
 
     if (!response.ok) {
@@ -69,46 +75,53 @@ const staffRentalService = {
   },
 
   // Check-in nhận xe (booking hoặc walk-in)
-  checkIn: (data) => apiPost(API_ENDPOINTS.STAFF.RENTAL_CHECK_IN, data, 'Không thể check-in nhận xe'),
+  checkIn: (data) =>
+    apiPost(API_ENDPOINTS.STAFF.RENTAL_CHECK_IN, data, 'Không thể check-in nhận xe'),
 
   // Thêm phí phạt sinh (violation) cho rental
-  addViolation: (data) => apiPost(API_ENDPOINTS.STAFF.RENTAL_ADD_VIOLATION, data, 'Không thể thêm vi phạm cho rental'),
+  addViolation: (data) =>
+    apiPost(API_ENDPOINTS.STAFF.RENTAL_ADD_VIOLATION, data, 'Không thể thêm vi phạm cho rental'),
 
   // Lấy danh sách Rental theo bộ lọc
-  // Use apiClient.get so query params are appended as a query string
   getRentals: (params = {}) => apiClient.get(API_ENDPOINTS.STAFF.RENTALS, params),
 
   // Lấy danh sách violation của rental
-  getViolations: (rentalId) => apiGet(API_ENDPOINTS.STAFF.RENTAL_VIOLATIONS(rentalId), 'Không thể lấy danh sách vi phạm'),
+  getViolations: (rentalId) =>
+    apiGet(API_ENDPOINTS.STAFF.RENTAL_VIOLATIONS(rentalId), 'Không thể lấy danh sách vi phạm'),
 
   // Lấy danh sách Reservation theo bộ lọc
-  // Use apiClient.get so query params (status, startFrom, etc.) are sent to backend
-  getReservations: (params = {}) => apiClient.get(API_ENDPOINTS.STAFF.RESERVATIONS, params),
+  getReservations: (params = {}) =>
+    apiClient.get(API_ENDPOINTS.STAFF.RESERVATIONS, params),
 
   // ==================== RENTER DOCUMENT MANAGEMENT ====================
-  
+
   // Xác thực tài liệu của Renter
-  verifyDocument: (documentId) => apiPut(API_ENDPOINTS.STAFF.RENTER_DOCUMENT_VERIFY(documentId), {}, 'Không thể xác thực tài liệu'),
+  verifyDocument: (documentId) =>
+    apiPut(API_ENDPOINTS.STAFF.RENTER_DOCUMENT_VERIFY(documentId), {}, 'Không thể xác thực tài liệu'),
 
   // Lấy danh sách tài liệu của Renter theo ID
-  getRenterDocuments: (renterId) => apiClient.get(API_ENDPOINTS.STAFF.RENTER_DOCUMENTS_BY_STAFF(renterId)),
+  getRenterDocuments: (renterId) =>
+    apiClient.get(API_ENDPOINTS.STAFF.RENTER_DOCUMENTS_BY_STAFF(renterId)),
 
-  // Lấy danh sách tất cả user (renter) theo phone (hoặc tất cả nếu không có phone)
+  // Lấy danh sách tất cả user (renter) theo phone (hoặc tất cả nếu không có)
   getRenters: (phone) => {
     const params = phone ? { phone } : {};
     return apiClient.get(API_ENDPOINTS.STAFF.RENTER_DOCUMENTS, params);
   },
 
   // ==================== INCIDENT REPORT MANAGEMENT ====================
-  
-  // Tạo báo cáo sự cố mới  
-  createIncidentReport: (data) => apiPost(API_ENDPOINTS.STAFF.INCIDENT_REPORTS, data, 'Không thể tạo báo cáo sự cố'),
+
+  // Lấy danh sách tất cả báo cáo sự cố
+  getIncidentReports: () =>
+    apiGet(API_ENDPOINTS.STAFF.INCIDENT_REPORTS, 'Không thể tải danh sách báo cáo sự cố'),
+
+  // Tạo báo cáo sự cố mới
+  createIncidentReport: (data) =>
+    apiPost(API_ENDPOINTS.STAFF.INCIDENT_REPORTS, data, 'Không thể tạo báo cáo sự cố'),
 
   // Lấy chi tiết một báo cáo sự cố
-  getIncidentReportById: (id) => apiGet(API_ENDPOINTS.STAFF.INCIDENT_REPORT_BY_ID(id), 'Không thể lấy chi tiết báo cáo sự cố'),
-
-  // Alias for consistency with component usage
-  getIncidentReportDetail: (id) => apiGet(API_ENDPOINTS.STAFF.INCIDENT_REPORT_BY_ID(id), 'Không thể lấy chi tiết báo cáo sự cố'),
+  getIncidentReportById: (id) =>
+    apiGet(API_ENDPOINTS.STAFF.INCIDENT_REPORT_BY_ID(id), 'Không thể lấy chi tiết báo cáo sự cố'),
 };
 
 export default staffRentalService;

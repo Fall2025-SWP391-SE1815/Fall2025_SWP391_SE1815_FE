@@ -7,14 +7,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   Table,
   TableBody,
   TableCell,
@@ -101,6 +93,7 @@ const PaymentManagement = () => {
           batteryLevelEnd: rental.batteryLevelEnd,
           odoStart: rental.odoStart,
           odoEnd: rental.odoEnd,
+          pricePerHour: rental.vehicle.pricePerHour,
 
           // Thông tin trạm
           station_pickup_name: rental.stationPickup?.name,
@@ -193,26 +186,41 @@ const PaymentManagement = () => {
   const loadPaymentDetails = async (rentalId) => {
     try {
       setLoadingDetails(true);
+
+      // ✅ Không dùng new Date() nữa — backend đã có endTime thực tế
+      const rentalList = await staffRentalService.getRentals();
+      const rental = rentalList?.find((r) => r.id === rentalId);
+
+      // Nếu không tìm thấy rental, fallback về giờ hiện tại
+      const returnTime = rental?.endTime || rental?.end_time || new Date().toISOString();
+
+      // 🔹 Lấy danh sách vi phạm (nếu có)
       const violationsResponse = await staffRentalService.getViolations(rentalId);
       setRentalViolations(
         Array.isArray(violationsResponse)
           ? violationsResponse
           : violationsResponse?.data || []
       );
-      const now = new Date();
-      const vietnamTime = new Date(now.getTime() + 7 * 60 * 60 * 1000);
+
+      // 🔹 Gọi API tính tổng bill (theo endTime thật)
       const billResponse = await staffRentalService.calculateBill(rentalId, {
-        returnTime: vietnamTime.toISOString(),
+        returnTime,
       });
+
       const bill = billResponse?.data || billResponse;
       setRentalBill(bill);
-      if (bill?.totalBill)
-        setPaymentForm((prev) => ({
-          ...prev,
-          amount: formatNumber(bill.totalBill),
-        }));
-    } catch {
-      error("Không thể tải danh sách thanh toán.");
+
+      // 🔹 Gán tiền thanh toán vào form, ưu tiên bill.totalBill, fallback rental.totalCost
+      const finalAmount =
+        bill?.totalBill || rental?.totalCost || rental?.rentalCost || 0;
+
+      setPaymentForm((prev) => ({
+        ...prev,
+        amount: formatNumber(finalAmount),
+      }));
+    } catch (err) {
+      console.error(err);
+      error("Không thể tải chi tiết thanh toán hoặc tính tổng bill.");
     } finally {
       setLoadingDetails(false);
     }

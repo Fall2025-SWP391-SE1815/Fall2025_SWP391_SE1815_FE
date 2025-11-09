@@ -17,7 +17,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/hooks/use-toast';
+import { useGlobalToast } from '@/components/ui/global-toast';
 import staffRentalService from '@/services/staff/staffRentalService';
 import { formatCurrency as formatCurrencyUtil } from '@/utils/pricing';
 import {
@@ -33,7 +33,7 @@ import {
 } from 'lucide-react';
 
 const InUseRentals = () => {
-  const { toast } = useToast();
+  const { success, error, info, warning } = useGlobalToast();
   const [loading, setLoading] = useState(false);
   const [inUseRentals, setInUseRentals] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -51,11 +51,7 @@ const InUseRentals = () => {
       setInUseRentals(response || []);
     } catch (error) {
       console.error('Error fetching in-use rentals:', error);
-      toast({
-        title: "Lỗi",
-        description: error.message || "Không thể tải danh sách xe đang cho thuê",
-        variant: "destructive",
-      });
+      error("Không thể tải danh sách xe đang cho thuê", error.message);
     } finally {
       setLoading(false);
     }
