@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { calculateRentalCost, formatCurrency as formatCurrencyUtil } from '@/utils/pricing';
 import {
   Table,
   TableBody,
@@ -31,6 +32,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import staffRentalService from '@/services/staff/staffRentalService';
 import {
+  Calculator,
   Car,
   Clock,
   User,
@@ -347,10 +349,7 @@ const ReservationHandover = () => {
 
   // Utility functions
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND',
-    }).format(amount);
+    return formatCurrencyUtil(amount);
   };
 
   const formatDateTime = (dateString) => {
@@ -382,7 +381,37 @@ const ReservationHandover = () => {
     const durationInHours = Math.max(0, (endTime - startTime) / (1000 * 60 * 60));
     const pricePerHour = item.vehicle.pricePerHour || 0;
 
-    return Math.round(durationInHours * pricePerHour);
+    // Use pricing utility for tiered discount calculation
+    const { totalCost } = calculateRentalCost(durationInHours, pricePerHour);
+    return totalCost;
+  };
+
+  // Calculate detailed pricing breakdown for pickup dialog
+  const getPricingBreakdown = (item) => {
+    if (!item || !item.vehicle || !item.reservedStartTime || !item.reservedEndTime) {
+      return null;
+    }
+
+    const startTime = new Date(item.reservedStartTime);
+    const endTime = new Date(item.reservedEndTime);
+
+    if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
+      return null;
+    }
+
+    const durationInHours = Math.max(0, (endTime - startTime) / (1000 * 60 * 60));
+    const pricePerHour = item.vehicle.pricePerHour || 0;
+
+    const { subtotal, discount, discountPercentage, totalCost } = calculateRentalCost(durationInHours, pricePerHour);
+
+    return {
+      duration: durationInHours,
+      pricePerHour,
+      subtotal,
+      discount,
+      discountPercentage,
+      totalCost
+    };
   };
 
   const filterReservations = (list) => {

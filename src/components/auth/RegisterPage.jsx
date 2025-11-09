@@ -89,8 +89,13 @@ const RegisterPage = () => {
       const result = await register(registerData);
 
       if (result.success) {
-        // Registration successful, redirect to login page
-        navigate('/verify-email', { state: { email: formData.email } });
+        // Registration successful, redirect to OTP verification page
+        navigate('/verify-otp', {
+          state: {
+            email: formData.email,
+            isRegistration: true
+          }
+        });
       } else {
         setSubmitError(result.message || 'Đăng ký thất bại');
       }
@@ -251,7 +256,7 @@ const RegisterPage = () => {
                       <div className="flex-1 bg-gray-200 h-1 rounded-full overflow-hidden">
                         <div
                           className={`h-full transition-all duration-300 ${passwordStrength.strength <= 2 ? 'bg-red-500' :
-                              passwordStrength.strength <= 4 ? 'bg-yellow-500' : 'bg-green-500'
+                            passwordStrength.strength <= 4 ? 'bg-yellow-500' : 'bg-green-500'
                             }`}
                           style={{ width: `${(passwordStrength.strength / 6) * 100}%` }}
                         />

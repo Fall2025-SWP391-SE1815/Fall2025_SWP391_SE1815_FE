@@ -136,6 +136,9 @@ export const authService = {
             const user = payload.userInfo || payload.user || payload.data?.userInfo || null;
             const accessToken = payload.accessToken || payload.token || payload.data?.accessToken || null;
             const refreshToken = payload.refreshToken || payload.data?.refreshToken || null;
+            
+            // Extract token for password reset (different from accessToken)
+            const resetToken = payload.token || payload.data?.token || payload.resetToken || payload.data?.resetToken || null;
 
             if (user) {
                 currentUser = user;
@@ -148,7 +151,12 @@ export const authService = {
             if (refreshToken) {
                 localStorage.setItem('refreshToken', refreshToken);
             }
-            return createResponse({ user, accessToken, refreshToken }, true, 'OTP verified successfully');
+            return createResponse({ 
+                user, 
+                accessToken, 
+                refreshToken, 
+                token: resetToken // Include reset token in response
+            }, true, 'OTP verified successfully');
         } catch (error) {
             const msg = error?.data?.message || error?.message || 'Xác thực OTP thất bại';
             const status = error?.status || 400;

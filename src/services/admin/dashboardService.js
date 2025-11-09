@@ -127,89 +127,45 @@ const calculateSystemAlerts = (vehicles = [], stations = [], complaints = []) =>
 };
 
 /**
- * Get detailed revenue data for charts and analytics
+ * Get detailed revenue data from admin API
  * @param {Object} params - Query parameters for filtering
  * @returns {Promise<Object>} Revenue data object
  */
 const getRevenueData = async (params = {}) => {
     try {
-        // Fetch rental data with parameters
-        const rentalsResponse = await adminService.getRentals(params).catch(() => ({ data: [] }));
-        const rentals = extractDataArray(rentalsResponse);
+        // Set default date range if not provided (last 30 days)
+        const endDate = params.endDate || new Date().toISOString().split('T')[0];
+        const startDate = params.startDate || (() => {
+            const date = new Date();
+            date.setDate(date.getDate() - 30);
+            return date.toISOString().split('T')[0];
+        })();
 
-        // Calculate revenue by period (daily, monthly, yearly)
-        const revenueByDay = {};
-        const revenueByMonth = {};
-        const revenueByYear = {};
-        
-        let totalRevenue = 0;
-        let completedRentals = 0;
-        let avgRentalValue = 0;
-
-        rentals.forEach(rental => {
-            if (!rental || rental.status !== 'completed') return;
-            
-            const amount = parseFloat(rental.totalAmount || rental.amount || 0);
-            if (isNaN(amount)) return;
-
-            totalRevenue += amount;
-            completedRentals++;
-
-            // Group by date
-            const date = new Date(rental.endTime || rental.createdAt);
-            const dayKey = date.toISOString().split('T')[0]; // YYYY-MM-DD
-            const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`; // YYYY-MM
-            const yearKey = date.getFullYear().toString();
-
-            revenueByDay[dayKey] = (revenueByDay[dayKey] || 0) + amount;
-            revenueByMonth[monthKey] = (revenueByMonth[monthKey] || 0) + amount;
-            revenueByYear[yearKey] = (revenueByYear[yearKey] || 0) + amount;
+        // Call admin revenue API
+        const revenueResponse = await adminService.getDashboardRevenue({
+            startDate,
+            endDate,
+            ...params
         });
 
-        avgRentalValue = completedRentals > 0 ? totalRevenue / completedRentals : 0;
-
-        // Prepare chart data (last 30 days)
-        const last30Days = Array.from({ length: 30 }, (_, i) => {
-            const date = new Date();
-            date.setDate(date.getDate() - i);
-            return date.toISOString().split('T')[0];
-        }).reverse();
-
-        const dailyRevenueChart = last30Days.map(day => ({
-            date: day,
-            revenue: revenueByDay[day] || 0
+        // Handle the response structure based on your API
+        const revenueData = revenueResponse || {};
+        
+        // Convert revenueByStation object to array format for UI
+        const revenueByStation = revenueData.revenueByStation || {};
+        const revenueByStationArray = Object.entries(revenueByStation).map(([stationName, revenue]) => ({
+            [stationName]: revenue
         }));
-
+        
         return {
-            totalRevenue,
-            completedRentals,
-            avgRentalValue,
-            revenueByDay,
-            revenueByMonth,
-            revenueByYear,
-            dailyRevenueChart,
-            // Top performing periods
-            topDays: Object.entries(revenueByDay)
-                .sort(([,a], [,b]) => b - a)
-                .slice(0, 5)
-                .map(([date, revenue]) => ({ date, revenue })),
-            topMonths: Object.entries(revenueByMonth)
-                .sort(([,a], [,b]) => b - a)
-                .slice(0, 12)
-                .map(([month, revenue]) => ({ month, revenue }))
+            totalRevenue: revenueData.totalRevenue || 0,
+            revenueByStation: revenueByStationArray
         };
     } catch (error) {
         console.error('Error fetching revenue data:', error);
         return {
             totalRevenue: 0,
-            completedRentals: 0,
-            avgRentalValue: 0,
-            revenueByDay: {},
-            revenueByMonth: {},
-            revenueByYear: {},
-            dailyRevenueChart: [],
-            topDays: [],
-            topMonths: []
+            revenueByStation: []
         };
     }
 };

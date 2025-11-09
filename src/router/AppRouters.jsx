@@ -13,7 +13,8 @@ import Home from "../components/layout/Home.jsx";
 import LoginPage from "../components/auth/LoginPage.jsx";
 import RegisterPage from "../components/auth/RegisterPage.jsx";
 import ForgotPasswordPage from "../components/auth/ForgotPasswordPage.jsx";
-import VerifyEmailPage from "@/components/auth/VerifyEmailPage.jsx";
+import OTPVerificationPage from "../components/auth/OTPVerificationPage.jsx";
+import ResetPasswordPage from "../components/auth/ResetPasswordPage.jsx";
 import NotFoundPage from "../pages/NotFoundPage.jsx";
 
 // Admin Components
@@ -47,7 +48,7 @@ import ComplaintDetailPage from "../pages/renter/complaints/ComplaintDetailPage.
 
 // Staff Components
 import StaffDashboard from "../pages/staff/StaffDashboard.jsx";
-import RentalManagement from "../pages/staff/RentalManagement.jsx";
+import RentalManagement from "../pages/staff/rentals/RentalManagement.jsx";
 import CustomerVerification from "../pages/staff/CustomerVerification.jsx";
 import PaymentManagement from "../pages/staff/PaymentManagement.jsx";
 import StationManagement from "../pages/staff/StationManagement.jsx";
@@ -66,7 +67,8 @@ export const paths = {
   login: "/login",
   register: "/register",
   forgotPassword: "/forgot-password",
-  verifyemail: "/verify-email",
+  verifyOtp: "/verify-otp",
+  resetPassword: "/reset-password",
 
   // Admin routes
   admin: {
@@ -165,10 +167,18 @@ const router = createBrowserRouter([
     ),
   },
   {
-    path: "/verify-email",
+    path: "/verify-otp",
     element: (
       <PublicRoute>
-        <VerifyEmailPage />
+        <OTPVerificationPage />
+      </PublicRoute>
+    ),
+  },
+  {
+    path: "/reset-password",
+    element: (
+      <PublicRoute>
+        <ResetPasswordPage />
       </PublicRoute>
     ),
   },
@@ -295,17 +305,6 @@ const router = createBrowserRouter([
     ]
   },
   {
-    path: "/complaint-detail/:id",
-    element: (
-      <ProtectedRoute requiredRole="renter">
-        <MainLayout />
-      </ProtectedRoute>
-    ),
-    children: [
-      { index: true, element: <ComplaintDetailPage /> }
-    ]
-  },
-  {
     path: "/complaints",
     element: (
       <ProtectedRoute requiredRole="renter">
@@ -313,7 +312,8 @@ const router = createBrowserRouter([
       </ProtectedRoute>
     ),
     children: [
-      { index: true, element: <ComplaintsPage /> }
+      { index: true, element: <ComplaintsPage /> },
+      { path: ":id", element: <ComplaintDetailPage /> }
     ]
   },
 

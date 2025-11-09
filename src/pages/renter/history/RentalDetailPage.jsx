@@ -67,7 +67,6 @@ const RentalDetailPage = () => {
 
       // Kiểm tra xem có data từ navigation state không
       const rentalData = location.state?.rentalData;
-      console.log('Loaded rental data from navigation state:', rentalData);
       if (rentalData) {
         // Sử dụng data từ HistoryPage
         setRental(rentalData);

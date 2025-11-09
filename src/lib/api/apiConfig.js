@@ -53,8 +53,10 @@ export const API_ENDPOINTS = {
     // Vehicle management
     VEHICLES: '/api/staff/vehicle',
     VEHICLE_BY_ID: (id) => `/api/staff/vehicle/${id}`,
+    VEHICLE_CONFIRM_INSPECTION: (plateNumber) => `/api/staff/vehicle/${plateNumber}/confirm-inspection`,
 
     // Document verification
+    RENTER_DOCUMENTS: '/api/staff/renter-document',
     RENTER_DOCUMENTS_BY_STAFF: (renterId) => `/api/staff/renter-document/${renterId}`,
     RENTER_DOCUMENT_VERIFY: (documentId) => `/api/staff/renter-document/verify/${documentId}`,
 
@@ -73,7 +75,8 @@ export const API_ENDPOINTS = {
     RESERVATIONS: '/api/staff/rentals/reservations',
 
     // Incident reporting
-    INCIDENT_REPORT: '/api/staff/incident-report'
+    INCIDENT_REPORTS: '/api/staff/incident-reports',
+    INCIDENT_REPORT_BY_ID: (id) => `/api/staff/incident-reports/${id}`
   },
 
   // Admin endpoints
@@ -107,7 +110,13 @@ export const API_ENDPOINTS = {
     VIOLATIONS: '/api/admin/violation',
 
     // Performance management
-    PERFORMANCE: '/api/admin/performance'
+    PERFORMANCE: '/api/admin/performance',
+
+    // Incident management
+    INCIDENTS: '/api/admin/incidents',
+
+    // Dashboard revenue
+    DASHBOARD_REVENUE: '/api/admin/dashboard/revenue'
   },
   
   // Public endpoints (no authentication required)
