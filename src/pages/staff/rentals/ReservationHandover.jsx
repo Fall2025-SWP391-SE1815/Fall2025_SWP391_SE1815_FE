@@ -134,6 +134,14 @@ const ReservationHandover = () => {
     }
   };
 
+  // ✅ Gộp 2 API fetch lại thành 1 hàm tiện dùng
+  const loadData = async () => {
+    await Promise.all([fetchReservations(), fetchPendingRentals()]);
+  };
+  useEffect(() => {
+    loadData();
+  }, []);
+
   // Handle view details button click
   const handleViewDetails = (reservation) => {
     setSelectedReservation(reservation);
