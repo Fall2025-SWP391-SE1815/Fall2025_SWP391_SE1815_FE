@@ -128,6 +128,19 @@ const StationManagement = () => {
     } finally { setLoading(false); }
   };
 
+  const handleConfirmInspection = async (licensePlate) => {
+    try {
+      setLoading(true);
+      await staffRentalService.confirmVehicleInspection(licensePlate);
+      success("Đã xác nhận kiểm tra xe thành công");
+      fetchVehicles(); // reload lại danh sách xe
+    } catch {
+      error("Không thể xác nhận kiểm tra xe");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -168,7 +181,7 @@ const StationManagement = () => {
         <TabsContent value="vehicles">
           <Card>
             <CardHeader><CardTitle>Xe tại trạm (khả dụng)</CardTitle></CardHeader>
-            <CardContent>
+            <CardContent className="px-0">
               {vehicles.filter(v => v.status !== 'rented').length === 0 ? (
                 <p className="text-center text-muted-foreground py-8">Không có xe khả dụng</p>
               ) : (
@@ -201,9 +214,23 @@ const StationManagement = () => {
                               <Button size="sm" variant="outline" onClick={() => handleViewVehicleDetail(v)}>
                                 <Eye className="h-4 w-4" />
                               </Button>
+
                               <Button size="sm" variant="outline" onClick={() => handleEditVehicle(v)}>
                                 <Edit className="h-4 w-4" />
                               </Button>
+
+                              {v.status?.toLowerCase() === "awaiting_inspection" && (
+                                <Button
+                                  size="sm"
+                                  className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 h-7 rounded-md text-xs flex items-center gap-1 transition-all duration-150"
+                                  onClick={() => handleConfirmInspection(v.licensePlate)}
+                                  disabled={loading}
+                                  title="Xác nhận xe đã kiểm tra xong"
+                                >
+                                  <Shield className="h-3 w-3" />
+                                  {loading ? '...' : 'Xác nhận'}
+                                </Button>
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>
@@ -227,7 +254,7 @@ const StationManagement = () => {
                 Bao gồm lượt thuê và xe có trạng thái “rented”.
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-0">
               {[...currentRentals, ...vehicles.filter(v => v.status === 'rented')].length === 0 ? (
                 <div className="text-center py-8">
                   <Clock className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
