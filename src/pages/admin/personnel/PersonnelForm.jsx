@@ -148,10 +148,9 @@ const PersonnelForm = ({
                 <SelectTrigger className={formik.touched.role && formik.errors.role ? 'border-red-500' : ''}>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper" className="z-[9999] bg-white border border-gray-200 shadow-lg rounded-md p-1 min-w-[var(--radix-select-trigger-width)]">
                   {allowedRoles.includes('staff') && <SelectItem value='staff'>Nhân viên</SelectItem>}
                   {allowedRoles.includes('admin') && <SelectItem value='admin'>Quản trị viên</SelectItem>}
-                  {allowedRoles.includes('renter') && <SelectItem value='renter'>Khách hàng</SelectItem>}
                 </SelectContent>
               </Select>
               {formik.touched.role && formik.errors.role && (
