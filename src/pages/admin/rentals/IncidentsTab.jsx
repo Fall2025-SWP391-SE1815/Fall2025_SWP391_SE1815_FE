@@ -375,7 +375,7 @@ const IncidentsTab = () => {
                 <SelectTrigger>
                   <SelectValue placeholder='Chọn trạng thái' />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper" className="z-[9999] bg-white border border-gray-200 shadow-lg rounded-md p-1 min-w-[var(--radix-select-trigger-width)]">
                   <SelectItem value='PENDING'>Chờ xử lý</SelectItem>
                   <SelectItem value='IN_REVIEW'>Đang xử lý</SelectItem>
                   <SelectItem value='RESOLVED'>Đã giải quyết</SelectItem>

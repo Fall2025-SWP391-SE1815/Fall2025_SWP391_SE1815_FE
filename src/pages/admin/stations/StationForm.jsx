@@ -3,9 +3,30 @@ import * as Yup from 'yup';
 import { Input } from '@/components/ui/input';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import stationService from '@/services/stations/stationService.js';
 
-const validationSchema = Yup.object({
-  name: Yup.string().required('Tên trạm bắt buộc'),
+const createValidationSchema = (initialStationId = null) => Yup.object({
+  name: Yup.string()
+    .required('Tên trạm bắt buộc')
+    .test('unique-name', 'Tên trạm đã tồn tại', async function(value) {
+      if (!value) return true;
+      
+      try {
+        const response = await stationService.admin.getStations();
+        const stations = response?.stations || response?.data || response || [];
+        
+        // Kiểm tra trùng lặp, loại bỏ trạm hiện tại nếu đang sửa
+        const duplicateStation = stations.find(station => 
+          station.name.toLowerCase() === value.toLowerCase() && 
+          station.id !== initialStationId
+        );
+        
+        return !duplicateStation;
+      } catch (error) {
+        console.error('Error checking station name:', error);
+        return true; // Nếu lỗi API thì cho phép tiếp tục
+      }
+    }),
   address: Yup.string().required('Địa chỉ bắt buộc'),
   latitude: Yup.number().required('Vĩ độ bắt buộc').min(-90).max(90),
   longitude: Yup.number().required('Kinh độ bắt buộc').min(-180).max(180),
@@ -13,6 +34,8 @@ const validationSchema = Yup.object({
 });
 
 export default function StationForm({ initialValues, onSubmit, onCancel }) {
+  const validationSchema = createValidationSchema(initialValues?.id);
+  
   const formik = useFormik({
     initialValues,
     validationSchema,

@@ -112,6 +112,7 @@ const RentalDetailPage = () => {
     const statusConfig = {
       'active': { color: 'bg-green-100 text-green-800', label: 'Đang thuê' },
       'returned': { color: 'bg-blue-100 text-blue-800', label: 'Đã trả xe' },
+      'in_use': { color: 'bg-yellow-100 text-yellow-800', label: 'Đang sử dụng' },
       'completed': { color: 'bg-blue-100 text-blue-800', label: 'Hoàn thành' },
       'waiting_for_payment': { color: 'bg-yellow-100 text-yellow-800', label: 'Chờ thanh toán' },
       'cancelled': { color: 'bg-red-100 text-red-800', label: 'Đã hủy' },
@@ -825,7 +826,7 @@ const RentalDetailPage = () => {
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper" className="z-[9999] bg-white border border-gray-200 shadow-lg rounded-md p-1 min-w-[var(--radix-select-trigger-width)]">
                   <SelectItem value="trip">Đánh giá chuyến đi</SelectItem>
                   <SelectItem value="staff">Đánh giá nhân viên</SelectItem>
                 </SelectContent>
@@ -842,15 +843,15 @@ const RentalDetailPage = () => {
                   <SelectTrigger>
                     <SelectValue placeholder="Chọn nhân viên để đánh giá" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent position="popper" className="z-[9999] bg-white border border-gray-200 shadow-lg rounded-md p-1 min-w-[var(--radix-select-trigger-width)]">
                     {rental?.staffPickup && (
                       <SelectItem value={rental.staffPickup.id.toString()}>
-                        {rental.staffPickup.fullName} - Nhân viên giao xe
+                        {rental.staffPickup.fullName}
                       </SelectItem>
                     )}
                     {rental?.staffReturn && rental.staffReturn.id !== rental.staffPickup?.id && (
                       <SelectItem value={rental.staffReturn.id.toString()}>
-                        {rental.staffReturn.fullName} - Nhân viên nhận xe
+                        {rental.staffReturn.fullName}
                       </SelectItem>
                     )}
                   </SelectContent>

@@ -7,9 +7,30 @@ import { Textarea } from '@/components/ui/textarea';
 import { useState } from 'react';
 import { Upload, X } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api/apiConfig';
+import vehicleService from '@/services/vehicles/vehicleService.js';
 
-const validationSchema = Yup.object({
-  licensePlate: Yup.string().required('Biển số xe bắt buộc'),
+const createValidationSchema = (initialVehicleId = null) => Yup.object({
+  licensePlate: Yup.string()
+    .required('Biển số xe bắt buộc')
+    .test('unique-license-plate', 'Biển số xe đã tồn tại', async function(value) {
+      if (!value) return true;
+      
+      try {
+        const response = await vehicleService.admin.getVehicles();
+        const vehicles = response?.vehicles || response?.data || response || [];
+        
+        // Kiểm tra trùng lặp, loại bỏ xe hiện tại nếu đang sửa
+        const duplicateVehicle = vehicles.find(vehicle => 
+          vehicle.licensePlate.toLowerCase() === value.toLowerCase() && 
+          vehicle.id !== initialVehicleId
+        );
+        
+        return !duplicateVehicle;
+      } catch (error) {
+        console.error('Error checking license plate:', error);
+        return true; // Nếu lỗi API thì cho phép tiếp tục
+      }
+    }),
   brand: Yup.string().required('Thương hiệu bắt buộc'),
   model: Yup.string().required('Mẫu xe bắt buộc'),
   type: Yup.string().required('Loại xe bắt buộc'),
@@ -28,6 +49,8 @@ const validationSchema = Yup.object({
 export default function VehicleForm({ initialValues, onSubmit, onCancel, stations }) {
   const [imagePreview, setImagePreview] = useState(initialValues?.imageurl || initialValues?.image || null);
   const [imageFile, setImageFile] = useState(null);
+  
+  const validationSchema = createValidationSchema(initialValues?.id);
 
   const formik = useFormik({
     initialValues,
