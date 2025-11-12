@@ -27,41 +27,39 @@ const Footer = () => {
 
   const footerSections = [
     {
-      title: 'Dịch vụ cho thuê',
+      title: 'Dịch vụ theo giờ',
       links: [
-        { name: 'Thuê xe điện theo giờ', href: '#hourly-rental', icon: Clock },
-        { name: 'Thuê xe điện theo ngày', href: '#daily-rental', icon: Clock },
-        { name: 'Thuê xe dài hạn', href: '#long-term', icon: History },
-        { name: 'Thuê xe du lịch', href: '#tourism', icon: MapPin }
+        { name: 'Thuê xe điện theo giờ', href: '/vehicles', icon: Clock },
+        { name: 'Xe máy điện', href: '/vehicles?type=motorbike', icon: Zap },
+        { name: 'Ô tô điện', href: '/vehicles?type=car', icon: Battery },
+        { name: 'Tìm trạm gần nhất', href: '/stations', icon: MapPin }
       ]
     },
     {
-      title: 'Tài khoản & Hỗ trợ',
+      title: 'Quản lý đặt chỗ',
       links: [
-        { name: 'Đăng ký tài khoản', href: '#register', icon: Users },
-        { name: 'Xác thực giấy tờ', href: '#verification', icon: FileText },
-        { name: 'Lịch sử thuê xe', href: '#history', icon: History },
-        { name: 'Thống kê cá nhân', href: '#analytics', icon: BarChart3 },
-        { name: 'Câu hỏi thường gặp', href: '#faq', icon: HelpCircle }
+        { name: 'Đặt lịch hẹn mới', href: '/reservations', icon: Clock },
+        { name: 'Lịch hẹn của tôi', href: '/reservations', icon: History },
+        { name: 'Hồ sơ cá nhân', href: '/profile', icon: Users },
       ]
     },
     {
-      title: 'Về EV Rental',
+      title: 'Thông tin hệ thống',
       links: [
-        { name: 'Giới thiệu', href: '#about', icon: Award },
-        { name: 'Cam kết xanh', href: '#green-commitment', icon: Leaf },
-        { name: 'Tin tức', href: '#news', icon: FileText },
-        { name: 'Tuyển dụng', href: '#career', icon: Users },
-        { name: 'Đối tác', href: '#partners', icon: Users }
+        { name: 'Trạm cho thuê', href: '/stations', icon: MapPin },
+        { name: 'Xe điện có sẵn', href: '/vehicles', icon: Battery },
+        { name: 'Bảng giá theo giờ', href: '#pricing', icon: CreditCard },
+        { name: 'Chính sách bảo hiểm', href: '#insurance', icon: Shield },
+        { name: 'Điều khoản sử dụng', href: '#terms', icon: FileText }
       ]
     }
   ];
 
   const features = [
-    { icon: Zap, text: '100% xe điện', description: 'Thân thiện môi trường' },
-    { icon: Battery, text: 'Pin đầy 24/7', description: 'Sẵn sàng mọi lúc' },
-    { icon: Shield, text: 'Bảo hiểm toàn diện', description: 'An toàn tuyệt đối' },
-    { icon: Heart, text: 'Hỗ trợ tận tâm', description: 'Phục vụ chuyên nghiệp' }
+    { icon: Clock, text: 'Thuê theo giờ', description: 'Linh hoạt, tiện lợi' },
+    { icon: Battery, text: 'Pin luôn đầy', description: 'Sẵn sàng mọi lúc' },
+    { icon: Shield, text: 'Bảo hiểm an toàn', description: 'Yên tâm sử dụng' },
+    { icon: Zap, text: '100% xe điện', description: 'Thân thiện môi trường' }
   ];
 
   return (
@@ -95,15 +93,15 @@ const Footer = () => {
               <span className="text-xl font-bold transition-colors duration-300 group-hover:text-green-400">EV Rental</span>
             </div>
             <p className="text-gray-300 mb-6 text-sm leading-relaxed transition-colors duration-300 hover:text-gray-200">
-              Hệ thống cho thuê xe điện hàng đầu Việt Nam. Chúng tôi cam kết mang đến 
-              trải nghiệm di chuyển xanh, sạch và thông minh với đội xe điện hiện đại, 
-              dịch vụ chuyên nghiệp 24/7.
+              Hệ thống cho thuê xe điện theo giờ hàng đầu Việt Nam. Đặt lịch nhanh chóng, 
+              nhận xe tại trạm, trả xe linh hoạt. Dịch vụ 24/7 với đội xe điện hiện đại, 
+              pin luôn đầy, giá cả hợp lý theo từng giờ sử dụng.
             </p>
             
             {/* Green Commitment */}
-            <div className="flex items-center mb-4 p-3 bg-green-900/30 rounded-lg border border-green-800 transition-all duration-500 hover:bg-green-900/50 hover:scale-105 hover:shadow-lg group">
-              <Leaf className="h-5 w-5 text-green-400 mr-2 animate-pulse group-hover:animate-bounce" />
-              <span className="text-sm text-green-300 transition-colors duration-300 group-hover:text-green-200">Cam kết 100% xe điện - Vì môi trường xanh</span>
+            <div className="flex items-center mb-4 p-3 bg-blue-900/30 rounded-lg border border-blue-800 transition-all duration-500 hover:bg-blue-900/50 hover:scale-105 hover:shadow-lg group">
+              <Clock className="h-5 w-5 text-blue-400 mr-2 animate-pulse group-hover:animate-bounce" />
+              <span className="text-sm text-blue-300 transition-colors duration-300 group-hover:text-blue-200">Thuê theo giờ - Tiết kiệm & Linh hoạt</span>
             </div>
             
             {/* Contact Info */}
