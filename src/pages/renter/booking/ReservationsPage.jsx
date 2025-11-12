@@ -15,6 +15,7 @@ import vehicleService from '@/services/vehicles/vehicleService';
 import { API_BASE_URL } from '@/lib/api/apiConfig';
 import { Calendar, Car, MapPin, Clock, CreditCard, Trash2, Eye, RefreshCw, Search, Filter, CheckCircle, XCircle, AlertCircle, User, Phone, Mail, Shield, ShieldCheck, ShieldX, Battery, BatteryLow } from 'lucide-react';
 import { calculateRentalCost, formatCurrency } from '@/utils/pricing';
+import { toast } from 'sonner';
 
 const ReservationsPage = () => {
   const navigate = useNavigate();
@@ -93,8 +94,9 @@ const ReservationsPage = () => {
     if (filters.search) {
       filtered = filtered.filter(reservation =>
         reservation.id?.toString().includes(filters.search.toLowerCase()) ||
-        (reservation.vehicle?.type || '').toLowerCase().includes(filters.search.toLowerCase()) ||
-        (reservation.vehicle?.station?.id?.toString() || '').includes(filters.search.toLowerCase())
+        reservation.vehicle?.brand?.toLowerCase().includes(filters.search.toLowerCase()) ||
+        reservation.vehicle?.licensePlate?.toLowerCase().includes(filters.search.toLowerCase()) ||
+        reservation.vehicle?.station?.name?.toLowerCase().includes(filters.search.toLowerCase())
       );
     }
 
@@ -218,6 +220,16 @@ const ReservationsPage = () => {
       
       if (!createForm.vehicle_id || createForm.vehicle_id === 'none') {
         throw new Error('Vui lòng chọn xe cụ thể');
+      }
+
+      // Check if user already has an active reservation
+      const activeReservations = reservations.filter(reservation => 
+        ['pending', 'confirmed'].includes(reservation.status) &&
+        new Date(reservation.reservedStartTime || reservation.reserved_start_time) > new Date()
+      );
+      
+      if (activeReservations.length > 0) {
+        throw new Error('Bạn đã có lịch hẹn đang chờ hoặc đã xác nhận. Vui lòng hủy lịch cũ trước khi tạo lịch mới.');
       }
 
       // Java LocalDateTime format: YYYY-MM-DDTHH:mm:ss (không có timezone)
@@ -403,18 +415,6 @@ const ReservationsPage = () => {
     }
   };
 
-  const handleStartRental = (reservationId) => {
-    // Navigate to start rental process
-    navigate(`/rentals/current?start=${reservationId}`);
-  };
-
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND'
-    }).format(price);
-  };
-
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleString('vi-VN');
   };
@@ -435,23 +435,16 @@ const ReservationsPage = () => {
     );
   };
 
-  const canEdit = (reservation) => {
-    return ['pending', 'confirmed'].includes(reservation.status) &&
-      new Date(reservation.reservedStartTime || reservation.reserved_start_time) > new Date();
-  };
-
   const canCancel = (reservation) => {
     return reservation.status === 'pending' &&
       new Date(reservation.reservedStartTime || reservation.reserved_start_time) > new Date();
   };
 
-  const canStart = (reservation) => {
-    const now = new Date();
-    const startDate = new Date(reservation.reservedStartTime || reservation.reserved_start_time);
-    const timeDiff = startDate - now;
-    const hoursDiff = timeDiff / (1000 * 60 * 60);
-
-    return reservation.status === 'confirmed' && hoursDiff <= 1 && hoursDiff >= -0.5;
+  const hasActiveReservation = () => {
+    return reservations.some(reservation => 
+      ['pending', 'confirmed'].includes(reservation.status) &&
+      new Date(reservation.reservedStartTime || reservation.reserved_start_time) > new Date()
+    );
   };
 
   return (
@@ -472,7 +465,9 @@ const ReservationsPage = () => {
             <div className="flex items-center space-x-3">
               <Button
                 onClick={() => setShowCreateModal(true)}
-                className="bg-green-600 hover:bg-green-700"
+                disabled={hasActiveReservation()}
+                className={`${hasActiveReservation() ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}
+                title={hasActiveReservation() ? 'Bạn đã có lịch hẹn đang chờ hoặc đã xác nhận' : ''}
               >
                 <Calendar className="h-4 w-4 mr-2" />
                 Tạo lịch hẹn mới
@@ -502,6 +497,16 @@ const ReservationsPage = () => {
           <Alert variant="destructive" className="mb-6">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+        
+        {/* Active Reservation Warning */}
+        {hasActiveReservation() && (
+          <Alert className="mb-6 border-yellow-200 bg-yellow-50">
+            <AlertCircle className="h-4 w-4 text-yellow-600" />
+            <AlertDescription className="text-yellow-700">
+              Bạn đã có lịch hẹn đang chờ hoặc đã xác nhận. Vui lòng hủy lịch cũ trước khi tạo lịch mới.
+            </AlertDescription>
           </Alert>
         )}
 
@@ -640,15 +645,6 @@ const ReservationsPage = () => {
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
-                      {canStart(reservation) && (
-                        <Button
-                          onClick={() => handleStartRental(reservation.id)}
-                          className="bg-green-600 hover:bg-green-700"
-                        >
-                          <Car className="h-4 w-4 mr-1" />
-                          Bắt đầu thuê
-                        </Button>
-                      )}
                       <Button
                         size="sm"
                         variant="outline"

@@ -371,7 +371,6 @@ const VehiclesPage = () => {
                   )}
 
                   {/* Vehicle Info */}
-                  {/* Vehicle Info */}
                   <div className="space-y-2">{!vehicle.imageUrl && (
                     <div className="w-full h-32 rounded-lg bg-gray-100 flex items-center justify-center">
                       {vehicle.type === 'motorbike' ? (
