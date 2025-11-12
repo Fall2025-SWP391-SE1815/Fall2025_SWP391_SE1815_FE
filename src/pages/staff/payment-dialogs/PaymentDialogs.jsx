@@ -53,6 +53,9 @@ const PaymentDialogs = (props) => {
         formatDateTime,
         getPaymentTypeBadge,
         parseNumber,
+        manualReturnTime,
+        setManualReturnTime,
+        onRecalcBill,
     } = props;
 
     return (
@@ -104,10 +107,35 @@ const PaymentDialogs = (props) => {
                         <Label className="text-sm uppercase text-gray-600 tracking-wide">
                             Tổng thanh toán
                         </Label>
-                        <div className="flex items-center justify-between bg-gradient-to-r from-green-50 to-emerald-100 border border-emerald-300 rounded-xl px-5 py-3 shadow-sm">
-                            <span className="text-2xl font-bold text-emerald-700 tracking-wide">
+                        {/* Nhập thời gian trả xe */}
+                        <div className="space-y-2 mt-4">
+                            <Label htmlFor="return-time">Thời gian trả xe *</Label>
+                            <Input
+                                id="return-time"
+                                type="datetime-local"
+                                value={manualReturnTime}
+                                onChange={(e) => setManualReturnTime(e.target.value)}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                                Nhập thời gian khách thực tế trả xe để tính đúng tiền (sớm/trễ/đúng giờ)
+                            </p>
+
+                            <div className="flex gap-2">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={onRecalcBill}
+                                    disabled={!manualReturnTime}
+                                >
+                                    Tính lại hóa đơn
+                                </Button>
+                            </div>
+                        </div>
+                        <div className="bg-emerald-50 border border-emerald-300 rounded-lg p-3 text-center">
+                            <p className="text-xs text-emerald-600 uppercase tracking-wide">Tổng cần thanh toán</p>
+                            <p className="text-2xl font-bold text-emerald-700 mt-1">
                                 {formatCurrency(parseNumber(paymentForm.amount))}
-                            </span>
+                            </p>
                         </div>
                     </div>
 

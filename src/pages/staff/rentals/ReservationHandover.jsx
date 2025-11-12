@@ -325,9 +325,16 @@ const ReservationHandover = () => {
     });
   };
 
+  // ✅ Tính lại cọc nếu khách hàng rủi ro cao
+  const calculateHighRiskDeposit = (baseDeposit) => {
+    const deposit = parseFloat(baseDeposit) || 0;
+    if (deposit < 10000000) return 10000000;
+    return deposit + 10000000;
+  };
+
   const calculateTotalCost = (item, highRisk = false) => {
     if (item?.totalCost && typeof item.totalCost === 'number') {
-      return highRisk ? item.totalCost * 1.1 : item.totalCost; // ✅ cộng 10%
+      return item.totalCost;
     }
 
     if (!item || !item.vehicle || !item.reservedStartTime || !item.reservedEndTime) {
@@ -346,8 +353,7 @@ const ReservationHandover = () => {
 
     const { totalCost } = calculateRentalCost(durationInHours, pricePerHour);
 
-    // ✅ Nếu là khách hàng rủi ro cao => cộng 10%
-    return highRisk ? totalCost * 1.1 : totalCost;
+    return totalCost;
   };
 
   // Calculate detailed pricing breakdown for pickup dialog
@@ -709,7 +715,11 @@ const ReservationHandover = () => {
                   <div className="text-center">
                     <span className="text-sm font-medium text-gray-700">Đề xuất cọc (30%)</span>
                     <div className="text-lg font-bold text-green-600">
-                      {formatCurrency(Math.round(calculateTotalCost(selectedReservation) * 0.3))}
+                      {formatCurrency(
+                        checkInForm.highRisk
+                          ? calculateHighRiskDeposit(Math.round(calculateTotalCost(selectedReservation) * 0.3))
+                          : Math.round(calculateTotalCost(selectedReservation) * 0.3)
+                      )}
                     </div>
                   </div>
                 </div>
@@ -717,34 +727,44 @@ const ReservationHandover = () => {
                 <div className="mt-4 pt-4 border-t text-center">
                   <span className="text-sm font-medium text-gray-700">Tổng thanh toán</span>
                   <div className="text-xl font-bold text-purple-600">
-                    {formatCurrency(calculateTotalCost(selectedReservation, checkInForm.highRisk) + (parseFloat(checkInForm.insurance) || 0))}
+                    {formatCurrency(
+                      (
+                        calculateTotalCost(selectedReservation) + // ✅ chi phí thuê xe
+                        (parseFloat(checkInForm.insurance) || 0) + // ✅ phí bảo hiểm
+                        (checkInForm.highRisk
+                          ? calculateHighRiskDeposit(Math.round(calculateTotalCost(selectedReservation) * 0.3))
+                          : Math.round(calculateTotalCost(selectedReservation) * 0.3)) // ✅ cọc thực tế
+                      )
+                    )}
                   </div>
-                  {/* ✅ Dòng phụ phí 10% nếu đánh dấu rủi ro cao */}
+
                   {checkInForm.highRisk && (
-                    <p className="text-sm text-red-600 mt-1">
-                      + Phụ phí 10% áp dụng cho khách hàng rủi ro cao
-                    </p>
+                    <div className="text-sm text-red-600 mt-1">
+                      ⚠️ Khách hàng rủi ro cao: Cọc dưới <b>10.000.000₫</b> thì lấy <b>10.000.000₫</b>, lớn hơn thì cộng thêm <b>10.000.000₫</b>.
+                    </div>
                   )}
                 </div>
               </CardContent>
             </Card>
 
             <div className="space-y-2">
-              <Label htmlFor="deposit-amount">Số tiền đặt cọc (VND) *</Label>
-              <div className="flex gap-2">
+              <Label htmlFor="deposit-amount">Số tiền đặt cọc (₫) *</Label>
+              <div className="flex items-center gap-2">
                 <Input
                   id="deposit-amount"
                   type="text"
                   inputMode="numeric"
                   placeholder="500.000"
                   value={checkInForm.depositAmount}
+                  readOnly  // ✅ không cho sửa
+                  className="bg-gray-100 cursor-not-allowed"
                   onChange={(e) => {
-                    let value = e.target.value.replace(/\D/g, ''); // xóa ký tự không phải số
+                    let value = e.target.value.replace(/\D/g, '');
                     if (!value) {
                       setCheckInForm(prev => ({ ...prev, depositAmount: '' }));
                       return;
                     }
-                    if (value.length > 12) value = value.slice(0, 12); // giới hạn 12 số
+                    if (value.length > 12) value = value.slice(0, 12);
                     const formatted = value.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
                     setCheckInForm(prev => ({ ...prev, depositAmount: formatted }));
                   }}
@@ -757,17 +777,11 @@ const ReservationHandover = () => {
                     }
                   }}
                 />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const suggestedAmount = Math.round(calculateTotalCost(selectedReservation) * 0.3);
-                    setCheckInForm(prev => ({ ...prev, depositAmount: suggestedAmount.toString() }));
-                  }}
-                >
-                  Áp dụng 30%
-                </Button>
+
+                {/* ✅ Gợi ý 30% hiển thị bên phải input */}
+                <span className="text-sm text-gray-500 whitespace-nowrap">
+                  ≈ 30% tổng chi phí thuê
+                </span>
               </div>
             </div>
 
@@ -793,7 +807,18 @@ const ReservationHandover = () => {
                   <Checkbox
                     id="high-risk"
                     checked={checkInForm.highRisk}
-                    onCheckedChange={(checked) => setCheckInForm(prev => ({ ...prev, highRisk: checked }))}
+                    onCheckedChange={(checked) => {
+                      const baseDeposit = Math.round(calculateTotalCost(selectedReservation) * 0.3);
+                      const newDeposit = checked
+                        ? calculateHighRiskDeposit(baseDeposit)
+                        : baseDeposit;
+
+                      setCheckInForm(prev => ({
+                        ...prev,
+                        highRisk: checked,
+                        depositAmount: newDeposit.toLocaleString('vi-VN')
+                      }));
+                    }}
                   />
                   <Label htmlFor="high-risk" className="text-sm font-normal">
                     Đánh dấu là khách hàng có rủi ro cao

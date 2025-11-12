@@ -27,6 +27,7 @@ const StationManagement = () => {
   const { success, error } = useGlobalToast();
   const [selectedTab, setSelectedTab] = useState('vehicles');
   const [loading, setLoading] = useState(false);
+  const [staffStationId, setStaffStationId] = useState(null);
 
   // --- States ---
   const [vehicles, setVehicles] = useState([]);
@@ -43,8 +44,25 @@ const StationManagement = () => {
 
   // --- Fetch data ---
   useEffect(() => {
-    fetchVehicles();
-    fetchCurrentRentals();
+    const init = async () => {
+      try {
+        // 🔹 Lấy thông tin nhân viên
+        const res = await staffRentalService.getProfile();
+        const id = res?.stationId || res?.data?.stationId;
+        if (!id) {
+          error("Không thể xác định trạm làm việc của nhân viên");
+          return;
+        }
+        setStaffStationId(id);
+
+        // 🔹 Sau khi có trạm, load dữ liệu
+        await Promise.all([fetchVehicles(), fetchCurrentRentals()]);
+      } catch {
+        error("Không thể tải thông tin nhân viên hoặc dữ liệu trạm");
+      }
+    };
+
+    init();
   }, []);
 
   const fetchVehicles = async () => {
@@ -69,6 +87,15 @@ const StationManagement = () => {
     } finally { setLoading(false); }
   };
 
+  // --- Filter theo trạm ---
+  const filteredVehicles = staffStationId
+    ? vehicles.filter((v) => v.station?.id === staffStationId)
+    : vehicles;
+
+  const filteredRentals = staffStationId
+    ? currentRentals.filter((r) => r.vehicle?.station?.id === staffStationId)
+    : currentRentals;
+
   // --- UI helper ---
   const formatCurrency = (amount) =>
     new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount || 0);
@@ -92,10 +119,10 @@ const StationManagement = () => {
   };
 
   const stats = {
-    total: vehicles.length,
-    available: vehicles.filter((v) => v.status === 'available').length,
-    rented: vehicles.filter((v) => v.status === 'rented').length,
-    maintenance: vehicles.filter((v) => v.status === 'maintenance').length,
+    total: filteredVehicles.length,
+    available: filteredVehicles.filter((v) => v.status === 'available').length,
+    rented: filteredVehicles.filter((v) => v.status === 'rented').length,
+    maintenance: filteredVehicles.filter((v) => v.status === 'maintenance').length,
   };
 
   // --- Actions ---
@@ -112,6 +139,18 @@ const StationManagement = () => {
 
   const submitVehicleUpdate = async () => {
     if (!selectedVehicle) return;
+
+    // ✅ Validate form trước khi gọi API
+    if (
+      !updateForm.brand.trim() ||
+      !updateForm.model.trim() ||
+      !updateForm.capacity ||
+      !updateForm.rangePerFullCharge
+    ) {
+      error("Vui lòng điền đầy đủ thông tin xe");
+      return;
+    }
+
     try {
       setLoading(true);
       await vehicleService.staff.updateVehicle(selectedVehicle.id, {
@@ -125,7 +164,9 @@ const StationManagement = () => {
       fetchVehicles();
     } catch {
       error('Không thể cập nhật xe');
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleConfirmInspection = async (licensePlate) => {
@@ -141,6 +182,14 @@ const StationManagement = () => {
     }
   };
 
+  if (staffStationId === null) {
+    return (
+      <div className="flex items-center justify-center h-[60vh]">
+        <p className="text-muted-foreground">Đang tải dữ liệu trạm...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -149,9 +198,17 @@ const StationManagement = () => {
           <h1 className="text-3xl font-bold">Quản lý tại điểm</h1>
           <p className="text-muted-foreground">Quản lý xe và lượt thuê</p>
         </div>
-        <Button onClick={() => {
-          fetchVehicles(); fetchCurrentRentals();
-        }} disabled={loading}>
+        <Button
+          onClick={() => {
+            if (!staffStationId) {
+              error("Chưa xác định được trạm, không thể làm mới");
+              return;
+            }
+            fetchVehicles();
+            fetchCurrentRentals();
+          }}
+          disabled={loading}
+        >
           <RefreshCw className="h-4 w-4 mr-2" /> Làm mới
         </Button>
       </div>
@@ -169,11 +226,11 @@ const StationManagement = () => {
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="vehicles">
             <Car className="h-4 w-4" />
-            Xe khả dụng ({vehicles.filter(v => v.status !== 'rented').length})
+            Xe khả dụng ({filteredVehicles.filter(v => v.status !== 'rented').length})
           </TabsTrigger>
           <TabsTrigger value="rentals">
             <Clock className="h-4 w-4" />
-            Đang cho thuê ({currentRentals.length + vehicles.filter(v => v.status === 'rented').length})
+            Đang cho thuê ({filteredRentals.length + filteredVehicles.filter(v => v.status === 'rented').length})
           </TabsTrigger>
         </TabsList>
 

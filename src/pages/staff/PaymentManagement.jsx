@@ -56,6 +56,7 @@ const PaymentManagement = () => {
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedDetail, setSelectedDetail] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [manualReturnTime, setManualReturnTime] = useState("");
 
   // Tự động tải danh sách thanh toán khi component được mount
   useEffect(() => {
@@ -179,6 +180,7 @@ const PaymentManagement = () => {
   const handleProcessPayment = async (p) => {
     setSelectedPayment(p);
     setPaymentForm({ amount: "", method: "cash" });
+    setManualReturnTime(""); // reset về trống mỗi lần mở
     setPaymentDialogOpen(true);
     await loadPaymentDetails(p.rental_id);
   };
@@ -192,7 +194,9 @@ const PaymentManagement = () => {
       const rental = rentalList?.find((r) => r.id === rentalId);
 
       // Nếu không tìm thấy rental, fallback về giờ hiện tại
-      const returnTime = rental?.endTime || rental?.end_time || new Date().toISOString();
+      const returnTime = manualReturnTime
+        ? new Date(manualReturnTime).toISOString()
+        : (rental?.endTime || rental?.end_time || new Date().toISOString());
 
       // 🔹 Lấy danh sách vi phạm (nếu có)
       const violationsResponse = await staffRentalService.getViolations(rentalId);
@@ -395,7 +399,9 @@ const PaymentManagement = () => {
                     </TableCell>
                     <TableCell>{p.vehicle_license}</TableCell>
                     <TableCell>
-                      {formatCurrency(p.amount)}
+                      <div className="inline-block px-3 py-1 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-700 font-semibold text-sm shadow-sm">
+                        {formatCurrency(p.amount)}
+                      </div>
                     </TableCell>
                     <TableCell
                       className={isOverdue(p.due_date) ? "text-red-600" : ""}
@@ -448,6 +454,42 @@ const PaymentManagement = () => {
         formatDateTime={formatDateTime}
         getPaymentTypeBadge={getPaymentTypeBadge}
         parseNumber={parseNumber}
+        manualReturnTime={manualReturnTime}
+        setManualReturnTime={setManualReturnTime}
+        onRecalcBill={async () => {
+          if (!selectedPayment || !manualReturnTime) return;
+
+          try {
+            const rentalId = selectedPayment.rental_id;
+            const localDate = new Date(manualReturnTime);
+            const returnTimeISO = new Date(
+              localDate.getTime() - localDate.getTimezoneOffset() * 60000
+            ).toISOString();
+
+            console.log("📤 Gửi tính bill:", {
+              url: `/api/staff/rentals/${rentalId}/bill`,
+              body: { returnTime: returnTimeISO },
+            });
+
+            const billResponse = await staffRentalService.calculateBill(rentalId, {
+              returnTime: returnTimeISO, // ✅ chỉ gửi returnTime
+            });
+
+            const bill = billResponse?.data || billResponse;
+            setRentalBill(bill);
+
+            const finalAmount = bill?.totalBill || 0;
+            setPaymentForm((prev) => ({
+              ...prev,
+              amount: finalAmount.toLocaleString("vi-VN"),
+            }));
+
+            success("Đã tính lại hóa đơn theo thời gian trả mới!");
+          } catch (err) {
+            console.error("❌ Lỗi tính bill:", err);
+            error("Không thể tính lại hóa đơn. Kiểm tra thời gian trả xe.");
+          }
+        }}
       />
 
     </div>

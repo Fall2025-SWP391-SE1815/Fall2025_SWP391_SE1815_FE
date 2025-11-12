@@ -20,7 +20,7 @@ const staffRentalService = {
 
   // Tính tổng bill của rental
   calculateBill: (rentalId, data) =>
-    apiPost(API_ENDPOINTS.STAFF.RENTAL_BILL(rentalId), data, 'Không thể tính tổng bill'),
+  apiPost(API_ENDPOINTS.STAFF.RENTAL_BILL(rentalId), data, 'Không thể tính tổng bill'),
 
   // Ghi nhận trả cọc cho rental
   returnDeposit: (id, data) =>
