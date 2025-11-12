@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Plus, Search, Filter, CheckCircle, AlertTriangle, Trash2, Edit, ToggleLeft, ToggleRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/auth/useAuth.jsx';
 import userService from '@/services/users/userService.js';
 import PersonnelStatsCard from './PersonnelStatsCard';
 import PersonnelTable from './PersonnelTable';
@@ -37,6 +38,18 @@ export default function PersonnelManagement() {
     renter: 0
   });
   const { toast } = useToast();
+  const { user: currentUser } = useAuth();
+
+  // Helper function to check if current user can modify another admin
+  const canModifyAdmin = (targetUser) => {
+    // Super admin (ID = 1) can modify anyone
+    if (currentUser?.id === 1) return true;
+    
+    // Other admins cannot modify admin accounts
+    if (targetUser?.role === 'admin') return false;
+    
+    return true;
+  };
 
   useEffect(() => {
     fetchUsers();
@@ -170,6 +183,23 @@ export default function PersonnelManagement() {
 
   const handleUpdateUser = async (values) => {
     try {
+      // Security check: Can current user modify this admin?
+      if (!canModifyAdmin(selectedUser)) {
+        toast({
+          title: (
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-600" />
+              Không có quyền thực hiện
+            </div>
+          ),
+          description: 'Bạn không có quyền chỉnh sửa tài khoản quản trị viên khác.',
+          variant: 'destructive',
+          className: 'border-l-red-500 border-red-200 bg-red-50',
+          duration: 5000
+        });
+        return;
+      }
+
       // Remove password from payload when updating
       const { password, ...updateData } = values;
       
@@ -281,8 +311,24 @@ export default function PersonnelManagement() {
     const currentStatus = user.isActive;
     const action = currentStatus ? 'vô hiệu hóa' : 'kích hoạt';
 
+    // Security check: Can current user modify this admin?
+    if (!canModifyAdmin(user)) {
+      toast({
+        title: (
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-red-600" />
+            Không có quyền thực hiện
+          </div>
+        ),
+        description: 'Bạn không có quyền vô hiệu hóa tài khoản quản trị viên khác.',
+        variant: 'destructive',
+        className: 'border-l-red-500 border-red-200 bg-red-50',
+        duration: 5000
+      });
+      return;
+    }
+
     try {
-      console.log('Toggling user status for ID:', user.id);
       const response = await userService.admin.toggleUserStatus(user.id);
       
       // Update local state immediately with the response
@@ -383,6 +429,23 @@ export default function PersonnelManagement() {
     // Do not allow editing renters
     if (user.role === 'renter') {
       toast({ title: 'Không cho phép', description: 'Không thể chỉnh sửa khách hàng', variant: 'warning' });
+      return;
+    }
+
+    // Security check: Can current user modify this admin?
+    if (!canModifyAdmin(user)) {
+      toast({
+        title: (
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-red-600" />
+            Không có quyền thực hiện
+          </div>
+        ),
+        description: 'Bạn không có quyền chỉnh sửa tài khoản quản trị viên khác.',
+        variant: 'destructive',
+        className: 'border-l-red-500 border-red-200 bg-red-50',
+        duration: 5000
+      });
       return;
     }
 
@@ -494,6 +557,7 @@ export default function PersonnelManagement() {
             searchTerm={searchTerm}
             roleFilter={roleFilter}
             permissions={{ view: true, edit: true, delete: true }}
+            canModifyAdmin={canModifyAdmin}
           />
 
           {filteredUsers.length === 0 && !loading && (

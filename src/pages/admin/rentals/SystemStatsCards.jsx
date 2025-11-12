@@ -6,7 +6,8 @@ import adminService from '@/services/admin/adminService';
 const SystemStatsCards = () => {
   const [stats, setStats] = useState({
     activeRentals: 0,
-    totalViolations: 0
+    totalViolations: 0,
+    pendingIncidents: 0
   });
 
   useEffect(() => {
@@ -20,12 +21,16 @@ const SystemStatsCards = () => {
         const violations = await adminService.getViolations();
         const totalViolations = violations?.length || 0;
 
+        const incidents = await adminService.getIncidents({ status: 'pending' });
+        const pendingIncidents = incidents?.length || 0;
+
         setStats({
           activeRentals,
-          totalViolations
+          totalViolations,
+          pendingIncidents
         });
       } catch (err) {
-        setStats({ activeRentals: 0, totalViolations: 0 });
+        setStats({ activeRentals: 0, totalViolations: 0, pendingIncidents: 0 });
       }
     };
     fetchStats();
@@ -52,7 +57,7 @@ const SystemStatsCards = () => {
           <AlertTriangle className="h-4 w-4 text-red-600" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">0</div>
+          <div className="text-2xl font-bold">{stats.pendingIncidents || 0}</div>
           <p className="text-xs text-muted-foreground">Không có dữ liệu</p>
         </CardContent>
       </Card>

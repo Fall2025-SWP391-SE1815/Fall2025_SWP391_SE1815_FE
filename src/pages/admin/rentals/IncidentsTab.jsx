@@ -8,16 +8,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
-import { 
-  AlertTriangle, 
-  Eye, 
-  User, 
-  Calendar, 
-  MapPin, 
-  FileText, 
-  Phone, 
-  Mail, 
+import { useToast } from '@/hooks/use-toast';
+import {
+  AlertTriangle,
+  Eye,
+  User,
+  Calendar,
+  MapPin,
+  FileText,
+  Phone,
+  Mail,
   Search,
   CheckCircle,
   Clock,
@@ -32,6 +32,7 @@ const IncidentsTab = () => {
   // State for data
   const [incidents, setIncidents] = useState([]);
   const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
   // State for filters
   const [searchTerm, setSearchTerm] = useState('');
@@ -56,14 +57,19 @@ const IncidentsTab = () => {
 
       const data = await adminService.getIncidents(params);
       setIncidents(data || []);
-      if (data && data.length > 0) {
-        toast.success(`Đã tải ${data.length} báo cáo sự cố thành công`);
-      } else {
-        toast.info('Không có báo cáo sự cố nào trong hệ thống');
-      }
     } catch (error) {
       console.error('Error fetching incidents:', error);
-      toast.error('Không thể tải dữ liệu báo cáo sự cố');
+      toast({
+        title: (
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-red-600" />
+            Tải danh sách sự cố thất bại
+          </div>
+        ),
+        description: 'Không thể tải dữ liệu báo cáo sự cố. Vui lòng thử lại',
+        className: 'border-l-red-500 border-red-200 bg-red-50',
+        duration: 4000
+      });
       setIncidents([]);
     } finally {
       setLoading(false);
@@ -81,18 +87,19 @@ const IncidentsTab = () => {
   }, [statusFilter]);
 
   const getIncidentStatusBadge = (status) => {
+    const normalizedStatus = status?.toLowerCase();
     const statusConfig = {
-      pending: { variant: 'outline', label: 'Chờ xử lý', icon: Clock },
-      in_review: { variant: 'default', label: 'Đang xử lý', icon: RefreshCw },
-      resolved: { variant: 'secondary', label: 'Đã giải quyết', icon: CheckCircle }
+      'pending': { variant: 'destructive', label: 'Chờ xử lý', icon: Clock },
+      'in_review': { variant: 'default', label: 'Đang xử lý', icon: RefreshCw },
+      'resolved': { variant: 'secondary', label: 'Đã giải quyết', icon: CheckCircle }
     };
 
-    const config = statusConfig[status] || { variant: 'destructive', label: status, icon: XCircle };
+    const config = statusConfig[normalizedStatus] || { variant: 'outline', label: status, icon: XCircle };
     const IconComponent = config.icon;
-    
+
     return (
-      <Badge variant={config.variant}>
-        <IconComponent className="h-3 w-3 mr-1" />
+      <Badge variant={config.variant} className='flex items-center gap-1'>
+        <IconComponent className="h-3 w-3" />
         {config.label}
       </Badge>
     );
@@ -103,38 +110,99 @@ const IncidentsTab = () => {
     setNewStatus(incident.status);
     setAdminNotes(incident.resolutionNotes || '');
     setShowDetailDialog(true);
-    toast.info(`Đang xem chi tiết sự cố #${incident.id}`);
+    toast({
+      title: (
+        <div className="flex items-center gap-2">
+          <Eye className="h-5 w-5 text-blue-600" />
+          Đang xem chi tiết sự cố
+        </div>
+      ),
+      description: `Sự cố #${incident.id}`,
+      className: 'border-l-blue-500 border-blue-200 bg-blue-50',
+      duration: 2000
+    });
   };
 
   const handleProcessIncident = () => {
     setShowDetailDialog(false);
     setShowProcessDialog(true);
-    toast.info('Đang mở form xử lý sự cố');
+    toast({
+      title: (
+        <div className="flex items-center gap-2">
+          <RefreshCw className="h-5 w-5 text-orange-600" />
+          Bắt đầu xử lý sự cố
+        </div>
+      ),
+      description: `Đang xử lý sự cố #${selectedIncident.id}`,
+      className: 'border-l-orange-500 border-orange-200 bg-orange-50',
+      duration: 2000
+    });
   };
 
   const handleUpdateIncident = async () => {
     if (!selectedIncident || !newStatus) {
-      toast.error('Vui lòng chọn trạng thái mới');
+      toast({
+        title: (
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-orange-600" />
+            Thông tin chưa đầy đủ
+          </div>
+        ),
+        description: 'Vui lòng chọn trạng thái xử lý',
+        className: 'border-l-orange-500 border-orange-200 bg-orange-50',
+        duration: 3000
+      });
       return;
     }
 
     setProcessing(true);
     try {
-      await adminService.updateIncident({
+      const response = await adminService.updateIncident({
         incidentId: selectedIncident.id,
         status: newStatus,
         resolutionNotes: adminNotes.trim() || undefined
       });
-      
-      toast.success('Cập nhật trạng thái báo cáo sự cố thành công');
+
+      // Update local state with response data
+      setIncidents(prev => prev.map(incident =>
+        incident.id === selectedIncident.id
+          ? {
+            ...incident,
+            status: response.status || newStatus,
+            resolutionNotes: response.resolutionNotes || adminNotes.trim(),
+            updatedAt: response.updatedAt || new Date().toISOString()
+          }
+          : incident
+      ));
+
+      toast({
+        title: (
+          <div className="flex items-center gap-2">
+            <CheckCircle className="h-5 w-5 text-green-600" />
+            Cập nhật sự cố thành công!
+          </div>
+        ),
+        description: `Đã ${newStatus === 'RESOLVED' ? 'giải quyết' : 'cập nhật'} sự cố #${selectedIncident.id}`,
+        className: 'border-l-green-500 border-green-200 bg-green-50',
+        duration: 4000
+      });
       setShowProcessDialog(false);
       setAdminNotes('');
       setNewStatus('');
       setSelectedIncident(null);
-      fetchIncidents(); // Refresh data
     } catch (error) {
       console.error('Error updating incident:', error);
-      toast.error('Không thể cập nhật trạng thái báo cáo sự cố');
+      toast({
+        title: (
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-red-600" />
+            Cập nhật sự cố thất bại
+          </div>
+        ),
+        description: error?.response?.data?.message || 'Không thể cập nhật trạng thái sự cố. Vui lòng thử lại',
+        className: 'border-l-red-500 border-red-200 bg-red-50',
+        duration: 4000
+      });
     } finally {
       setProcessing(false);
     }
@@ -149,16 +217,15 @@ const IncidentsTab = () => {
     return matchesSearch && matchesStatus;
   });
 
-  // Toast when filters are applied and show results
-  useEffect(() => {
-    if (incidents.length > 0 && (searchTerm || statusFilter !== 'all')) {
-      if (filteredIncidents.length === 0) {
-        toast.info('Không tìm thấy sự cố nào phù hợp với bộ lọc');
-      } else {
-        toast.success(`Tìm thấy ${filteredIncidents.length} sự cố phù hợp`);
-      }
-    }
-  }, [searchTerm, statusFilter, incidents.length, filteredIncidents.length]);
+  // Calculate statistics
+  const incidentStats = {
+    total: incidents.length,
+    pending: incidents.filter(i => i.status?.toLowerCase() === 'pending').length,
+    in_review: incidents.filter(i => i.status?.toLowerCase() === 'in_review').length,
+    resolved: incidents.filter(i => i.status?.toLowerCase() === 'resolved').length,
+    todayIncidents: incidents.filter(i =>
+      new Date(i.createdAt).toDateString() === new Date().toDateString()).length
+  };
 
   if (loading) {
     return (
@@ -169,7 +236,8 @@ const IncidentsTab = () => {
   }
 
   return (
-    <div className="space-y-4">
+    <div className='space-y-6'>
+      {/* Search and Filter */}
       <div className='flex items-center gap-4'>
         <div className='relative flex-1 max-w-sm'>
           <Search className='absolute left-2 top-2.5 h-4 w-4 text-muted-foreground' />
@@ -195,9 +263,10 @@ const IncidentsTab = () => {
         </Select>
       </div>
 
+      {/* Incidents Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Báo cáo sự cố</CardTitle>
+          <CardTitle>Danh sách sự cố</CardTitle>
           <CardDescription>
             Quản lý và xử lý các báo cáo sự cố từ khách hàng
           </CardDescription>
@@ -217,13 +286,25 @@ const IncidentsTab = () => {
             <TableBody>
               {filteredIncidents.map((incident) => (
                 <TableRow key={incident.id}>
-                  <TableCell className='font-medium max-w-xs'>
-                    <div className="truncate" title={incident.description}>
-                      {incident.description || 'Không có mô tả'}
+                  <TableCell className='max-w-md'>
+                    <div className="truncate font-medium">
+                      {incident.description && incident.description.length > 80
+                        ? incident.description.substring(0, 80) + '...'
+                        : incident.description || 'Không có mô tả'}
                     </div>
+                    {incident.rental && (
+                      <div className="text-sm text-muted-foreground">
+                        Liên quan đến lượt thuê #{incident.rental.id}
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell>
-                    {incident.rental?.renter?.fullName || 'N/A'}
+                    <div>
+                      <div className="font-medium">{incident.staff?.fullName || 'N/A'}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {incident.staff?.phone || ''}
+                      </div>
+                    </div>
                   </TableCell>
                   <TableCell>
                     {incident.vehicle?.licensePlate} - {incident.vehicle?.brand} {incident.vehicle?.model}
@@ -235,13 +316,29 @@ const IncidentsTab = () => {
                     {new Date(incident.createdAt).toLocaleString('vi-VN')}
                   </TableCell>
                   <TableCell className='text-right'>
-                    <Button
-                      variant='ghost'
-                      size='sm'
-                      onClick={() => handleViewDetail(incident)}
-                    >
-                      <Eye className='h-4 w-4' />
-                    </Button>
+                    <div className='flex justify-end gap-2'>
+                      <Button
+                        variant='ghost'
+                        size='sm'
+                        onClick={() => handleViewDetail(incident)}
+                      >
+                        <Eye className='h-4 w-4' />
+                      </Button>
+                      {incident.status?.toLowerCase() !== 'resolved' && (
+                        <Button
+                          variant='ghost'
+                          size='sm'
+                          onClick={() => {
+                            setSelectedIncident(incident);
+                            setNewStatus(incident.status);
+                            setAdminNotes(incident.resolutionNotes || '');
+                            handleProcessIncident();
+                          }}
+                        >
+                          <RefreshCw className='h-4 w-4' />
+                        </Button>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -258,90 +355,93 @@ const IncidentsTab = () => {
 
       {/* Incident Details Dialog */}
       <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
-        <DialogContent className='max-w-2xl'>
+        <DialogContent className='max-w-3xl max-h-[80vh] overflow-y-auto'>
           <DialogHeader>
             <DialogTitle>Chi tiết sự cố</DialogTitle>
             <DialogDescription>
-              Thông tin chi tiết về báo cáo sự cố
+              Thông tin chi tiết về báo cáo sự cố từ khách hàng
             </DialogDescription>
           </DialogHeader>
 
           {selectedIncident && (
-            <div className='grid gap-6 py-4 max-h-[70vh] overflow-y-auto'>
-              {/* Basic Information */}
-              <div className='bg-red-50 p-4 rounded-lg'>
-                <h3 className='font-semibold text-red-900 mb-3'>Thông tin sự cố</h3>
-                <div className='grid grid-cols-2 gap-4'>
-                  <div>
-                    <Label className='text-red-700'>ID Sự cố</Label>
-                    <p className='text-sm'>#{selectedIncident.id}</p>
-                  </div>
-                  <div>
-                    <Label className='text-red-700'>Trạng thái</Label>
-                    <div className='mt-1'>
-                      {getIncidentStatusBadge(selectedIncident.status)}
-                    </div>
-                  </div>
+            <div className='space-y-4 py-4'>
+              <div className='grid grid-cols-2 gap-4'>
+                <div>
+                  <Label className='text-sm font-medium text-muted-foreground'>Người báo cáo</Label>
+                  <p className='text-lg font-semibold'>{selectedIncident.staff?.fullName || 'N/A'}</p>
                 </div>
-                <div className='mt-3'>
-                  <Label className='text-red-700'>Mô tả sự cố</Label>
-                  <p className='text-sm mt-1'>{selectedIncident.description || 'Không có mô tả'}</p>
-                </div>
-                <div className='mt-3'>
-                  <Label className='text-red-700'>Thời gian báo cáo</Label>
-                  <p className='text-sm'>{new Date(selectedIncident.createdAt).toLocaleString('vi-VN')}</p>
-                </div>
-              </div>
-
-              {/* Customer Information */}
-              <div className='bg-blue-50 p-4 rounded-lg'>
-                <h3 className='font-semibold text-blue-900 mb-3'>Thông tin khách hàng</h3>
-                <div className='grid grid-cols-2 gap-4'>
-                  <div>
-                    <Label className='text-blue-700'>Tên khách hàng</Label>
-                    <p className='text-sm'>{selectedIncident.rental?.renter?.fullName || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <Label className='text-blue-700'>Số điện thoại</Label>
-                    <p className='text-sm'>{selectedIncident.rental?.renter?.phone || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <Label className='text-blue-700'>Email</Label>
-                    <p className='text-sm'>{selectedIncident.rental?.renter?.email || 'N/A'}</p>
+                <div>
+                  <Label className='text-sm font-medium text-muted-foreground'>Trạng thái</Label>
+                  <div className='mt-1'>
+                    {getIncidentStatusBadge(selectedIncident.status)}
                   </div>
                 </div>
               </div>
 
-              {/* Vehicle Information */}
-              <div className='bg-green-50 p-4 rounded-lg'>
-                <h3 className='font-semibold text-green-900 mb-3'>Thông tin xe</h3>
-                <div className='grid grid-cols-2 gap-4'>
-                  <div>
-                    <Label className='text-green-700'>Biển số xe</Label>
-                    <p className='text-sm'>{selectedIncident.vehicle?.licensePlate || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <Label className='text-green-700'>Loại xe</Label>
-                    <p className='text-sm'>{selectedIncident.vehicle?.brand} {selectedIncident.vehicle?.model}</p>
-                  </div>
-                  <div>
-                    <Label className='text-green-700'>Trạm lấy xe</Label>
-                    <p className='text-sm'>{selectedIncident.rental?.stationPickup?.name || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <Label className='text-green-700'>Trạm trả xe</Label>
-                    <p className='text-sm'>{selectedIncident.rental?.stationReturn?.name || 'N/A'}</p>
-                  </div>
+              <div className='grid grid-cols-2 gap-4'>
+                <div>
+                  <Label className='text-sm font-medium text-muted-foreground'>ID Sự cố</Label>
+                  <p className='text-lg'>#{selectedIncident.id}</p>
+                </div>
+                <div>
+                  <Label className='text-sm font-medium text-muted-foreground'>Lượt thuê liên quan</Label>
+                  <p className='text-lg'>
+                    {selectedIncident.rental ? `#${selectedIncident.rental.id}` : 'Không có'}
+                  </p>
                 </div>
               </div>
 
-              {/* Resolution Notes */}
-              {selectedIncident.resolutionNotes && (
-                <div className='bg-gray-50 p-4 rounded-lg'>
-                  <h3 className='font-semibold text-gray-900 mb-3'>Ghi chú xử lý</h3>
-                  <p className='text-sm'>{selectedIncident.resolutionNotes}</p>
+              <div>
+                <Label className='text-sm font-medium text-muted-foreground'>Mô tả sự cố</Label>
+                <div className='mt-2 p-4 bg-muted rounded-lg'>
+                  <p className='text-sm'>{selectedIncident.description || 'Không có mô tả'}</p>
+                </div>
+              </div>
+
+              {selectedIncident.vehicle && (
+                <div className='grid grid-cols-2 gap-4'>
+                  <div>
+                    <Label className='text-sm font-medium text-muted-foreground'>Xe liên quan</Label>
+                    <p className='text-lg'>{selectedIncident.vehicle.brand} {selectedIncident.vehicle.model}</p>
+                    <p className='text-sm text-muted-foreground'>
+                      Biển số: {selectedIncident.vehicle.licensePlate}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className='text-sm font-medium text-muted-foreground'>Trạm lấy xe</Label>
+                    <p className='text-lg'>{selectedIncident.vehicle.station?.name || 'N/A'}</p>
+                    {selectedIncident.vehicle.station?.address && (
+                      <p className='text-sm text-muted-foreground'>{selectedIncident.vehicle.station.address}</p>
+                    )}
+                  </div>
                 </div>
               )}
+
+              {selectedIncident.staff && (
+                <div className='grid grid-cols-2 gap-4'>
+                  <div>
+                    <Label className='text-sm font-medium text-muted-foreground'>Thời gian báo cáo</Label>
+                    <p className='text-lg'>{new Date(selectedIncident.createdAt).toLocaleString('vi-VN')}</p>
+                  </div>
+                  <div>
+                    <Label className='text-sm font-medium text-muted-foreground'>Cập nhật lần cuối</Label>
+                    <p className='text-lg'>{new Date(selectedIncident.updatedAt || selectedIncident.createdAt).toLocaleString('vi-VN')}</p>
+                  </div>
+                </div>
+              )}
+
+              {selectedIncident.resolutionNotes && (
+                <div>
+                  <Label className='text-sm font-medium text-muted-foreground'>Ghi chú xử lý</Label>
+                  <div className='mt-2 p-4 bg-green-50 border border-green-200 rounded-lg'>
+                    <p className='text-sm text-green-800'>{selectedIncident.resolutionNotes}</p>
+                  </div>
+                </div>
+              )}
+
+              <div className='grid grid-cols-2 gap-4'>
+
+              </div>
             </div>
           )}
 
@@ -349,7 +449,7 @@ const IncidentsTab = () => {
             <Button variant='outline' onClick={() => setShowDetailDialog(false)}>
               Đóng
             </Button>
-            {selectedIncident?.status !== 'RESOLVED' && (
+            {selectedIncident && selectedIncident.status?.toLowerCase() !== 'resolved' && (
               <Button onClick={handleProcessIncident}>
                 Xử lý sự cố
               </Button>
@@ -360,7 +460,7 @@ const IncidentsTab = () => {
 
       {/* Process Incident Dialog */}
       <Dialog open={showProcessDialog} onOpenChange={setShowProcessDialog}>
-        <DialogContent>
+        <DialogContent className='max-w-2xl'>
           <DialogHeader>
             <DialogTitle>Xử lý sự cố</DialogTitle>
             <DialogDescription>
@@ -368,32 +468,46 @@ const IncidentsTab = () => {
             </DialogDescription>
           </DialogHeader>
 
-          <div className='grid gap-4 py-4'>
-            <div className='grid gap-2'>
-              <Label htmlFor='status'>Trạng thái mới</Label>
-              <Select value={newStatus} onValueChange={setNewStatus}>
-                <SelectTrigger>
-                  <SelectValue placeholder='Chọn trạng thái' />
-                </SelectTrigger>
-                <SelectContent position="popper" className="z-[9999] bg-white border border-gray-200 shadow-lg rounded-md p-1 min-w-[var(--radix-select-trigger-width)]">
-                  <SelectItem value='PENDING'>Chờ xử lý</SelectItem>
-                  <SelectItem value='IN_REVIEW'>Đang xử lý</SelectItem>
-                  <SelectItem value='RESOLVED'>Đã giải quyết</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          {selectedIncident && (
+            <div className='space-y-4 py-4'>
+              <div>
+                <Label className='text-sm font-medium text-muted-foreground'>Người báo cáo</Label>
+                <p className='text-lg font-semibold'>{selectedIncident.staff?.fullName || 'N/A'}</p>
+              </div>
 
-            <div className='grid gap-2'>
-              <Label htmlFor='notes'>Ghi chú xử lý</Label>
-              <Textarea
-                id='notes'
-                placeholder='Nhập ghi chú về cách xử lý sự cố...'
-                value={adminNotes}
-                onChange={(e) => setAdminNotes(e.target.value)}
-                rows={4}
-              />
+              <div>
+                <Label className='text-sm font-medium text-muted-foreground'>Nội dung sự cố</Label>
+                <div className='mt-2 p-3 bg-muted rounded-lg'>
+                  <p className='text-sm'>{selectedIncident.description || 'Không có mô tả'}</p>
+                </div>
+              </div>
+
+              <div className='space-y-2'>
+                <Label htmlFor='status'>Trạng thái xử lý</Label>
+                <Select value={newStatus} onValueChange={setNewStatus}>
+                  <SelectTrigger>
+                    <SelectValue placeholder='Chọn trạng thái' />
+                  </SelectTrigger>
+                  <SelectContent className="z-[9999] bg-white border border-gray-200 shadow-lg rounded-md p-1 min-w-[var(--radix-select-trigger-width)]">
+                    <SelectItem value='PENDING' className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Chờ xử lý</SelectItem>
+                    <SelectItem value='IN_REVIEW' className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Đang xử lý</SelectItem>
+                    <SelectItem value='RESOLVED' className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Đã giải quyết</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className='space-y-2'>
+                <Label htmlFor='notes'>Ghi chú xử lý</Label>
+                <Textarea
+                  id='notes'
+                  placeholder='Nhập ghi chú chi tiết về cách xử lý sự cố...'
+                  value={adminNotes}
+                  onChange={(e) => setAdminNotes(e.target.value)}
+                  rows={4}
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           <DialogFooter>
             <Button variant='outline' onClick={() => setShowProcessDialog(false)}>

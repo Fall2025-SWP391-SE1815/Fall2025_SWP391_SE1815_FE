@@ -12,7 +12,8 @@ const PersonnelTable = ({
   loading,
   searchTerm,
   roleFilter,
-  permissions = { view: true, edit: true, delete: true }
+  permissions = { view: true, edit: true, delete: true },
+  canModifyAdmin = () => true
 }) => {
   const getRoleBadge = (role) => {
     const roleMap = {
@@ -83,8 +84,15 @@ const PersonnelTable = ({
                       variant='ghost'
                       size='sm'
                       onClick={() => onEditUser(user)}
-                      disabled={user.role === 'renter'}
-                      className={user.role === 'renter' ? 'opacity-50 cursor-not-allowed' : ''}
+                      disabled={user.role === 'renter' || !canModifyAdmin(user)}
+                      className={(user.role === 'renter' || !canModifyAdmin(user)) ? 'opacity-50 cursor-not-allowed' : ''}
+                      title={
+                        user.role === 'renter' 
+                          ? 'Không thể chỉnh sửa khách hàng' 
+                          : !canModifyAdmin(user) 
+                          ? 'Không có quyền chỉnh sửa tài khoản này' 
+                          : 'Chỉnh sửa thông tin'
+                      }
                     >
                       <Edit className='h-4 w-4' />
                     </Button>
@@ -94,8 +102,21 @@ const PersonnelTable = ({
                       variant='ghost'
                       size='sm'
                       onClick={() => onDeleteUser(user.id)}
-                      className={user.isActive ? 'hover:bg-orange-50 hover:text-orange-600' : 'hover:bg-green-50 hover:text-green-600'}
-                      title={user.isActive ? 'Vô hiệu hóa tài khoản' : 'Kích hoạt tài khoản'}
+                      disabled={!canModifyAdmin(user)}
+                      className={
+                        !canModifyAdmin(user)
+                          ? 'opacity-50 cursor-not-allowed' 
+                          : user.isActive 
+                          ? 'hover:bg-orange-50 hover:text-orange-600' 
+                          : 'hover:bg-green-50 hover:text-green-600'
+                      }
+                      title={
+                        !canModifyAdmin(user)
+                          ? 'Không có quyền thay đổi trạng thái tài khoản này'
+                          : user.isActive 
+                          ? 'Vô hiệu hóa tài khoản' 
+                          : 'Kích hoạt tài khoản'
+                      }
                     >
                       {user.isActive ? (
                         <ToggleRight className='h-4 w-4 text-green-600' />

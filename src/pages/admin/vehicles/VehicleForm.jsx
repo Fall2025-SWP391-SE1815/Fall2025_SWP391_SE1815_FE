@@ -341,7 +341,7 @@ export default function VehicleForm({ initialValues, onSubmit, onCancel, station
             </SelectValue>
           </SelectTrigger>
           <SelectContent position="popper" side="bottom" className="z-[9999] bg-white border border-gray-200 shadow-lg rounded-md p-1 max-h-[300px] overflow-y-auto min-w-[var(--radix-select-trigger-width)]">
-            {stations.map((s) => (
+            {stations.filter(s => s.status === 'active').map((s) => (
               <SelectItem key={s.id} value={String(s.id)} className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">
                 {s.name}
               </SelectItem>
