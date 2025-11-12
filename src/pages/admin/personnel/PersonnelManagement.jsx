@@ -373,9 +373,9 @@ export default function PersonnelManagement() {
             {`Không thể ${action} tài khoản`}
           </div>
         ),
-        description: errorMessage,
+        // description: errorMessage,
         className: 'border-l-red-500 border-red-200 bg-red-50',
-        duration: 4000
+        duration: 2000
       });
     }
   };

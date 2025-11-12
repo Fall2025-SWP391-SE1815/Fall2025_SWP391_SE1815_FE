@@ -1,9 +1,9 @@
-import { Car, CheckCircle, Clock, Settings } from 'lucide-react';
+import { Car, CheckCircle, Clock, Settings, Trash2 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 
 export default function VehicleStatsCard({ stats }) {
     return (
-        <div className="grid gap-4 md:grid-cols-4 mb-4">
+        <div className="grid gap-4 md:grid-cols-6 mb-4">
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Tổng số xe</CardTitle>
@@ -36,6 +36,15 @@ export default function VehicleStatsCard({ stats }) {
 
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Xe đang chờ kiểm tra</CardTitle>
+                    <Car className="h-4 w-4 text-orange-600" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold text-orange-600">{stats.awaitingInspection || 0}</div>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Xe đang thuê</CardTitle>
                     <Car className="h-4 w-4 text-orange-600" />
                 </CardHeader>
@@ -52,6 +61,18 @@ export default function VehicleStatsCard({ stats }) {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-red-600">{stats.maintenance || 0}</div>
+                    </CardContent>
+                </Card>
+            )}
+
+            {stats.deleted > 0 && (
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Xe đã xóa</CardTitle>
+                        <Trash2 className="h-4 w-4 text-gray-600" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-gray-600">{stats.deleted || 0}</div>
                     </CardContent>
                 </Card>
             )}

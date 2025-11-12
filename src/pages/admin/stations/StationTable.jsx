@@ -56,10 +56,22 @@ export default function StationTable({ stations, onEdit, onDelete, onView }) {
                                     <Button variant="ghost" size="icon" onClick={() => onView(station)}>
                                         <Eye className="h-4 w-4" />
                                     </Button>
-                                    <Button variant="ghost" size="icon" onClick={() => onEdit(station)}>
+                                    <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        onClick={() => onEdit(station)}
+                                        disabled={station.status === 'deleted'}
+                                        className={station.status === 'deleted' ? 'opacity-50 cursor-not-allowed' : ''}
+                                    >
                                         <Edit className="h-4 w-4" />
                                     </Button>
-                                    <Button variant="ghost" size="icon" onClick={() => onDelete(station)}>
+                                    <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        onClick={() => onDelete(station)}
+                                        disabled={station.status === 'deleted'}
+                                        className={station.status === 'deleted' ? 'opacity-50 cursor-not-allowed' : ''}
+                                    >
                                         <Trash className="h-4 w-4" />
                                     </Button>
                                 </TableCell>

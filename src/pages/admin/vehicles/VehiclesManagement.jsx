@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Search, Car, CheckCircle, AlertTriangle, Edit, Trash2 } from 'lucide-react';
 import VehicleStatsCard from './VehicleStatsCard';
@@ -22,6 +23,7 @@ export default function VehiclesManagement() {
   const [selectedVehicle, setSelectedVehicle] = useState(null);
   const [viewVehicle, setViewVehicle] = useState(null);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
 
   useEffect(() => { fetchData(); }, []);
 
@@ -32,23 +34,31 @@ export default function VehiclesManagement() {
         stationService.admin.getStations(),
         vehicleService.admin.getVehicleStats()
       ]);
-      
+
       const vehiclesData = Array.isArray(vehiclesRes) ? vehiclesRes : (vehiclesRes?.data || []);
       const stationsData = Array.isArray(stationsRes) ? stationsRes : (stationsRes?.data || []);
       const statsData = statsRes?.data || statsRes || {};
-      
+
       setVehicles(vehiclesData);
       setStations(stationsData);
-      
-      const totalVehicles = (statsData.available || 0) + (statsData.reserved || 0) + (statsData.rented || 0) + (statsData.maintenance || 0);
+
+      // Calculate stats from actual data
+      const statusCounts = vehiclesData.reduce((acc, vehicle) => {
+        acc[vehicle.status] = (acc[vehicle.status] || 0) + 1;
+        return acc;
+      }, {});
+
+      const totalVehicles = vehiclesData.length;
       const monthlyRevenue = vehiclesData.reduce((acc, cur) => acc + (cur.pricePerHour || 0), 0);
-      
+
       setStats({
         totalVehicles,
-        available: statsData.available || 0,
-        reserved: statsData.reserved || 0,
-        rented: statsData.rented || 0,
-        maintenance: statsData.maintenance || 0,
+        available: statusCounts.available || 0,
+        reserved: statusCounts.reserved || 0,
+        rented: statusCounts.rented || 0,
+        maintenance: statusCounts.maintenance || 0,
+        deleted: statusCounts.deleted || 0,
+        awaiting_inspection: statusCounts.awaiting_inspection || 0,
         monthlyRevenue
       });
     } catch (error) {
@@ -113,7 +123,7 @@ export default function VehiclesManagement() {
           duration: 4000
         });
       }
-      
+
       setIsDialogOpen(false);
       setSelectedVehicle(null);
       fetchData();
@@ -171,22 +181,75 @@ export default function VehiclesManagement() {
 
       <div className="flex gap-2 mb-4">
         <Input placeholder="Tìm kiếm theo biển số, hãng xe, số ghế..." value={search} onChange={(e) => setSearch(e.target.value)} />
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="Lọc theo trạng thái" />
+          </SelectTrigger>
+          <SelectContent className="z-[9999] bg-white border border-gray-200 shadow-lg rounded-md p-1 min-w-[var(--radix-select-trigger-width)]">
+            <SelectItem value="all">Tất cả trạng thái</SelectItem>
+            <SelectItem value="available">Có sẵn</SelectItem>
+            <SelectItem value="reserved">Đã đặt</SelectItem>
+            <SelectItem value="rented">Đang thuê</SelectItem>
+            <SelectItem value="maintenance">Bảo trì</SelectItem>
+            <SelectItem value="deleted">Đã xóa</SelectItem>
+            <SelectItem value="awaiting_inspection">Đang chờ kiểm tra</SelectItem>
+          </SelectContent>
+        </Select>
         <Button onClick={() => { setSelectedVehicle(null); setIsDialogOpen(true); }}>+ Thêm phương tiện</Button>
       </div>
 
       <VehicleTable
         vehicles={vehicles.filter((v) => {
           const searchLower = search.toLowerCase();
-          return (
+          const matchesSearch = (
             v.licensePlate?.toLowerCase().includes(searchLower) ||
             v.brand?.toLowerCase().includes(searchLower) ||
             v.numberSeat?.toString().includes(search) ||
             v.model?.toLowerCase().includes(searchLower) ||
             v.type?.toLowerCase().includes(searchLower)
           );
+
+          const matchesStatus = statusFilter === 'all' || v.status === statusFilter;
+
+          return matchesSearch && matchesStatus;
         })}
-        onEdit={(v) => { setSelectedVehicle(v); setIsDialogOpen(true); }}
-        onDelete={handleDelete}
+        onEdit={(v) => {
+          if (v.status === 'deleted') {
+            toast({
+              title: (
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-yellow-600" />
+                  Không thể chỉnh sửa
+                </div>
+              ),
+              description: 'Không thể chỉnh sửa phương tiện đã xóa.',
+              variant: 'destructive',
+              className: 'border-l-yellow-500 border-yellow-200 bg-yellow-50',
+              duration: 3000
+            });
+            return;
+          }
+          setSelectedVehicle(v);
+          setIsDialogOpen(true);
+        }}
+        onDelete={(v) => {
+          if (v.status === 'deleted') {
+            toast({
+              title: (
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-yellow-600" />
+                  Không thể xóa
+                </div>
+              ),
+              description: 'Phương tiện đã được xóa trước đó.',
+              variant: 'destructive',
+              className: 'border-l-yellow-500 border-yellow-200 bg-yellow-50',
+              duration: 3000
+            });
+            return;
+          }
+          handleDelete(v);
+        }}
         onView={async (v) => {
           try {
             const res = await vehicleService.admin.getVehicleById(v.id);

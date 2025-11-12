@@ -11,7 +11,8 @@ const getStatusText = (status) => {
         'reserved': 'Đã đặt',
         'rented': 'Đang thuê',
         'maintenance': 'Bảo trì',
-        'deleted': 'Đã xóa'
+        'deleted': 'Đã xóa',
+        'awaiting_inspection': 'Đang chờ kiểm tra'
     };
     return statusMap[status] || status;
 };
@@ -81,9 +82,27 @@ export default function VehicleTable({ vehicles, onEdit, onDelete, onView }) {
                                     </TableCell>
                                     <TableCell>{(v.pricePerHour || 0).toLocaleString()}₫</TableCell>
                                     <TableCell className="text-right flex justify-end gap-2">
-                                        <Button variant="ghost" size="icon" onClick={() => onView(v)}><Eye className="h-4 w-4" /></Button>
-                                        <Button variant="ghost" size="icon" onClick={() => onEdit(v)}><Edit className="h-4 w-4" /></Button>
-                                        <Button variant="ghost" size="icon" onClick={() => onDelete(v)}><Trash className="h-4 w-4" /></Button>
+                                        <Button variant="ghost" size="icon" onClick={() => onView(v)}>
+                                            <Eye className="h-4 w-4" />
+                                        </Button>
+                                        <Button 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            onClick={() => onEdit(v)}
+                                            disabled={v.status === 'deleted' || v.status === 'awaiting_inspection'}
+                                            className={v.status === 'deleted' || v.status === 'awaiting_inspection' ? 'opacity-50 cursor-not-allowed' : ''}
+                                        >
+                                            <Edit className="h-4 w-4" />
+                                        </Button>
+                                        <Button 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            onClick={() => onDelete(v)}
+                                            disabled={v.status === 'deleted' || v.status === 'awaiting_inspection'}
+                                            className={v.status === 'deleted' || v.status === 'awaiting_inspection' ? 'opacity-50 cursor-not-allowed' : ''}
+                                        >
+                                            <Trash className="h-4 w-4" />
+                                        </Button>
                                     </TableCell>
                                 </TableRow>
                             );

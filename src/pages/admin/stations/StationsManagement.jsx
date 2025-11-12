@@ -3,8 +3,9 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Search, MapPin, CheckCircle, AlertTriangle, Edit, Trash2 } from 'lucide-react';
+import { Plus, Search, MapPin, CheckCircle, AlertTriangle, Edit, Trash2, Filter } from 'lucide-react';
 import StationStatsCard from './StationStatsCard';
 import StationForm from './StationForm';
 import StationTable from './StationTable';
@@ -14,12 +15,13 @@ import stationService from '@/services/stations/stationService.js';
 export default function StationsManagement() {
   const { toast } = useToast();
   const [stations, setStations] = useState([]);
-  const [stats, setStats] = useState({ totalStations: 0, activeStations: 0, maintenanceStations: 0 });
+  const [stats, setStats] = useState({ totalStations: 0, activeStations: 0, maintenanceStations: 0, inactiveStations: 0, deletedStations: 0 });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [selectedStation, setSelectedStation] = useState(null);
   const [viewStation, setViewStation] = useState(null);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
 
   useEffect(() => { fetchData(); }, []);
 
@@ -36,7 +38,9 @@ export default function StationsManagement() {
       setStats({
         totalStations: stationsData.length,
         activeStations: stationsData.filter((s) => s.status === 'active').length,
-        maintenanceStations: stationsData.filter((s) => s.status === 'maintenance').length
+        inactiveStations: stationsData.filter((s) => s.status === 'inactive').length,
+        maintenanceStations: stationsData.filter((s) => s.status === 'maintenance').length,
+        deletedStations: stationsData.filter((s) => s.status === 'deleted').length
       });
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -152,17 +156,86 @@ export default function StationsManagement() {
       <StationStatsCard stats={stats} />
 
       <div className="flex gap-2 mb-4">
-        <Input placeholder="Tìm kiếm..." value={search} onChange={(e) => setSearch(e.target.value)} />
-        <Button onClick={() => { setSelectedStation(null); setIsDialogOpen(true); }}>+ Thêm trạm mới</Button>
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+          <Input 
+            placeholder="Tìm kiếm tên trạm, địa chỉ..." 
+            value={search} 
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <Filter className="h-4 w-4 text-gray-500" />
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Lọc theo trạng thái" />
+            </SelectTrigger>
+            <SelectContent className="z-[9999] bg-white border border-gray-200 shadow-lg rounded-md p-1 min-w-[var(--radix-select-trigger-width)]">
+              <SelectItem value="all">Tất cả trạng thái</SelectItem>
+              <SelectItem value="active">Hoạt động</SelectItem>
+              <SelectItem value="inactive">Không hoạt động</SelectItem>
+              <SelectItem value="maintenance">Bảo trì</SelectItem>
+              <SelectItem value="deleted">Đã xóa</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <Button onClick={() => { setSelectedStation(null); setIsDialogOpen(true); }} className="flex items-center gap-2">
+          <Plus className="h-4 w-4" />
+          Thêm trạm mới
+        </Button>
       </div>
 
       <StationTable
-        stations={stations.filter((s) =>
-          s.name?.toLowerCase().includes(search.toLowerCase()) ||
-          s.address?.toLowerCase().includes(search.toLowerCase())
-        )}
-        onEdit={(s) => { setSelectedStation(s); setIsDialogOpen(true); }}
-        onDelete={handleDelete}
+        stations={stations.filter((s) => {
+          // Filter by search term
+          const matchesSearch = s.name?.toLowerCase().includes(search.toLowerCase()) ||
+                               s.address?.toLowerCase().includes(search.toLowerCase());
+          
+          // Filter by status
+          const matchesStatus = statusFilter === 'all' || s.status === statusFilter;
+          
+          return matchesSearch && matchesStatus;
+        })}
+        onEdit={(s) => {
+          if (s.status === 'deleted') {
+            toast({
+              title: (
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-red-600" />
+                  Không thể chỉnh sửa
+                </div>
+              ),
+              description: 'Không thể chỉnh sửa trạm đã bị xóa.',
+              variant: 'destructive',
+              className: 'border-l-red-500 border-red-200 bg-red-50',
+              duration: 3000
+            });
+            return;
+          }
+          setSelectedStation(s); 
+          setIsDialogOpen(true); 
+        }}
+        onDelete={(s) => {
+          if (s.status === 'deleted') {
+            toast({
+              title: (
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-red-600" />
+                  Không thể xóa
+                </div>
+              ),
+              description: 'Trạm đã bị xóa trước đó.',
+              variant: 'destructive',
+              className: 'border-l-red-500 border-red-200 bg-red-50',
+              duration: 3000
+            });
+            return;
+          }
+          handleDelete(s);
+        }}
         onView={async (s) => {
           try {
             const res = await stationService.admin.getStationById(s.id);
