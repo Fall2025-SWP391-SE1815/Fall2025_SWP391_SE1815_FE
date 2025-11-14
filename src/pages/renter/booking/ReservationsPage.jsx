@@ -447,6 +447,54 @@ const ReservationsPage = () => {
     );
   };
 
+  // Chỉ cho phép đặt trong khung giờ 07:00 - 22:00
+  const isWithinBookingHours = (dateTimeString) => {
+    if (!dateTimeString) return true;
+    const date = new Date(dateTimeString);
+    const hour = date.getHours();
+    return hour >= 7 && hour < 22;
+  };
+
+  const getBookingHourError = (dateTimeString) => {
+    if (!dateTimeString) return "";
+    const date = new Date(dateTimeString);
+    const hour = date.getHours();
+    if (hour < 7) return "⚠ Thời gian phải từ 07:00 sáng";
+    if (hour >= 22) return "⚠ Thời gian phải trước 22:00 đêm";
+    return "";
+  };
+
+  const autoFixEndTime = () => {
+    if (!createForm.reserved_start_time) return;
+
+    const start = new Date(createForm.reserved_start_time);
+
+    // +4 tiếng
+    let end = new Date(start.getTime() + 4 * 60 * 60 * 1000);
+
+    const hour = end.getHours();
+
+    // Nếu vượt qua 22h → chuyển sang ngày hôm sau
+    if (hour >= 22) {
+      end.setDate(end.getDate() + 1); // sang ngày mới
+      end.setHours(7, 0, 0, 0);       // đặt lại 07:00 sáng
+    }
+
+    // Nếu +4h rơi vào 00:00 - 06:59 → chỉnh lên 07:00
+    if (hour < 7) {
+      end.setHours(7, 0, 0, 0);
+    }
+
+    // Format LOCAL chuẩn yyyy-MM-ddTHH:mm (KHÔNG dùng UTC)
+    const pad = (n) => n.toString().padStart(2, "0");
+    const formatted = `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}T${pad(end.getHours())}:${pad(end.getMinutes())}`;
+
+    setCreateForm(prev => ({
+      ...prev,
+      reserved_end_time: formatted
+    }));
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -1087,7 +1135,6 @@ const ReservationsPage = () => {
                           const newStartTime = e.target.value;
                           const newForm = { ...createForm, reserved_start_time: newStartTime };
 
-                          // If end time is before the new start time, clear it
                           if (createForm.reserved_end_time && newStartTime &&
                             new Date(createForm.reserved_end_time) <= new Date(newStartTime)) {
                             newForm.reserved_end_time = '';
@@ -1096,12 +1143,15 @@ const ReservationsPage = () => {
                           setCreateForm(newForm);
                         }}
                         min={new Date().toISOString().slice(0, 16)}
-                        className={`${!isValidStartTime() ? 'border-red-300 focus:border-red-500' : ''}`}
+                        className={`${!isValidStartTime() || !isWithinBookingHours(createForm.reserved_start_time)
+                          ? 'border-red-300 focus:border-red-500'
+                          : ''
+                          }`}
                       />
-                      {createForm.reserved_start_time && !isValidStartTime() && (
+
+                      {createForm.reserved_start_time && !isWithinBookingHours(createForm.reserved_start_time) && (
                         <p className="text-xs text-red-600 mt-1 flex items-center">
-                          <span className="mr-1">⚠</span>
-                          Không thể chọn thời gian trong quá khứ
+                          {getBookingHourError(createForm.reserved_start_time)}
                         </p>
                       )}
                     </div>
@@ -1115,12 +1165,15 @@ const ReservationsPage = () => {
                         value={createForm.reserved_end_time}
                         onChange={(e) => setCreateForm({ ...createForm, reserved_end_time: e.target.value })}
                         min={createForm.reserved_start_time || new Date().toISOString().slice(0, 16)}
-                        className={`${!isValidEndTime() ? 'border-red-300 focus:border-red-500' : ''}`}
+                        className={`${!isValidEndTime() || !isWithinBookingHours(createForm.reserved_end_time)
+                          ? 'border-red-300 focus:border-red-500'
+                          : ''
+                          }`}
                       />
-                      {createForm.reserved_end_time && !isValidEndTime() && (
+
+                      {createForm.reserved_end_time && !isWithinBookingHours(createForm.reserved_end_time) && (
                         <p className="text-xs text-red-600 mt-1 flex items-center">
-                          <span className="mr-1">⚠</span>
-                          Thời gian kết thúc phải sau thời gian bắt đầu
+                          {getBookingHourError(createForm.reserved_end_time)}
                         </p>
                       )}
                     </div>
@@ -1211,12 +1264,25 @@ const ReservationsPage = () => {
                           )}
                         </>
                       )}
+                      {isValidStartTime() && isValidEndTime() && !isValidRentalDuration() && (
+                        <div className="mt-2 bg-yellow-50 border border-yellow-300 p-3 rounded-lg text-sm text-yellow-800">
+                          ⚠ Bạn đang chọn thời gian thuê ít hơn 4 giờ.<br />
+                          Bạn có muốn tự động cộng thêm để đủ 4 giờ không?
+                          <div className="mt-2 flex space-x-2">
+                            <Button
+                              size="sm"
+                              className="bg-yellow-600 hover:bg-yellow-700 text-white"
+                              onClick={autoFixEndTime}
+                            >
+                              Tự động cộng 4 giờ
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
               )}
-
-
 
               {/* Cost Preview */}
               {createForm.reserved_start_time && createForm.reserved_end_time && getSelectedVehicleInfo() && (
@@ -1331,7 +1397,9 @@ const ReservationsPage = () => {
                     !createForm.reserved_end_time ||
                     !isValidRentalDuration() ||
                     !isValidStartTime() ||
-                    !isValidEndTime()
+                    !isValidEndTime() ||
+                    !isWithinBookingHours(createForm.reserved_start_time) ||
+                    !isWithinBookingHours(createForm.reserved_end_time)
                   }
                   className="bg-green-600 hover:bg-green-700"
                 >
