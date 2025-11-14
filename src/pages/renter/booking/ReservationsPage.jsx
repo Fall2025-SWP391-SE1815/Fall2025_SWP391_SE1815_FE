@@ -13,17 +13,16 @@ import renterService from '@/services/renter/renterService.js';
 import stationService from '@/services/stations/stationService';
 import vehicleService from '@/services/vehicles/vehicleService';
 import { API_BASE_URL } from '@/lib/api/apiConfig';
-import { Calendar, Car, MapPin, Clock, CreditCard, Trash2, Eye, RefreshCw, Search, Filter, CheckCircle, XCircle, AlertCircle, User, Phone, Mail, Shield, ShieldCheck, ShieldX, Battery, BatteryLow } from 'lucide-react';
+import { Calendar, Car, MapPin, Clock, CreditCard, Trash2, Eye, RefreshCw, Search, Filter, CheckCircle, XCircle, AlertCircle, User, Phone, Mail, Shield, ShieldCheck, ShieldX, Battery, BatteryLow, AlertTriangle, Check } from 'lucide-react';
 import { calculateRentalCost, formatCurrency } from '@/utils/pricing';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
 
 const ReservationsPage = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [searchParams] = useSearchParams();
-  const { user, isAuthenticated } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
 
   // State
   const [reservations, setReservations] = useState([]);
@@ -198,7 +197,6 @@ const ReservationsPage = () => {
   const handleCreateBooking = async () => {
     setLoading(true);
     setError('');
-    setSuccess('');
 
     try {
       // Validation
@@ -222,14 +220,29 @@ const ReservationsPage = () => {
         throw new Error('Vui lòng chọn xe cụ thể');
       }
 
-      // Check if user already has an active reservation
+      // Check if user already has an active reservation and show toast warning
       const activeReservations = reservations.filter(reservation =>
         ['pending', 'confirmed'].includes(reservation.status) &&
         new Date(reservation.reservedStartTime || reservation.reserved_start_time) > new Date()
       );
 
       if (activeReservations.length > 0) {
-        throw new Error('Bạn đã có lịch hẹn đang chờ hoặc đã xác nhận. Vui lòng hủy lịch cũ trước khi tạo lịch mới.');
+        toast({
+          title: (
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-600" />
+              Cảnh báo: Đã có lịch hẹn active!
+            </div>
+          ),
+          description: "Bạn đã có lịch hẹn đang chờ hoặc đã xác nhận. Tạo thêm lịch mới có thể gây xung đột thời gian.",
+          variant: "destructive",
+          className: "border-l-red-500 border-red-200 bg-red-50",
+          duration: 4000
+        });
+        // Log để debug
+        console.log('Active reservations found:', activeReservations);
+      } else {
+        console.log('No active reservations found. Current reservations:', reservations);
       }
 
       // Java LocalDateTime format: YYYY-MM-DDTHH:mm:ss (không có timezone)
@@ -273,7 +286,17 @@ const ReservationsPage = () => {
       };
 
       setReservations(prev => [newReservation, ...prev]);
-      setSuccess('Tạo booking thành công!');
+      toast({
+        title: (
+          <div className="flex items-center gap-2">
+            <CheckCircle className="h-5 w-5 text-green-600" />
+            Thành công!
+          </div>
+        ),
+        description: "Tạo lịch hẹn thành công! Vui lòng chờ xác nhận từ hệ thống.",
+        className: "border-l-green-500 border-green-200 bg-green-50",
+        duration: 3000
+      });
       setShowCreateModal(false);
       setCreateForm({
         vehicle_id: '',
@@ -377,7 +400,7 @@ const ReservationsPage = () => {
         createdAt: r.createdAt,
         cancelledBy: r.cancelledBy,
         cancelledReason: r.cancelledReason,
-        insurance: r.insurance, // Thêm trường insurance từ API
+        insurance: r.insurance,
         // Keep vehicle and renter info for display
         vehicle: r.vehicle,
         renter: r.renter
@@ -399,14 +422,23 @@ const ReservationsPage = () => {
 
     setLoading(true);
     setError('');
-    setSuccess('');
 
     try {
       // Call real API to cancel reservation with optional reason
       await renterService.reservations.cancel(reservationId, reason || undefined);
       // Loại bỏ ngay trong danh sách để UI phản hồi tức thời
       setReservations(prev => prev.filter(r => r.id !== reservationId));
-      setSuccess('Hủy đặt chỗ thành công!');
+      toast({
+        title: (
+          <div className="flex items-center gap-2">
+            <Check className="h-5 w-5 text-green-600" />
+            Đã hủy!
+          </div>
+        ),
+        description: "Hủy đặt chỗ thành công. Lịch hẹn đã được xóa khỏi danh sách.",
+        className: "border-l-green-500 border-green-200 bg-green-50",
+        duration: 3000
+      });
     } catch (error) {
       console.error('Error canceling reservation:', error);
       setError('Có lỗi xảy ra khi hủy đặt chỗ.');
@@ -512,21 +544,34 @@ const ReservationsPage = () => {
             </div>
             <div className="flex items-center space-x-3">
               <Button
-                onClick={() => setShowCreateModal(true)}
-                disabled={hasActiveReservation()}
-                className={`${hasActiveReservation() ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}
-                title={hasActiveReservation() ? 'Bạn đã có lịch hẹn đang chờ hoặc đã xác nhận' : ''}
+                onClick={() => {
+                  // Check for active reservations when opening modal
+                  const activeReservations = reservations.filter(reservation =>
+                    ['pending', 'confirmed'].includes(reservation.status) &&
+                    new Date(reservation.reservedStartTime || reservation.reserved_start_time) > new Date()
+                  );
+
+                  if (activeReservations.length > 0) {
+                    toast({
+                      title: (
+                        <div className="flex items-center gap-2">
+                          <AlertTriangle className="h-5 w-5 text-red-600" />
+                          Cảnh báo!
+                        </div>
+                      ),
+                      description: `Bạn đã có ${activeReservations.length} lịch hẹn đang chờ/đã xác nhận. Tạo thêm có thể gây xung đột.`,
+                      variant: "destructive",
+                      className: "border-l-red-500 border-red-200 bg-red-50",
+                      duration: 4000
+                    });
+                  }
+
+                  setShowCreateModal(true);
+                }}
+                className="bg-green-600 hover:bg-green-700"
               >
                 <Calendar className="h-4 w-4 mr-2" />
                 Tạo lịch hẹn mới
-              </Button>
-              <Button
-                variant="outline"
-                onClick={loadReservations}
-                disabled={loading}
-              >
-                <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                Làm mới
               </Button>
             </div>
           </div>
@@ -534,27 +579,11 @@ const ReservationsPage = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Success/Error Alerts */}
-        {success && (
-          <Alert className="mb-6 border-green-200 bg-green-50">
-            <CheckCircle className="h-4 w-4 text-green-600" />
-            <AlertDescription className="text-green-700">{success}</AlertDescription>
-          </Alert>
-        )}
+        {/* Error Alerts */}
         {error && (
           <Alert variant="destructive" className="mb-6">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
-        {/* Active Reservation Warning */}
-        {hasActiveReservation() && (
-          <Alert className="mb-6 border-yellow-200 bg-yellow-50">
-            <AlertCircle className="h-4 w-4 text-yellow-600" />
-            <AlertDescription className="text-yellow-700">
-              Bạn đã có lịch hẹn đang chờ hoặc đã xác nhận. Vui lòng hủy lịch cũ trước khi tạo lịch mới.
-            </AlertDescription>
           </Alert>
         )}
 
@@ -1019,6 +1048,24 @@ const ReservationsPage = () => {
             </DialogHeader>
 
             <div className="space-y-4">
+              {/* Active Reservations Warning */}
+              {(() => {
+                const activeReservations = reservations.filter(reservation =>
+                  ['pending', 'confirmed'].includes(reservation.status) &&
+                  new Date(reservation.reservedStartTime || reservation.reserved_start_time) > new Date()
+                );
+
+                return activeReservations.length > 0 && (
+                  <Alert className="border-yellow-200 bg-yellow-50">
+                    <AlertCircle className="h-4 w-4 text-yellow-600" />
+                    <AlertDescription className="text-yellow-700">
+                      <strong>Cảnh báo:</strong> Bạn đã có {activeReservations.length} lịch hẹn đang chờ/đã xác nhận.
+                      Tạo thêm lịch mới có thể gây xung đột thời gian.
+                    </AlertDescription>
+                  </Alert>
+                );
+              })()}
+
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Left Column */}
                 <div className="space-y-4">
@@ -1135,6 +1182,7 @@ const ReservationsPage = () => {
                           const newStartTime = e.target.value;
                           const newForm = { ...createForm, reserved_start_time: newStartTime };
 
+                          // If end time is before the new start time, clear it
                           if (createForm.reserved_end_time && newStartTime &&
                             new Date(createForm.reserved_end_time) <= new Date(newStartTime)) {
                             newForm.reserved_end_time = '';

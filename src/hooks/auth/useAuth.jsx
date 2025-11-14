@@ -13,7 +13,7 @@ export const AuthProvider = ({ children }) => {
 
   // Initialize authentication state
   useEffect(() => {
-    const initAuth = async () => {  
+    const initAuth = async () => {
       try {
         const token = localStorage.getItem('accessToken');
         const userData = localStorage.getItem('userData');
@@ -22,21 +22,6 @@ export const AuthProvider = ({ children }) => {
           const parsedUser = JSON.parse(userData);
           setUser(parsedUser);
           setIsAuthenticated(true);
-
-          // Verify token is still valid (optional) - Disabled for now to prevent logout issues
-          // try {
-          //   const response = await apiClient.get('/auth/me');
-          //   if (response.success) {
-          //     setUser(response.data);
-          //   }
-          // } catch (error) {
-          //   // Token might be expired, clear storage
-          //   localStorage.removeItem('accessToken');
-          //   localStorage.removeItem('refreshToken');
-          //   localStorage.removeItem('userData');
-          //   setUser(null);
-          //   setIsAuthenticated(false);
-          // }
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
@@ -112,63 +97,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Update user profile
-  const updateProfile = async (updateData) => {
-    try {
-      const response = await apiClient.put(`/users/${user.id}`, updateData);
 
-      if (response.success) {
-        const updatedUser = { ...user, ...response.data };
-        setUser(updatedUser);
-        localStorage.setItem('userData', JSON.stringify(updatedUser));
-        return { success: true, user: updatedUser };
-      } else {
-        return { success: false, message: response.message };
-      }
-    } catch (error) {
-      const errorMessage = error.response?.data?.message || 'Cập nhật thông tin thất bại';
-      return { success: false, message: errorMessage };
-    }
-  };
-
-  // Change password
-  const changePassword = async (currentPassword, newPassword) => {
-    try {
-      const response = await apiClient.post('/auth/change-password', {
-        current_password: currentPassword,
-        new_password: newPassword
-      });
-
-      if (response.success) {
-        return { success: true, message: 'Đổi mật khẩu thành công' };
-      } else {
-        return { success: false, message: response.message };
-      }
-    } catch (error) {
-      const errorMessage = error.response?.data?.message || 'Đổi mật khẩu thất bại';
-      return { success: false, message: errorMessage };
-    }
-  };
-
-  // Check user role
-  const hasRole = (role) => {
-    return user?.role === role;
-  };
-
-  // Check if user has any of the specified roles
-  const hasAnyRole = (roles) => {
-    return user && roles.includes(user.role);
-  };
-
-  // Get user role
-  const getUserRole = () => {
-    return user?.role || null;
-  };
-
-  // Get user full name
-  const getUserName = () => {
-    return user?.full_name || user?.email || 'Người dùng';
-  };
 
   // Context value
   const value = {
@@ -177,13 +106,7 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated,
     login,
     register,
-    logout,
-    updateProfile,
-    changePassword,
-    hasRole,
-    hasAnyRole,
-    getUserRole,
-    getUserName
+    logout
   };
 
   return (
