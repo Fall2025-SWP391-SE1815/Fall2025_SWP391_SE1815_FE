@@ -128,8 +128,10 @@ const HistoryPage = () => {
         return <Badge className="bg-blue-100 text-blue-800">Đang sử dụng</Badge>;
       case 'expired':
         return <Badge className="bg-red-100 text-red-800">Quá hạn</Badge>;
-        case 'waiting_for_payment':
+      case 'waiting_for_payment':
         return <Badge className="bg-purple-100 text-purple-800">Chờ thanh toán</Badge>;
+      case 'wait_confirm':
+        return <Badge className="bg-red-100 text-red-800">Chờ xác nhận</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }

@@ -12,19 +12,19 @@ import vehicleService from '@/services/vehicles/vehicleService.js';
 const createValidationSchema = (initialVehicleId = null) => Yup.object({
   licensePlate: Yup.string()
     .required('Biển số xe bắt buộc')
-    .test('unique-license-plate', 'Biển số xe đã tồn tại', async function(value) {
+    .test('unique-license-plate', 'Biển số xe đã tồn tại', async function (value) {
       if (!value) return true;
-      
+
       try {
         const response = await vehicleService.admin.getVehicles();
         const vehicles = response?.vehicles || response?.data || response || [];
-        
+
         // Kiểm tra trùng lặp, loại bỏ xe hiện tại nếu đang sửa
-        const duplicateVehicle = vehicles.find(vehicle => 
-          vehicle.licensePlate.toLowerCase() === value.toLowerCase() && 
+        const duplicateVehicle = vehicles.find(vehicle =>
+          vehicle.licensePlate.toLowerCase() === value.toLowerCase() &&
           vehicle.id !== initialVehicleId
         );
-        
+
         return !duplicateVehicle;
       } catch (error) {
         console.error('Error checking license plate:', error);
@@ -49,7 +49,7 @@ const createValidationSchema = (initialVehicleId = null) => Yup.object({
 export default function VehicleForm({ initialValues, onSubmit, onCancel, stations }) {
   const [imagePreview, setImagePreview] = useState(initialValues?.imageurl || initialValues?.image || null);
   const [imageFile, setImageFile] = useState(null);
-  
+
   const validationSchema = createValidationSchema(initialValues?.id);
 
   const formik = useFormik({
@@ -76,7 +76,7 @@ export default function VehicleForm({ initialValues, onSubmit, onCancel, station
         formik.setFieldError('image', 'Vui lòng chọn file ảnh');
         return;
       }
-      
+
       // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
         formik.setFieldError('image', 'Kích thước ảnh không được vượt quá 5MB');
@@ -85,7 +85,7 @@ export default function VehicleForm({ initialValues, onSubmit, onCancel, station
 
       setImageFile(file);
       formik.setFieldValue('image', file.name);
-      
+
       // Create preview
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -108,9 +108,9 @@ export default function VehicleForm({ initialValues, onSubmit, onCancel, station
         <div className="space-y-2">
           {imagePreview && (
             <div className="relative w-full h-48 border rounded-lg overflow-hidden bg-gray-50">
-              <img 
+              <img
                 src={imagePreview.startsWith('/') ? `${API_BASE_URL}${imagePreview}` : imagePreview}
-                alt="Vehicle preview" 
+                alt="Vehicle preview"
                 className="w-full h-full object-cover"
               />
               <Button
@@ -221,9 +221,9 @@ export default function VehicleForm({ initialValues, onSubmit, onCancel, station
 
         <div>
           <label className="block text-sm font-medium mb-1">Phần trăm pin (%)</label>
-          <Input 
-            type="number" 
-            {...formik.getFieldProps('batteryLevel')} 
+          <Input
+            type="number"
+            {...formik.getFieldProps('batteryLevel')}
             placeholder="VD: 85"
             min="0"
             max="100"
@@ -237,9 +237,9 @@ export default function VehicleForm({ initialValues, onSubmit, onCancel, station
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium mb-1">Odometer (km)</label>
-          <Input 
-            type="number" 
-            {...formik.getFieldProps('odo')} 
+          <Input
+            type="number"
+            {...formik.getFieldProps('odo')}
             placeholder="VD: 15000"
             min="0"
           />
@@ -250,9 +250,9 @@ export default function VehicleForm({ initialValues, onSubmit, onCancel, station
 
         <div>
           <label className="block text-sm font-medium mb-1">Số chỗ ngồi</label>
-          <Input 
-            type="number" 
-            {...formik.getFieldProps('numberSeat')} 
+          <Input
+            type="number"
+            {...formik.getFieldProps('numberSeat')}
             placeholder={formik.values.type === 'motorbike' ? '2 (mặc định)' : 'VD: 4, 5, 7...'}
             min="1"
             disabled={formik.values.type === 'motorbike'}
@@ -271,17 +271,15 @@ export default function VehicleForm({ initialValues, onSubmit, onCancel, station
         >
           <SelectTrigger className="w-full bg-background">
             <SelectValue placeholder="Chọn trạng thái">
-              {formik.values.status === 'available' ? 'Có sẵn' : 
-               formik.values.status === 'rented' ? 'Đang thuê' :
-               formik.values.status === 'maintenance' ? 'Bảo trì' :
-               formik.values.status === 'reserved' ? 'Đã đặt' : 'Chọn trạng thái'}
+              {formik.values.status === 'available' ? 'Có sẵn' :
+                formik.values.status === 'rented' ? 'Đang thuê' :
+                  formik.values.status === 'maintenance' ? 'Bảo trì' :
+                    formik.values.status === 'reserved' ? 'Đã đặt' : 'Chọn trạng thái'}
             </SelectValue>
           </SelectTrigger>
           <SelectContent position="popper" side="bottom" className="z-[9999] bg-white border border-gray-200 shadow-lg rounded-md p-1 min-w-[var(--radix-select-trigger-width)]">
             <SelectItem value="available" className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Có sẵn</SelectItem>
-            <SelectItem value="rented" className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Đang thuê</SelectItem>
             <SelectItem value="maintenance" className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Bảo trì</SelectItem>
-            <SelectItem value="reserved" className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 rounded-sm text-gray-900">Đã đặt</SelectItem>
           </SelectContent>
         </Select>
         {formik.touched.status && formik.errors.status && (
@@ -292,9 +290,9 @@ export default function VehicleForm({ initialValues, onSubmit, onCancel, station
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium mb-1">Dung lượng pin (kWh)</label>
-          <Input 
-            type="number" 
-            {...formik.getFieldProps('capacity')} 
+          <Input
+            type="number"
+            {...formik.getFieldProps('capacity')}
             placeholder="VD: 4, 7..."
           />
           {formik.touched.capacity && formik.errors.capacity && (
@@ -304,9 +302,9 @@ export default function VehicleForm({ initialValues, onSubmit, onCancel, station
 
         <div>
           <label className="block text-sm font-medium mb-1">Quãng đường/sạc đầy (km)</label>
-          <Input 
-            type="number" 
-            {...formik.getFieldProps('rangePerFullCharge')} 
+          <Input
+            type="number"
+            {...formik.getFieldProps('rangePerFullCharge')}
             placeholder="VD: 250"
           />
           {formik.touched.rangePerFullCharge && formik.errors.rangePerFullCharge && (
@@ -317,9 +315,9 @@ export default function VehicleForm({ initialValues, onSubmit, onCancel, station
 
       <div>
         <label className="block text-sm font-medium mb-1">Giá theo giờ (VND)</label>
-        <Input 
-          type="number" 
-          {...formik.getFieldProps('pricePerHour')} 
+        <Input
+          type="number"
+          {...formik.getFieldProps('pricePerHour')}
           placeholder="VD: 150000"
         />
         {formik.touched.pricePerHour && formik.errors.pricePerHour && (
@@ -335,7 +333,7 @@ export default function VehicleForm({ initialValues, onSubmit, onCancel, station
         >
           <SelectTrigger className="w-full bg-background">
             <SelectValue placeholder="Chọn trạm">
-              {formik.values.stationId 
+              {formik.values.stationId
                 ? stations.find(s => s.id === formik.values.stationId)?.name || 'Chọn trạm'
                 : 'Chọn trạm'}
             </SelectValue>

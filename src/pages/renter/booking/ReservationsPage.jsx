@@ -208,26 +208,26 @@ const ReservationsPage = () => {
       if (new Date(createForm.reserved_start_time) >= new Date(createForm.reserved_end_time)) {
         throw new Error('Thời gian kết thúc phải sau thời gian bắt đầu');
       }
-      
+
       // Check minimum rental duration (4 hours)
       const startTime = new Date(createForm.reserved_start_time);
       const endTime = new Date(createForm.reserved_end_time);
       const durationHours = (endTime - startTime) / (1000 * 60 * 60);
-      
+
       if (durationHours < 4) {
         throw new Error('Thời gian thuê tối thiểu là 4 giờ. Vui lòng chọn lại thời gian.');
       }
-      
+
       if (!createForm.vehicle_id || createForm.vehicle_id === 'none') {
         throw new Error('Vui lòng chọn xe cụ thể');
       }
 
       // Check if user already has an active reservation
-      const activeReservations = reservations.filter(reservation => 
+      const activeReservations = reservations.filter(reservation =>
         ['pending', 'confirmed'].includes(reservation.status) &&
         new Date(reservation.reservedStartTime || reservation.reserved_start_time) > new Date()
       );
-      
+
       if (activeReservations.length > 0) {
         throw new Error('Bạn đã có lịch hẹn đang chờ hoặc đã xác nhận. Vui lòng hủy lịch cũ trước khi tạo lịch mới.');
       }
@@ -304,19 +304,19 @@ const ReservationsPage = () => {
 
   const getAvailableVehicles = () => {
     if (!createForm.station_id || !vehicles || vehicles.length === 0) return [];
-    
-    let filtered = vehicles.filter(v => 
-      v && 
+
+    let filtered = vehicles.filter(v =>
+      v &&
       v.station_id === parseInt(createForm.station_id) &&
-      v.id && 
+      v.id &&
       v.license_plate
     );
-    
+
     // Filter by vehicle type if selected
     if (createForm.vehicle_type && createForm.vehicle_type !== 'none') {
       filtered = filtered.filter(v => v.type === createForm.vehicle_type);
     }
-    
+
     return filtered;
   };
 
@@ -441,7 +441,7 @@ const ReservationsPage = () => {
   };
 
   const hasActiveReservation = () => {
-    return reservations.some(reservation => 
+    return reservations.some(reservation =>
       ['pending', 'confirmed'].includes(reservation.status) &&
       new Date(reservation.reservedStartTime || reservation.reserved_start_time) > new Date()
     );
@@ -499,7 +499,7 @@ const ReservationsPage = () => {
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
-        
+
         {/* Active Reservation Warning */}
         {hasActiveReservation() && (
           <Alert className="mb-6 border-yellow-200 bg-yellow-50">
@@ -742,14 +742,13 @@ const ReservationsPage = () => {
                       <div>
                         <p className="text-sm font-medium text-gray-600">Mức pin hiện tại</p>
                         <p className="font-semibold">
-                          <span className={`inline-flex items-center ${
-                            selectedReservation.vehicle?.batteryLevel >= 80 ? 'text-green-600' :
+                          <span className={`inline-flex items-center ${selectedReservation.vehicle?.batteryLevel >= 80 ? 'text-green-600' :
                             selectedReservation.vehicle?.batteryLevel >= 50 ? 'text-yellow-600' : 'text-red-600'
-                          }`}>
+                            }`}>
                             {selectedReservation.vehicle?.batteryLevel || 'N/A'}%
                             {selectedReservation.vehicle?.batteryLevel && (
-                              selectedReservation.vehicle.batteryLevel >= 50 ? 
-                                <Battery className="w-4 h-4 ml-1" /> : 
+                              selectedReservation.vehicle.batteryLevel >= 50 ?
+                                <Battery className="w-4 h-4 ml-1" /> :
                                 <BatteryLow className="w-4 h-4 ml-1" />
                             )}
                           </span>
@@ -758,7 +757,7 @@ const ReservationsPage = () => {
                       <div>
                         <p className="text-sm font-medium text-gray-600">Số km đã đi</p>
                         <p className="font-semibold">
-                          {selectedReservation.vehicle?.odo ? 
+                          {selectedReservation.vehicle?.odo ?
                             `${selectedReservation.vehicle.odo.toLocaleString('vi-VN')} km` : 'N/A'}
                         </p>
                       </div>
@@ -875,7 +874,7 @@ const ReservationsPage = () => {
                         const endTime = new Date(selectedReservation.reservedEndTime);
                         const totalHours = (endTime - startTime) / (1000 * 60 * 60);
                         const pricePerHour = selectedReservation.vehicle?.pricePerHour || 0;
-                        
+
                         if (pricePerHour === 0) {
                           return (
                             <div className="text-center py-4 text-gray-500">
@@ -908,7 +907,7 @@ const ReservationsPage = () => {
                                 </div>
                               </div>
                             ))}
-                            
+
                             {/* Tổng cộng trước bảo hiểm */}
                             {pricing.discountAmount > 0 && (
                               <div className="flex justify-between text-sm border-t pt-2">
@@ -918,29 +917,29 @@ const ReservationsPage = () => {
                                 </span>
                               </div>
                             )}
-                            
+
                             <div className="flex justify-between text-sm text-gray-500">
                               <span>Phí dịch vụ</span>
                               <span>0 ₫</span>
                             </div>
-                            
+
                             <div className="flex justify-between text-sm">
                               <span>Bảo hiểm ({selectedReservation.vehicle?.type === 'MOTORBIKE' ? 'Xe máy' : 'Ô tô'})</span>
                               <span className={selectedReservation.insurance ? 'text-blue-600 font-medium' : 'text-gray-500'}>
-                                {selectedReservation.insurance ? 
-                                  formatCurrency(selectedReservation.insurance) : 
+                                {selectedReservation.insurance ?
+                                  formatCurrency(selectedReservation.insurance) :
                                   'Không mua bảo hiểm'
                                 }
                               </span>
                             </div>
-                            
+
                             <div className="border-t pt-2 flex justify-between font-bold text-lg">
                               <span>Tổng cộng (dự tính)</span>
                               <span className="text-green-600">
                                 {formatCurrency(pricing.totalCost + (selectedReservation.insurance || 0))}
                               </span>
                             </div>
-                            
+
                             <p className="text-xs text-gray-500 mt-2">
                               * Chi phí thực tế sẽ được tính dựa trên thời gian sử dụng thực tế và chi phí phát sinh (nếu có).
                               {pricing.discountAmount > 0 && (
@@ -1030,46 +1029,46 @@ const ReservationsPage = () => {
 
                   {/* Specific Vehicle */}
                   <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Xe cụ thể (tùy chọn)
-                  </label>
-                  <Select
-                    value={createForm.vehicle_id || undefined}
-                    onValueChange={(value) => setCreateForm({ ...createForm, vehicle_id: value || '' })}
-                    disabled={!createForm.station_id || getAvailableVehicles().length === 0}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={
-                        !createForm.station_id 
-                          ? "Chọn trạm trước" 
-                          : createForm.vehicle_type && createForm.vehicle_type !== 'none'
-                            ? `Chọn ${createForm.vehicle_type === 'car' ? 'ô tô' : 'xe máy'} cụ thể`
-                            : "Chọn xe cụ thể"
-                      } />
-                    </SelectTrigger>
-                    <SelectContent className="z-[9999] bg-white border border-gray-200 shadow-lg rounded-md p-1 min-w-[var(--radix-select-trigger-width)]">
-                      <SelectItem value="none">Không chọn cụ thể</SelectItem>
-                      {getAvailableVehicles().length === 0 && createForm.station_id ? (
-                        <div className="px-3 py-2 text-sm text-gray-500 cursor-default">
-                          {createForm.vehicle_type && createForm.vehicle_type !== 'none' 
-                            ? `Không có ${createForm.vehicle_type === 'car' ? 'ô tô' : 'xe máy'} nào tại trạm này`
-                            : 'Không có xe nào tại trạm này'
-                          }
-                        </div>
-                      ) : (
-                        getAvailableVehicles().map((vehicle) => (
-                          <SelectItem key={vehicle.id} value={vehicle.id.toString()}>
-                            {vehicle.license_plate} - {vehicle.brand} {vehicle.model} ({vehicle.type === 'car' ? 'Ô tô' : 'Xe máy'})
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
-                  {createForm.station_id && createForm.vehicle_type && createForm.vehicle_type !== 'none' && (
-                    <p className="text-xs text-gray-500 mt-1">
-                      Hiển thị {getAvailableVehicles().length} xe {createForm.vehicle_type === 'car' ? 'ô tô' : 'máy'} tại trạm này
-                    </p>
-                  )}
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Xe cụ thể (tùy chọn)
+                    </label>
+                    <Select
+                      value={createForm.vehicle_id || undefined}
+                      onValueChange={(value) => setCreateForm({ ...createForm, vehicle_id: value || '' })}
+                      disabled={!createForm.station_id || getAvailableVehicles().length === 0}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={
+                          !createForm.station_id
+                            ? "Chọn trạm trước"
+                            : createForm.vehicle_type && createForm.vehicle_type !== 'none'
+                              ? `Chọn ${createForm.vehicle_type === 'car' ? 'ô tô' : 'xe máy'} cụ thể`
+                              : "Chọn xe cụ thể"
+                        } />
+                      </SelectTrigger>
+                      <SelectContent className="z-[9999] bg-white border border-gray-200 shadow-lg rounded-md p-1 min-w-[var(--radix-select-trigger-width)]">
+                        <SelectItem value="none">Không chọn cụ thể</SelectItem>
+                        {getAvailableVehicles().length === 0 && createForm.station_id ? (
+                          <div className="px-3 py-2 text-sm text-gray-500 cursor-default">
+                            {createForm.vehicle_type && createForm.vehicle_type !== 'none'
+                              ? `Không có ${createForm.vehicle_type === 'car' ? 'ô tô' : 'xe máy'} nào tại trạm này`
+                              : 'Không có xe nào tại trạm này'
+                            }
+                          </div>
+                        ) : (
+                          getAvailableVehicles().map((vehicle) => (
+                            <SelectItem key={vehicle.id} value={vehicle.id.toString()}>
+                              {vehicle.license_plate} - {vehicle.brand} {vehicle.model} ({vehicle.type === 'car' ? 'Ô tô' : 'Xe máy'})
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                    {createForm.station_id && createForm.vehicle_type && createForm.vehicle_type !== 'none' && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Hiển thị {getAvailableVehicles().length} xe {createForm.vehicle_type === 'car' ? 'ô tô' : 'máy'} tại trạm này
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -1087,13 +1086,13 @@ const ReservationsPage = () => {
                         onChange={(e) => {
                           const newStartTime = e.target.value;
                           const newForm = { ...createForm, reserved_start_time: newStartTime };
-                          
+
                           // If end time is before the new start time, clear it
-                          if (createForm.reserved_end_time && newStartTime && 
-                              new Date(createForm.reserved_end_time) <= new Date(newStartTime)) {
+                          if (createForm.reserved_end_time && newStartTime &&
+                            new Date(createForm.reserved_end_time) <= new Date(newStartTime)) {
                             newForm.reserved_end_time = '';
                           }
-                          
+
                           setCreateForm(newForm);
                         }}
                         min={new Date().toISOString().slice(0, 16)}
@@ -1173,22 +1172,19 @@ const ReservationsPage = () => {
 
               {/* Duration and Time Validation */}
               {createForm.reserved_start_time && createForm.reserved_end_time && (
-                <div className={`border rounded-lg p-3 ${
-                  isValidRentalDuration() && isValidStartTime() && isValidEndTime() 
-                    ? 'border-green-200 bg-green-50' 
-                    : 'border-red-200 bg-red-50'
-                }`}>
+                <div className={`border rounded-lg p-3 ${isValidRentalDuration() && isValidStartTime() && isValidEndTime()
+                  ? 'border-green-200 bg-green-50'
+                  : 'border-red-200 bg-red-50'
+                  }`}>
                   <div className="flex items-start space-x-2">
-                    <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
-                      isValidRentalDuration() && isValidStartTime() && isValidEndTime() ? 'bg-green-500' : 'bg-red-500'
-                    }`}></div>
+                    <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${isValidRentalDuration() && isValidStartTime() && isValidEndTime() ? 'bg-green-500' : 'bg-red-500'
+                      }`}></div>
                     <div className="text-sm">
-                      <p className={`font-medium ${
-                        isValidRentalDuration() && isValidStartTime() && isValidEndTime() ? 'text-green-700' : 'text-red-700'
-                      }`}>
+                      <p className={`font-medium ${isValidRentalDuration() && isValidStartTime() && isValidEndTime() ? 'text-green-700' : 'text-red-700'
+                        }`}>
                         Thời gian thuê: {getRentalDuration().toFixed(1)} giờ
                       </p>
-                      
+
                       {/* Time validation messages */}
                       {!isValidStartTime() && (
                         <p className="text-red-600 text-xs mt-1">
@@ -1200,7 +1196,7 @@ const ReservationsPage = () => {
                           ⚠ Thời gian kết thúc phải sau thời gian bắt đầu
                         </p>
                       )}
-                      
+
                       {/* Duration validation messages */}
                       {isValidStartTime() && isValidEndTime() && (
                         <>
@@ -1329,9 +1325,9 @@ const ReservationsPage = () => {
                 <Button
                   onClick={handleCreateBooking}
                   disabled={
-                    loading || 
-                    !createForm.station_id || 
-                    !createForm.reserved_start_time || 
+                    loading ||
+                    !createForm.station_id ||
+                    !createForm.reserved_start_time ||
                     !createForm.reserved_end_time ||
                     !isValidRentalDuration() ||
                     !isValidStartTime() ||

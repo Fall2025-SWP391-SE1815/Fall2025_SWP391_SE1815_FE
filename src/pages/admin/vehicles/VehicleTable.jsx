@@ -68,8 +68,8 @@ export default function VehicleTable({ vehicles, onEdit, onDelete, onView }) {
                                     <TableCell>{v.brand}</TableCell>
                                     <TableCell>
                                         <span className={`${(v.batteryLevel || 0) > 80 ? 'text-green-600' :
-                                                (v.batteryLevel || 0) > 50 ? 'text-yellow-600' :
-                                                    'text-red-600'
+                                            (v.batteryLevel || 0) > 50 ? 'text-yellow-600' :
+                                                'text-red-600'
                                             }`}>
                                             {v.batteryLevel || 0}%
                                         </span>
@@ -85,18 +85,18 @@ export default function VehicleTable({ vehicles, onEdit, onDelete, onView }) {
                                         <Button variant="ghost" size="icon" onClick={() => onView(v)}>
                                             <Eye className="h-4 w-4" />
                                         </Button>
-                                        <Button 
-                                            variant="ghost" 
-                                            size="icon" 
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
                                             onClick={() => onEdit(v)}
-                                            disabled={v.status === 'deleted' || v.status === 'awaiting_inspection'}
-                                            className={v.status === 'deleted' || v.status === 'awaiting_inspection' ? 'opacity-50 cursor-not-allowed' : ''}
+                                            disabled={v.status === 'deleted' || v.status === 'awaiting_inspection' || v.status === 'reserved' || v.status === 'rented'}
+                                            className={v.status === 'deleted' || v.status === 'awaiting_inspection' || v.status === 'reserved' || v.status === 'rented' ? 'opacity-50 cursor-not-allowed' : ''}
                                         >
                                             <Edit className="h-4 w-4" />
                                         </Button>
-                                        <Button 
-                                            variant="ghost" 
-                                            size="icon" 
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
                                             onClick={() => onDelete(v)}
                                             disabled={v.status === 'deleted' || v.status === 'awaiting_inspection'}
                                             className={v.status === 'deleted' || v.status === 'awaiting_inspection' ? 'opacity-50 cursor-not-allowed' : ''}

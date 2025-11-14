@@ -192,7 +192,7 @@ const StationManagement = () => {
                       <TableHead>Trạng thái</TableHead>
                       <TableHead>Trạm</TableHead>
                       <TableHead>Giá thuê</TableHead>
-                      <TableHead>Thao tác</TableHead>
+                      <TableHead className="w-[150px] text-center">Thao tác</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -209,8 +209,8 @@ const StationManagement = () => {
                           <TableCell>{getVehicleStatusBadge(v.status)}</TableCell>
                           <TableCell>{v.station?.name || 'N/A'}</TableCell>
                           <TableCell>{formatCurrency(v.pricePerHour)}/giờ</TableCell>
-                          <TableCell>
-                            <div className="flex gap-2">
+                          <TableCell className="w-[150px]">
+                            <div className="flex gap-2 justify-center">
                               <Button size="sm" variant="outline" onClick={() => handleViewVehicleDetail(v)}>
                                 <Eye className="h-4 w-4" />
                               </Button>
@@ -222,7 +222,7 @@ const StationManagement = () => {
                               {v.status?.toLowerCase() === "awaiting_inspection" && (
                                 <Button
                                   size="sm"
-                                  className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 h-7 rounded-md text-xs flex items-center gap-1 transition-all duration-150"
+                                  className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-1 text-xs px-3"
                                   onClick={() => handleConfirmInspection(v.licensePlate)}
                                   disabled={loading}
                                   title="Xác nhận xe đã kiểm tra xong"

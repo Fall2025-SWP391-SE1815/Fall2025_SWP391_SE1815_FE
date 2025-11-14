@@ -11,7 +11,8 @@ export default function VehicleDetailDialog({ vehicle, open, onOpenChange }) {
             'available': { label: 'Có sẵn', variant: 'default' },
             'rented': { label: 'Đang thuê', variant: 'secondary' },
             'maintenance': { label: 'Bảo trì', variant: 'destructive' },
-            'reserved': { label: 'Đã đặt', variant: 'outline' }
+            'reserved': { label: 'Đã đặt', variant: 'outline' },
+            'awaiting_inspection': { label: 'Chờ kiểm tra', variant: 'outline' }
         };
 
         const statusInfo = statusMap[status] || { label: status, variant: 'secondary' };
@@ -43,7 +44,7 @@ export default function VehicleDetailDialog({ vehicle, open, onOpenChange }) {
                     {/* Vehicle Image */}
                     {vehicle.imageUrl && (
                         <div className="w-full h-64 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
-                            <img 
+                            <img
                                 src={`${API_BASE_URL}${vehicle.imageUrl}`}
                                 alt={vehicle.licensePlate}
                                 className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"

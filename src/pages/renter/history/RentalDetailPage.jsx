@@ -116,7 +116,8 @@ const RentalDetailPage = () => {
       'completed': { color: 'bg-blue-100 text-blue-800', label: 'Hoàn thành' },
       'waiting_for_payment': { color: 'bg-yellow-100 text-yellow-800', label: 'Chờ thanh toán' },
       'cancelled': { color: 'bg-red-100 text-red-800', label: 'Đã hủy' },
-      'pending': { color: 'bg-gray-100 text-gray-800', label: 'Chờ xử lý' }
+      'pending': { color: 'bg-gray-100 text-gray-800', label: 'Chờ xử lý' },
+      'wait_confirm': { color: 'bg-gray-100 text-gray-800', label: 'Chờ xác nhận' }
     };
 
     const config = statusConfig[status] || { color: 'bg-gray-100 text-gray-800', label: status };

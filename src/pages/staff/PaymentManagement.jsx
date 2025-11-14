@@ -177,56 +177,28 @@ const PaymentManagement = () => {
     setDetailDialogOpen(true);
   };
 
-  const handleProcessPayment = async (p) => {
+  const handleProcessPayment = (p) => {
     setSelectedPayment(p);
     setPaymentForm({ amount: "", method: "cash" });
-    setManualReturnTime(""); // reset về trống mỗi lần mở
+    setManualReturnTime("");
+    setRentalBill(null); // ❗ KHÔNG có bill mặc định
     setPaymentDialogOpen(true);
-    await loadPaymentDetails(p.rental_id);
+
+    // ❗ Chỉ load vi phạm, không tính bill
+    loadPaymentDetails(p.rental_id);
   };
 
   const loadPaymentDetails = async (rentalId) => {
     try {
-      setLoadingDetails(true);
-
-      // ✅ Không dùng new Date() nữa — backend đã có endTime thực tế
-      const rentalList = await staffRentalService.getRentals();
-      const rental = rentalList?.find((r) => r.id === rentalId);
-
-      // Nếu không tìm thấy rental, fallback về giờ hiện tại
-      const returnTime = manualReturnTime
-        ? new Date(manualReturnTime).toISOString()
-        : (rental?.endTime || rental?.end_time || new Date().toISOString());
-
-      // 🔹 Lấy danh sách vi phạm (nếu có)
       const violationsResponse = await staffRentalService.getViolations(rentalId);
       setRentalViolations(
         Array.isArray(violationsResponse)
           ? violationsResponse
           : violationsResponse?.data || []
       );
-
-      // 🔹 Gọi API tính tổng bill (theo endTime thật)
-      const billResponse = await staffRentalService.calculateBill(rentalId, {
-        returnTime,
-      });
-
-      const bill = billResponse?.data || billResponse;
-      setRentalBill(bill);
-
-      // 🔹 Gán tiền thanh toán vào form, ưu tiên bill.totalBill, fallback rental.totalCost
-      const finalAmount =
-        bill?.totalBill || rental?.totalCost || rental?.rentalCost || 0;
-
-      setPaymentForm((prev) => ({
-        ...prev,
-        amount: formatNumber(finalAmount),
-      }));
     } catch (err) {
       console.error(err);
-      error("Không thể tải chi tiết thanh toán hoặc tính tổng bill.");
-    } finally {
-      setLoadingDetails(false);
+      error("Không thể tải vi phạm.");
     }
   };
 
@@ -457,37 +429,39 @@ const PaymentManagement = () => {
         manualReturnTime={manualReturnTime}
         setManualReturnTime={setManualReturnTime}
         onRecalcBill={async () => {
-          if (!selectedPayment || !manualReturnTime) return;
+          if (!selectedPayment) return;
+
+          if (!manualReturnTime) {
+            warning("Nhập thời gian trả xe trước khi tính tiền!");
+            return;
+          }
 
           try {
             const rentalId = selectedPayment.rental_id;
+
+            // Convert local → ISO
             const localDate = new Date(manualReturnTime);
             const returnTimeISO = new Date(
               localDate.getTime() - localDate.getTimezoneOffset() * 60000
             ).toISOString();
 
-            console.log("📤 Gửi tính bill:", {
-              url: `/api/staff/rentals/${rentalId}/bill`,
-              body: { returnTime: returnTimeISO },
-            });
-
             const billResponse = await staffRentalService.calculateBill(rentalId, {
-              returnTime: returnTimeISO, // ✅ chỉ gửi returnTime
+              returnTime: returnTimeISO,
             });
 
             const bill = billResponse?.data || billResponse;
             setRentalBill(bill);
 
-            const finalAmount = bill?.totalBill || 0;
+            // Không format dấu chấm, để tránh parse lỗi
             setPaymentForm((prev) => ({
               ...prev,
-              amount: finalAmount.toLocaleString("vi-VN"),
+              amount: bill.totalBill.toString(),
             }));
 
-            success("Đã tính lại hóa đơn theo thời gian trả mới!");
+            success("Đã tính lại hóa đơn!");
           } catch (err) {
             console.error("❌ Lỗi tính bill:", err);
-            error("Không thể tính lại hóa đơn. Kiểm tra thời gian trả xe.");
+            error("Không thể tính lại hóa đơn.");
           }
         }}
       />

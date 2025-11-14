@@ -404,6 +404,61 @@ const ReservationHandover = () => {
     );
   };
 
+  const translateStatus = (status) => {
+    if (!status) return "";
+
+    const map = {
+      pending: "Chờ xử lý",
+      booked: "Đã đặt",
+      cancelled: "Đã hủy",
+      completed: "Hoàn thành",
+      active: "Đang hoạt động",
+      inactive: "Ngừng hoạt động",
+
+      // rental status
+      pending_checkin: "Chờ check-in",
+      checked_in: "Đã check-in",
+      ready_for_pickup: "Sẵn sàng giao xe",
+      in_use: "Đang sử dụng",
+      returned: "Đã trả xe",
+
+      // deposit
+      held: "Đã nhận cọc",
+      pending_deposit: "Chờ nhận cọc",
+      refunded: "Đã hoàn cọc",
+
+      // vehicle
+      RESERVED: "Đang được đặt",
+      AVAILABLE: "Sẵn sàng",
+      MAINTENANCE: "Bảo dưỡng"
+    };
+
+    return map[status] || status;
+  };
+
+  // Map role tiếng Anh → tiếng Việt
+  const translateRole = (role) => {
+    if (!role) return "";
+
+    const map = {
+      renter: "Khách hàng",
+      staff: "Nhân viên",
+      admin: "Quản trị viên",
+      manager: "Quản lý",
+    };
+
+    return map[role] || role;
+  };
+
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL?.replace(/\/api$/, "") || "http://localhost:8080";
+
+  const getImageUrl = (url) => {
+    if (!url) return "";
+    if (url.startsWith("http://") || url.startsWith("https://")) return url;
+    return `${API_BASE_URL}${url}`;
+  };
+
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -497,7 +552,7 @@ const ReservationHandover = () => {
                     </TableCell>
                     <TableCell>
                       <Badge variant="default">
-                        {reservation.status === 'pending' ? 'Chờ check-in' : reservation.status}
+                        {translateStatus(reservation.status)}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -616,12 +671,8 @@ const ReservationHandover = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={
-                        rental.depositStatus === 'held' ? 'default' :
-                          rental.depositStatus === 'pending' ? 'secondary' : 'outline'
-                      }>
-                        {rental.depositStatus === 'held' ? 'Đã nhận cọc' :
-                          rental.depositStatus === 'pending' ? 'Chờ nhận cọc' : rental.depositStatus}
+                      <Badge>
+                        {translateStatus(rental.depositStatus)}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -659,7 +710,7 @@ const ReservationHandover = () => {
 
       {/* Check-in Dialog */}
       <Dialog open={checkInDialogOpen} onOpenChange={setCheckInDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CheckCircle className="h-5 w-5" />
@@ -713,15 +764,48 @@ const ReservationHandover = () => {
                     </div>
                   </div>
                   <div className="text-center">
-                    <span className="text-sm font-medium text-gray-700">Đề xuất cọc (30%)</span>
-                    <div className="text-lg font-bold text-green-600">
-                      {formatCurrency(
+                    {/* Label thay đổi */}
+                    <span
+                      className={
                         checkInForm.highRisk
-                          ? calculateHighRiskDeposit(Math.round(calculateTotalCost(selectedReservation) * 0.3))
-                          : Math.round(calculateTotalCost(selectedReservation) * 0.3)
-                      )}
+                          ? "text-sm font-medium text-red-600"
+                          : "text-sm font-medium text-gray-700"
+                      }
+                    >
+                      {checkInForm.highRisk
+                        ? "⚠️ Cọc khách hàng rủi ro cao"
+                        : "Đề xuất cọc (30%)"}
+                    </span>
+
+                    {/* GIÁ CỌC HIỂN THỊ */}
+                    <div
+                      className={
+                        checkInForm.highRisk
+                          ? "text-lg font-bold text-red-600"
+                          : "text-lg font-bold text-green-600"
+                      }
+                    >
+                      {(() => {
+                        const baseDeposit = Math.round(calculateTotalCost(selectedReservation) * 0.3);
+
+                        if (!checkInForm.highRisk) {
+                          return formatCurrency(baseDeposit);
+                        }
+
+                        // Trường hợp KH rủi ro cao
+                        const finalDeposit = calculateHighRiskDeposit(baseDeposit);
+
+                        // 1️⃣ Cọc gốc < 10tr → hiển thị trường hợp đặc biệt
+                        if (baseDeposit < 10000000) {
+                          return `Cọc tối thiểu: ${formatCurrency(10000000)}`;
+                        }
+
+                        // 2️⃣ Cọc gốc ≥ 10tr → hiển thị “Cọc gốc + 10tr”
+                        return `${formatCurrency(finalDeposit)} (cọc gốc + 10.000.000₫)`;
+                      })()}
                     </div>
                   </div>
+
                 </div>
 
                 <div className="mt-4 pt-4 border-t text-center">
@@ -887,9 +971,9 @@ const ReservationHandover = () => {
                       </p>
                     </div>
                     <div>
-                      <Label className="text-muted-foreground text-sm">Vai trò</Label>
+                      <Label className="text-muted-foreground text-sm">Vai trò:</Label>
                       <Badge variant="outline">
-                        {selectedReservation?.renter.role}
+                        {translateRole(selectedReservation?.renter.role)}
                       </Badge>
                     </div>
                   </div>
@@ -931,9 +1015,9 @@ const ReservationHandover = () => {
                       <p className="font-medium">{selectedReservation?.vehicle.model}</p>
                     </div>
                     <div>
-                      <Label className="text-muted-foreground text-sm">Trạng thái</Label>
+                      <Label className="text-muted-foreground text-sm">Trạng thái:</Label>
                       <Badge variant={selectedReservation?.vehicle.status === 'RESERVED' ? 'default' : 'outline'}>
-                        {selectedReservation?.vehicle.status}
+                        {translateStatus(selectedReservation?.vehicle.status)}
                       </Badge>
                     </div>
                   </div>
@@ -988,9 +1072,9 @@ const ReservationHandover = () => {
                     <Label className="text-muted-foreground text-sm">Hình ảnh xe</Label>
                     <div className="mt-2">
                       <img
-                        src={selectedReservation.vehicle.imageUrl}
+                        src={getImageUrl(selectedReservation.vehicle.imageUrl)}  // ✅ dùng helper
                         alt={`${selectedReservation.vehicle.brand} ${selectedReservation.vehicle.model}`}
-                        className="w-48 h-32 object-cover rounded-lg border"
+                        className="w-full max-w-md h-auto max-h-[300px] object-cover rounded-xl border shadow"
                       />
                     </div>
                   </div>
@@ -1024,9 +1108,9 @@ const ReservationHandover = () => {
                   </div>
                   <div className="space-y-3">
                     <div>
-                      <Label className="text-muted-foreground text-sm">Trạng thái</Label>
+                      <Label className="text-muted-foreground text-sm">Trạng thái:</Label>
                       <Badge variant={selectedReservation?.vehicle.station.status === 'active' ? 'default' : 'secondary'}>
-                        {selectedReservation?.vehicle.station.status}
+                        {translateStatus(selectedReservation?.vehicle.station.status)}
                       </Badge>
                     </div>
                     <div>
@@ -1072,9 +1156,9 @@ const ReservationHandover = () => {
                       </p>
                     </div>
                     <div>
-                      <Label className="text-muted-foreground text-sm">Trạng thái đặt chỗ</Label>
+                      <Label className="text-muted-foreground text-sm">Trạng thái đặt chỗ:</Label>
                       <Badge variant="default">
-                        {selectedReservation?.status === 'pending' ? 'Chờ check-in' : selectedReservation?.status}
+                        {translateStatus(selectedReservation?.status)}
                       </Badge>
                     </div>
                   </div>
