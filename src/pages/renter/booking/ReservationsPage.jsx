@@ -220,7 +220,7 @@ const ReservationsPage = () => {
         throw new Error('Vui lòng chọn xe cụ thể');
       }
 
-      // Check if user already has an active reservation and show toast warning
+      // Check if user already has an active reservation and block API call
       const activeReservations = reservations.filter(reservation =>
         ['pending', 'confirmed'].includes(reservation.status) &&
         new Date(reservation.reservedStartTime || reservation.reserved_start_time) > new Date()
@@ -231,18 +231,16 @@ const ReservationsPage = () => {
           title: (
             <div className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-red-600" />
-              Cảnh báo: Đã có lịch hẹn active!
+              Cảnh báo: Đã có lịch hẹn!
             </div>
           ),
-          description: "Bạn đã có lịch hẹn đang chờ hoặc đã xác nhận. Tạo thêm lịch mới có thể gây xung đột thời gian.",
-          variant: "destructive",
+          description: "Bạn đã có lịch hẹn đang chờ hoặc đã xác nhận. Không thể tạo thêm lịch mới.",
+          variant: "destructive", 
           className: "border-l-red-500 border-red-200 bg-red-50",
           duration: 4000
         });
-        // Log để debug
-        console.log('Active reservations found:', activeReservations);
-      } else {
-        console.log('No active reservations found. Current reservations:', reservations);
+        // Ngăn không gửi API request và return sớm
+        return;
       }
 
       // Java LocalDateTime format: YYYY-MM-DDTHH:mm:ss (không có timezone)
