@@ -188,7 +188,8 @@ const VehicleReturn = () => {
       success("Xác nhận nhận xe thành công", "Xe đã được trả về hệ thống.");
 
       setReturnDialogOpen(false);
-      // Reset form after successful submission
+
+      // Reset form
       setReturnForm({
         condition_report: '',
         odo: '',
@@ -197,8 +198,11 @@ const VehicleReturn = () => {
         customer_signature_url: null,
         staff_signature_url: null
       });
-      // Refresh the returning rentals list
-      fetchReturningRentals();
+
+      // ⬅️ Reload toàn bộ trang sau 300ms cho UI kịp close dialog
+      setTimeout(() => {
+        window.location.reload();
+      }, 3000);
 
     } catch (error) {
       console.error('Error confirming return:', error);
