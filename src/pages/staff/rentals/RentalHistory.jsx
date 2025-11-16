@@ -86,12 +86,29 @@ const RentalHistory = () => {
         try {
             setLoading(true);
             await staffRentalService.cancelRental(rentalId);
-            success("Huỷ chuyến thành công", "Đã huỷ lượt thuê này.");
+
+            setHistory(prev =>
+                prev.map(item =>
+                    item.id === rentalId
+                        ? {
+                            ...item,
+                            status: "cancelled",
+                            depositStatus:
+                                item.depositStatus === "held"
+                                    ? "forfeited"       // 🔥 có cọc → bị giữ
+                                    : item.depositStatus === "pending" || !item.depositStatus
+                                        ? "waived"       // 🔥 không cọc → miễn
+                                        : item.depositStatus
+                        }
+                        : item
+                )
+            );
+
+            success("Huỷ chuyến thành công", "Đã huỷ và cập nhật trạng thái cọc.");
             await fetchHistory();
         } catch (err) {
             console.error("Cancel rental error:", err);
-            const message =
-                err.response?.data?.message || "Không thể huỷ lượt thuê.";
+            const message = err.response?.data?.message || "Không thể huỷ lượt thuê.";
             error("Lỗi huỷ thuê", message);
         } finally {
             setLoading(false);
@@ -248,10 +265,16 @@ const RentalHistory = () => {
                                                                             ? 'bg-red-100 text-red-700'
                                                                             : ''
                                                         }
-        `}
+                                                    `}
                                                 >
                                                     {item.status === 'cancelled'
-                                                        ? 'Không có cọc'
+                                                        ? (
+                                                            item.depositStatus === 'forfeited'
+                                                                ? 'Bị giữ cọc'
+                                                                : item.depositStatus === 'waived'
+                                                                    ? 'Không có cọc'
+                                                                    : 'Không cọc'
+                                                        )
                                                         : item.depositStatus === 'pending'
                                                             ? 'Chưa giữ cọc'
                                                             : item.depositStatus === 'held'
@@ -260,7 +283,9 @@ const RentalHistory = () => {
                                                                     ? 'Đã trả cọc'
                                                                     : item.depositStatus === 'forfeited'
                                                                         ? 'Bị giữ cọc'
-                                                                        : '-'
+                                                                        : item.depositStatus === 'waived'
+                                                                            ? 'Không có cọc'
+                                                                            : '-'
                                                     }
                                                 </span>
                                             </td>
