@@ -32,6 +32,13 @@ const RentalHistory = () => {
         car: 'Ô tô',
     };
 
+    const RENTAL_TYPE_VI = {
+        booking: "Đặt trước",
+        walkin: "Thuê tại chỗ",
+    };
+
+    const getRentalTypeVI = (t) => RENTAL_TYPE_VI[t] || t;
+
     const formatTime = (t) => {
         if (!t) return '-';
         const d = new Date(t);
@@ -70,6 +77,22 @@ const RentalHistory = () => {
         } catch (err) {
             setFetchError(err.message || 'Không thể tải lịch sử thuê');
             error('Không thể tải lịch sử thuê', err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleCancelRental = async (rentalId) => {
+        try {
+            setLoading(true);
+            await staffRentalService.cancelRental(rentalId);
+            success("Huỷ chuyến thành công", "Đã huỷ lượt thuê này.");
+            await fetchHistory();
+        } catch (err) {
+            console.error("Cancel rental error:", err);
+            const message =
+                err.response?.data?.message || "Không thể huỷ lượt thuê.";
+            error("Lỗi huỷ thuê", message);
         } finally {
             setLoading(false);
         }
@@ -212,17 +235,41 @@ const RentalHistory = () => {
                                             {/* Trạng thái cọc */}
                                             <td className="px-4 py-3">
                                                 <span
-                                                    className={`inline-block px-2 py-1 rounded text-xs font-semibold ${item.depositStatus === 'refunded'
-                                                        ? 'bg-green-100 text-green-700'
-                                                        : 'bg-yellow-100 text-yellow-700'
-                                                        }`}
+                                                    className={`inline-block px-2 py-1 rounded text-xs font-semibold
+                                                        ${item.status === 'cancelled'
+                                                            ? 'bg-gray-200 text-gray-600'
+                                                            : item.depositStatus === 'pending'
+                                                                ? 'bg-gray-100 text-gray-700'
+                                                                : item.depositStatus === 'held'
+                                                                    ? 'bg-yellow-100 text-yellow-700'
+                                                                    : item.depositStatus === 'refunded'
+                                                                        ? 'bg-green-100 text-green-700'
+                                                                        : item.depositStatus === 'forfeited'
+                                                                            ? 'bg-red-100 text-red-700'
+                                                                            : ''
+                                                        }
+        `}
                                                 >
-                                                    {item.depositStatus === 'refunded' ? 'Đã trả' : 'Giữ cọc'}
+                                                    {item.status === 'cancelled'
+                                                        ? 'Không có cọc'
+                                                        : item.depositStatus === 'pending'
+                                                            ? 'Chưa giữ cọc'
+                                                            : item.depositStatus === 'held'
+                                                                ? 'Đang giữ cọc'
+                                                                : item.depositStatus === 'refunded'
+                                                                    ? 'Đã trả cọc'
+                                                                    : item.depositStatus === 'forfeited'
+                                                                        ? 'Bị giữ cọc'
+                                                                        : '-'
+                                                    }
                                                 </span>
                                             </td>
 
+
                                             {/* Thao tác */}
                                             <td className="px-4 py-3 space-x-2">
+
+                                                {/* Nút Xem */}
                                                 <Button
                                                     size="sm"
                                                     variant="outline"
@@ -234,6 +281,20 @@ const RentalHistory = () => {
                                                     Xem
                                                 </Button>
 
+                                                {/* Nút Huỷ – chỉ hiện khi status = booked */}
+                                                {item.status === "booked" && (
+                                                    <Button
+                                                        size="sm"
+                                                        variant="destructive"
+                                                        className="bg-red-600 hover:bg-red-700 text-white"
+                                                        onClick={() => handleCancelRental(item.id)}
+                                                        disabled={loading}
+                                                    >
+                                                        Huỷ
+                                                    </Button>
+                                                )}
+
+                                                {/* Nút trả cọc */}
                                                 {item.status?.toLowerCase() === 'returned' &&
                                                     item.depositStatus?.toLowerCase() === 'held' && (
                                                         <Button
@@ -293,7 +354,7 @@ const RentalHistory = () => {
                                     <span className="font-medium">Biển số:</span> {selected.vehicle?.licensePlate}
                                 </div>
                                 <div>
-                                    <span className="font-medium">Hãng/Model:</span>{' '}
+                                    <span className="font-medium">Hãng/Mẫu xe:</span>{' '}
                                     {selected.vehicle?.brand} {selected.vehicle?.model}
                                 </div>
                                 <div>
@@ -313,14 +374,20 @@ const RentalHistory = () => {
                                     <div>Nhân viên nhận xe:</div>
                                     <div>{selected.staffReturn?.fullName || '-'}</div>
                                     <div>Loại thuê:</div>
-                                    <div>{selected.rentalType}</div>
+                                    <div>{getRentalTypeVI(selected.rentalType)}</div>
                                     <div>Trạng thái:</div>
                                     <div>
                                         <span
-                                            className={`inline-block px-2 py-1 rounded text-xs font-semibold ${selected.status === 'returned'
-                                                ? 'bg-green-100 text-green-700'
-                                                : 'bg-yellow-100 text-yellow-700'
-                                                }`}
+                                            className={`inline-block px-2 py-1 rounded text-xs font-semibold
+                                                ${selected.status === 'returned' ? 'bg-green-100 text-green-700' : ''}
+                                                ${selected.status === 'cancelled' ? 'bg-red-100 text-red-700' : ''}
+                                                ${selected.status === 'waiting_for_payment' ? 'bg-yellow-100 text-yellow-700' : ''}
+                                                ${selected.status !== 'returned' &&
+                                                    selected.status !== 'cancelled' &&
+                                                    selected.status !== 'waiting_for_payment'
+                                                    ? 'bg-gray-100 text-gray-700'
+                                                    : ''}
+                                            `}
                                         >
                                             {getStatusVI(selected.status)}
                                         </span>
