@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  Clock, 
+import {
+  Clock,
   Car,
   MapPin,
   Battery,
@@ -32,12 +32,12 @@ import { renterService } from '../../../services/renter/renterService';
 const RentalCurrentPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  
+
   // State
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [currentRental, setCurrentRental] = useState(null);
-  
+
   // Load current rental
   useEffect(() => {
     loadCurrentRental();
@@ -50,7 +50,7 @@ const RentalCurrentPage = () => {
     try {
       // Try to get current rental - first check in_use, then wait_confirm
       let currentRental = null;
-      
+
       // First try to get in_use rentals
       try {
         const inUseResponse = await renterService.rentals.getAll({ status: 'in_use' });
@@ -61,7 +61,7 @@ const RentalCurrentPage = () => {
       } catch (error) {
         console.log('No in_use rentals found');
       }
-      
+
       // If no in_use rental found, try wait_confirm
       if (!currentRental) {
         try {
@@ -74,7 +74,7 @@ const RentalCurrentPage = () => {
           console.log('No wait_confirm rentals found');
         }
       }
-      
+
       if (currentRental) {
         // Transform API response to match expected format
         const transformedRental = {
@@ -124,7 +124,7 @@ const RentalCurrentPage = () => {
             phone: currentRental.renter.phone
           } : null
         };
-        
+
         setCurrentRental(transformedRental);
       } else {
         setCurrentRental(null);
@@ -143,13 +143,20 @@ const RentalCurrentPage = () => {
   };
 
   const calculateRentalDuration = (startTime) => {
-    if (!startTime) return '0h 0m';
-    
+    if (!startTime) return "0h 0m";
+
     const start = new Date(startTime);
     const now = new Date();
+
+    // Nếu chưa tới giờ bắt đầu → hiện "Chưa bắt đầu"
+    if (now < start) {
+      return "Chưa bắt đầu";
+    }
+
     const diffMs = now - start;
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
     return `${diffHours}h ${diffMins}m`;
   };
 
@@ -172,27 +179,27 @@ const RentalCurrentPage = () => {
 
     try {
       setLoading(true);
-      
+
       // Call API to confirm rental
       await renterService.rentals.confirmRental(currentRental.id);
-      
+
       // Update the current rental status to 'in_use' immediately
       setCurrentRental(prev => ({
         ...prev,
         status: 'in_use'
       }));
-      
+
       // Show success message
       toast({
         title: "Thành công",
         description: "Đã xác nhận nhận xe thành công! Xe hiện đang trong trạng thái sử dụng.",
       });
-      
+
       setError(''); // Clear any previous errors
-      
+
       // Stay on current page to show the updated status
       console.log('Rental confirmed successfully, status updated to in_use');
-      
+
     } catch (err) {
       console.error('Error confirming rental:', err);
       setError('Có lỗi xảy ra khi xác nhận thuê xe. Vui lòng thử lại.');
@@ -237,7 +244,7 @@ const RentalCurrentPage = () => {
             Theo dõi thông tin lượt thuê xe đang hoạt động
           </p>
         </div>
-        
+
         <Button
           onClick={handleRefresh}
           variant="outline"
@@ -269,7 +276,7 @@ const RentalCurrentPage = () => {
               Bạn chưa có lượt thuê xe nào đang hoạt động. Hãy đặt xe hoặc check-in để bắt đầu thuê xe.
             </p>
             <div className="flex space-x-4 justify-center">
-              <Button 
+              <Button
                 onClick={() => navigate('/vehicles')}
                 className="bg-blue-600 hover:bg-blue-700"
               >
@@ -311,13 +318,13 @@ const RentalCurrentPage = () => {
             <Card className={currentRental.status === 'in_use' ? "border-green-200 bg-green-50" : "border-orange-200 bg-orange-50"}>
               <CardContent className="p-4 text-center">
                 <Activity className={`h-8 w-8 mx-auto mb-2 ${currentRental.status === 'in_use' ? 'text-green-600' : 'text-orange-600'}`} />
-                <Badge 
+                <Badge
                   variant={currentRental.status === 'in_use' ? 'default' : 'secondary'}
                   className="text-lg px-3 py-1"
                 >
-                  {currentRental.status === 'in_use' ? 'Đang sử dụng' : 
-                   currentRental.status === 'wait_confirm' ? 'Chờ xác nhận' : 
-                   currentRental.status}
+                  {currentRental.status === 'in_use' ? 'Đang sử dụng' :
+                    currentRental.status === 'wait_confirm' ? 'Chờ xác nhận' :
+                      currentRental.status}
                 </Badge>
                 <div className={`text-sm mt-2 ${currentRental.status === 'in_use' ? 'text-green-700' : 'text-orange-700'}`}>Trạng thái</div>
               </CardContent>
@@ -419,8 +426,8 @@ const RentalCurrentPage = () => {
                 >
                   <Eye className="h-4 w-4 mr-2" />
                   Xem biên bản giao xe
-                </Button>             
-                
+                </Button>
+
                 {currentRental.status === 'wait_confirm' && (
                   <Button
                     onClick={handleEndRental}
@@ -435,7 +442,7 @@ const RentalCurrentPage = () => {
                     Xác nhận đã nhận xe
                   </Button>
                 )}
-                
+
                 {currentRental.status === 'in_use' && (
                   <div className="flex-1 p-3 bg-green-50 border border-green-200 rounded-lg text-center">
                     <div className="text-green-700 font-medium flex items-center justify-center">
@@ -448,7 +455,7 @@ const RentalCurrentPage = () => {
                   </div>
                 )}
               </div>
-              
+
               <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                 <div className="flex items-start">
                   <AlertTriangle className="h-5 w-5 text-yellow-600 mr-2 mt-0.5" />

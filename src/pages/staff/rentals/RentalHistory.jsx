@@ -27,6 +27,26 @@ const RentalHistory = () => {
 
     const getStatusVI = (status) => STATUS_VI[status] || status;
 
+    const VEHICLE_TYPE_VI = {
+        motorbike: 'Xe máy',
+        car: 'Ô tô',
+    };
+
+    const formatTime = (t) => {
+        if (!t) return '-';
+        const d = new Date(t);
+        return d.toLocaleString('vi-VN', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        });
+    };
+
+    const getVehicleTypeVI = (t) => VEHICLE_TYPE_VI[t] || t;
+
     const filteredHistory = history.filter((item) => {
         const searchText = search.trim().toLowerCase();
         return (
@@ -163,13 +183,13 @@ const RentalHistory = () => {
                                             <td className="px-4 py-3 text-xs">
                                                 <div>
                                                     <span className="font-medium text-gray-700">Thuê:</span>{' '}
-                                                    {item.startTime?.slice(0, 10)}{' '}
-                                                    <span className="text-gray-400">{item.startTime?.slice(11, 16)}</span>
+                                                    {formatTime(item.startTime)}
+
                                                 </div>
                                                 <div>
                                                     <span className="font-medium text-gray-700">Trả:</span>{' '}
-                                                    {item.endTime?.slice(0, 10)}{' '}
-                                                    <span className="text-gray-400">{item.endTime?.slice(11, 16)}</span>
+                                                    {formatTime(item.endTime)}
+
                                                 </div>
                                             </td>
 
@@ -277,7 +297,7 @@ const RentalHistory = () => {
                                     {selected.vehicle?.brand} {selected.vehicle?.model}
                                 </div>
                                 <div>
-                                    <span className="font-medium">Loại xe:</span> {selected.vehicle?.type}
+                                    <span className="font-medium">Loại xe:</span> {getVehicleTypeVI(selected.vehicle?.type)}
                                 </div>
                             </div>
 
@@ -305,6 +325,8 @@ const RentalHistory = () => {
                                             {getStatusVI(selected.status)}
                                         </span>
                                     </div>
+                                    <div>Thời gian trả xe:</div>
+                                    <div>{formatTime(selected.returnTime)}</div>
                                     <div>ODO đầu/cuối:</div>
                                     <div>
                                         {selected.odoStart} km / {selected.odoEnd} km
@@ -325,7 +347,7 @@ const RentalHistory = () => {
                                     <div>{selected.insurance?.toLocaleString()} VND</div>
                                     <div>Tiền cọc:</div>
                                     <div>
-                                        {selected.depositAmount?.toLocaleString()} VND ({selected.depositStatus})
+                                        {selected.depositAmount?.toLocaleString()} VND
                                     </div>
                                     <div>Tổng chi phí:</div>
                                     <div>{formatCurrency(selected.totalCost || 0)}</div>

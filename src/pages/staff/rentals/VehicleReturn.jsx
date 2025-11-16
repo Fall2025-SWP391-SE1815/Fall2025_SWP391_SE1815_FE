@@ -117,6 +117,32 @@ const VehicleReturn = () => {
         return;
       }
 
+      // --- Validate ODO & Battery Level ---
+      const newOdo = parseInt(returnForm.odo);
+      const oldOdo = parseInt(selectedReturnRental?.vehicle?.odo || 0);
+
+      if (isNaN(newOdo) || newOdo < 0) {
+        warning("Sai số Km", "Số km không được âm và phải là số hợp lệ.");
+        return;
+      }
+
+      if (newOdo < oldOdo) {
+        warning("Sai số Km", `Số km hiện tại (${newOdo} km) không được nhỏ hơn số km trước đó (${oldOdo} km).`);
+        return;
+      }
+
+      const battery = parseInt(returnForm.batteryLevel);
+
+      if (isNaN(battery) || battery < 0) {
+        warning("Giá trị pin không hợp lệ", "Mức pin không được âm.");
+        return;
+      }
+
+      if (battery > 100) {
+        warning("Giá trị pin không hợp lệ", "Mức pin không được vượt quá 100%.");
+        return;
+      }
+
       // Validate file types
       const validateFile = (file, name) => {
         if (!(file instanceof File)) {
@@ -332,8 +358,9 @@ const VehicleReturn = () => {
 
                     <TableCell>
                       <div className="flex flex-col space-y-2">
+
+                        {/* Tổng tiền */}
                         <div className="flex items-center gap-2">
-                          <DollarSign className="h-4 w-4" />
                           <div className="flex flex-col">
                             <span className="text-xs text-muted-foreground">Tổng tiền</span>
                             <span className="font-medium text-sm">
@@ -341,8 +368,9 @@ const VehicleReturn = () => {
                             </span>
                           </div>
                         </div>
+
+                        {/* Đặt cọc */}
                         <div className="flex items-center gap-2">
-                          <DollarSign className="h-4 w-4 text-green-600" />
                           <div className="flex flex-col">
                             <span className="text-xs text-muted-foreground">Đặt cọc</span>
                             <span className="font-medium text-sm text-green-600">
@@ -350,11 +378,15 @@ const VehicleReturn = () => {
                             </span>
                           </div>
                         </div>
-                        <Badge variant={
-                          rental.depositStatus === 'held' ? 'default' : 'secondary'
-                        } className="w-fit text-xs">
+
+                        {/* Badge trạng thái */}
+                        <Badge
+                          variant={rental.depositStatus === 'held' ? 'default' : 'secondary'}
+                          className="w-fit text-xs"
+                        >
                           {rental.depositStatus === 'held' ? 'Đã giữ cọc' : rental.depositStatus}
                         </Badge>
+
                       </div>
                     </TableCell>
 
@@ -460,7 +492,37 @@ const VehicleReturn = () => {
                     type="number"
                     placeholder="12000"
                     value={returnForm.odo}
-                    onChange={(e) => setReturnForm(prev => ({ ...prev, odo: e.target.value }))}
+                    onChange={(e) => {
+                      let value = e.target.value;
+
+                      // 🚫 Không cho nhập số âm
+                      if (value.startsWith("-")) value = value.replace("-", "");
+                      if (value < 0) value = 0;
+
+                      setReturnForm(prev => ({ ...prev, odo: value }));
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        const value = parseInt(returnForm.odo);
+                        const oldOdo = selectedReturnRental?.vehicle?.odo || 0;
+
+                        if (isNaN(value)) {
+                          warning("Sai số Km", "Số km phải là số hợp lệ.");
+                        } else if (value < oldOdo) {
+                          warning("Sai số Km", `Số km phải từ ${oldOdo} km trở lên.`);
+                        }
+                      }
+                    }}
+                    onBlur={() => {
+                      const value = parseInt(returnForm.odo);
+                      const oldOdo = selectedReturnRental?.vehicle?.odo || 0;
+
+                      if (isNaN(value)) {
+                        warning("Sai số Km", "Số km phải là số hợp lệ.");
+                      } else if (value < oldOdo) {
+                        warning("Sai số Km", `Số km phải từ ${oldOdo} km trở lên.`);
+                      }
+                    }}
                   />
                   <span className="text-sm text-muted-foreground mt-3">km</span>
                 </div>
@@ -473,11 +535,37 @@ const VehicleReturn = () => {
                   <Input
                     id="return-battery-level"
                     type="number"
-                    min="0"
-                    max="100"
                     placeholder="95"
                     value={returnForm.batteryLevel}
-                    onChange={(e) => setReturnForm(prev => ({ ...prev, batteryLevel: e.target.value }))}
+                    onChange={(e) => {
+                      let value = e.target.value;
+
+                      // 🚫 Không cho nhập âm
+                      if (value.startsWith("-")) value = value.replace("-", "");
+                      if (value < 0) value = 0;
+
+                      setReturnForm(prev => ({ ...prev, batteryLevel: value }));
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        const value = parseInt(returnForm.batteryLevel);
+
+                        if (isNaN(value)) {
+                          warning("Giá trị không hợp lệ", "Mức pin phải là số hợp lệ.");
+                        } else if (value > 100) {
+                          warning("Giá trị pin không hợp lệ", "Mức pin không được vượt quá 100%.");
+                        }
+                      }
+                    }}
+                    onBlur={() => {
+                      const value = parseInt(returnForm.batteryLevel);
+
+                      if (isNaN(value)) {
+                        warning("Giá trị không hợp lệ", "Mức pin phải là số hợp lệ.");
+                      } else if (value > 100) {
+                        warning("Giá trị pin không hợp lệ", "Mức pin không được vượt quá 100%.");
+                      }
+                    }}
                   />
                   <span className="text-sm text-muted-foreground mt-3">%</span>
                 </div>

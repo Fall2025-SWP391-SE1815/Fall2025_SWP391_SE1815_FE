@@ -58,6 +58,17 @@ const PaymentDialogs = (props) => {
         onRecalcBill,
     } = props;
 
+    const mapVehicleTypeToVietnamese = (type) => {
+        if (!type) return "Không xác định";
+
+        const map = {
+            motorbike: "Xe máy",
+            car: "Ô tô",
+        };
+
+        return map[type.toLowerCase()] || type;
+    };
+
     return (
         <>
             {/* Dialog xử lý thanh toán */}
@@ -80,7 +91,7 @@ const PaymentDialogs = (props) => {
                             <CardContent>
                                 <div className="space-y-2">
                                     <div className="flex justify-between">
-                                        <span>Tiền thuê:</span>
+                                        <span>Chi phí thuê theo hoá đơn:</span>
                                         <span>{formatCurrency(rentalBill.rentalCost || 0)}</span>
                                     </div>
                                     <div className="flex justify-between">
@@ -95,7 +106,7 @@ const PaymentDialogs = (props) => {
                                     </div>
                                     <hr />
                                     <div className="flex justify-between font-bold text-green-600">
-                                        <span>Tổng cộng:</span>
+                                        <span>Tổng tiền thực tế:</span>
                                         <span>{formatCurrency(rentalBill.totalBill || 0)}</span>
                                     </div>
                                 </div>
@@ -103,10 +114,50 @@ const PaymentDialogs = (props) => {
                         </Card>
                     )}
 
+                    {/* Thời gian thuê */}
+                    <Card className="mt-4">
+                        <CardHeader>
+                            <CardTitle className="text-sm">Thời gian thuê</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {(() => {
+                                // ✅ Gom logic xử lý dữ liệu ở đây
+                                const start = selectedPayment?.start_time;
+                                const end = selectedPayment?.end_time;
+                                const returned =
+                                    manualReturnTime ||
+                                    selectedPayment?.returnTime ||
+                                    selectedPayment?.return_time;
+
+                                return (
+                                    <div className="space-y-2 text-sm">
+                                        <div className="flex justify-between">
+                                            <span>Thời gian bắt đầu:</span>
+                                            <span className="font-medium">
+                                                {start ? formatDateTime(start) : "-"}
+                                            </span>
+                                        </div>
+
+                                        <div className="flex justify-between">
+                                            <span>Thời gian kết thúc:</span>
+                                            <span className="font-medium">
+                                                {end ? formatDateTime(end) : "-"}
+                                            </span>
+                                        </div>
+
+                                        <div className="flex justify-between">
+                                            <span>Thời gian trả thực tế:</span>
+                                            <span className="font-medium">
+                                                {returned ? formatDateTime(returned) : "Chưa được cập nhật"}
+                                            </span>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+                        </CardContent>
+                    </Card>
+
                     <div className="space-y-2 mt-4">
-                        <Label className="text-sm uppercase text-gray-600 tracking-wide">
-                            Tổng thanh toán
-                        </Label>
                         {/* Nhập thời gian trả xe */}
                         <div className="space-y-2 mt-4">
                             <Label htmlFor="return-time">Thời gian trả xe *</Label>
@@ -218,7 +269,7 @@ const PaymentDialogs = (props) => {
                                         </div>
                                         <div>
                                             <Label className="text-muted-foreground">Loại xe</Label>
-                                            <p className="font-medium capitalize">{selectedDetail.vehicle_type}</p>
+                                            <p className="font-medium">{mapVehicleTypeToVietnamese(selectedDetail.vehicle_type)}</p>
                                         </div>
                                         <div>
                                             <Label className="text-muted-foreground">Loại pin</Label>
@@ -442,9 +493,20 @@ const PaymentDialogs = (props) => {
                             <Input
                                 id="rental-id"
                                 type="number"
+                                min="0"
                                 placeholder="Nhập mã lượt thuê"
                                 value={violationForm.rental_id}
-                                onChange={(e) => setViolationForm(prev => ({ ...prev, rental_id: e.target.value }))}
+                                onChange={(e) => {
+                                    let val = e.target.value;
+
+                                    // Case user cố gõ âm (-1) bằng copy/paste
+                                    if (val < 0) val = 0;
+
+                                    setViolationForm(prev => ({
+                                        ...prev,
+                                        rental_id: val
+                                    }));
+                                }}
                             />
                         </div>
 
@@ -452,7 +514,7 @@ const PaymentDialogs = (props) => {
                             <Label htmlFor="violation-description">Mô tả vi phạm *</Label>
                             <Textarea
                                 id="violation-description"
-                                placeholder="Mô tả chi tiết vi phạm (ví dụ: không đội mũ bảo hiểm, vượt đèn đỏ, trả xe trễ...)"
+                                placeholder="Mô tả chi tiết vi phạm (ví dụ: làm xước xe, mất đồ, v.v.)"
                                 value={violationForm.description}
                                 onChange={(e) => setViolationForm(prev => ({ ...prev, description: e.target.value }))}
                                 rows={4}
@@ -465,10 +527,27 @@ const PaymentDialogs = (props) => {
                                 <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                 <Input
                                     id="fine-amount"
-                                    type="number"
+                                    type="text"
                                     placeholder="Nhập số tiền phạt"
                                     value={violationForm.fine_amount}
-                                    onChange={(e) => setViolationForm(prev => ({ ...prev, fine_amount: e.target.value }))}
+                                    onChange={(e) => {
+                                        let raw = e.target.value;
+
+                                        // Bỏ ký tự không phải số
+                                        raw = raw.replace(/[^\d]/g, "");
+
+                                        // Chặn số âm (dù user cố tình)
+                                        if (!raw || Number(raw) < 0) raw = "0";
+
+                                        // Format hiển thị: 1.000.000
+                                        const formatted = Number(raw).toLocaleString("vi-VN");
+
+                                        setViolationForm(prev => ({
+                                            ...prev,
+                                            fine_amount: formatted,   // hiển thị có dấu chấm
+                                            fine_amount_raw: raw      // lưu số thật để gửi BE
+                                        }));
+                                    }}
                                     className="pl-10"
                                 />
                             </div>

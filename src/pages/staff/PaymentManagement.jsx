@@ -118,7 +118,7 @@ const PaymentManagement = () => {
           insurance: rental.insurance,
 
           // Thông tin thanh toán
-          amount: rental.totalCost || rental.depositAmount,
+          amount: rental.rentalCost + (rental.insurance || 0),
           payment_type:
             rental.depositStatus === "pending" ? "Đặt cọc" : "Phí thuê",
           created_at: rental.createdAt,
@@ -219,11 +219,16 @@ const PaymentManagement = () => {
       await staffRentalService.addViolation({
         rentalId: parseInt(violationForm.rental_id),
         description: violationForm.description,
-        fineAmount: fine,
+        fineAmount: Number(violationForm.fine_amount_raw)
       });
       success("Đã ghi nhận vi phạm.");
       setViolationDialogOpen(false);
-      setViolationForm({ rental_id: "", description: "", fine_amount: "" });
+      setViolationForm({
+        rental_id: "",
+        description: "",
+        fine_amount: "",
+        fine_amount_raw: "0",
+      });
       fetchPendingPayments();
     } finally {
       setLoading(false);
@@ -298,11 +303,11 @@ const PaymentManagement = () => {
         <Card className="border border-gray-200 hover:shadow-md transition-shadow duration-200">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-              Tổng tiền chờ thanh toán
+              Tổng số tiền dự kiến cần thanh toán
               <DollarSign className="h-4 w-4 text-green-600" />
             </CardTitle>
             <CardDescription className="text-xs text-gray-500 mt-1">
-              Tổng giá trị cần xử lý
+              Tổng chi phí tạm tính cần xử lý
             </CardDescription>
           </CardHeader>
 
@@ -351,7 +356,7 @@ const PaymentManagement = () => {
                   <TableHead>Mã GD</TableHead>
                   <TableHead>Khách hàng</TableHead>
                   <TableHead>Xe</TableHead>
-                  <TableHead>Thanh toán</TableHead>
+                  <TableHead>Thanh toán(dự kiến)</TableHead>
                   <TableHead>Hạn</TableHead>
                   <TableHead>Thao tác</TableHead>
                 </TableRow>

@@ -527,6 +527,8 @@ const ReservationsPage = () => {
     }));
   };
 
+  const [agreePolicy, setAgreePolicy] = useState(false);
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -1229,9 +1231,10 @@ const ReservationsPage = () => {
 
                   {/* Insurance Option */}
                   <div className="space-y-3">
-                    <div className="flex items-center space-x-3">
+                    <div className="flex items-start space-x-3">
                       <Checkbox
                         id="insurance"
+                        className="mt-3"
                         checked={createForm.hasInsurance}
                         onCheckedChange={(checked) => setCreateForm({ ...createForm, hasInsurance: checked })}
                       />
@@ -1249,6 +1252,13 @@ const ReservationsPage = () => {
                             'Vui lòng chọn xe để xem phí bảo hiểm'
                           )}
                         </p>
+                        <p className="text-xs text-blue-700 mt-1 leading-relaxed">
+                          <>
+                            Quyền lợi (tham khảo):<br />
+                            • Ô tô: miễn ≤ <strong>3.000.000₫</strong> thiệt hại.<br />
+                            • Xe máy: miễn ≤ <strong>1.000.000₫</strong> thiệt hại.
+                          </>
+                        </p>
                       </div>
                     </div>
                     {createForm.hasInsurance && getSelectedVehicleInfo() && (
@@ -1259,7 +1269,7 @@ const ReservationsPage = () => {
                             <p className="font-medium">Bảo hiểm đã được chọn</p>
                             <p>Chi phí: {getInsuranceValue().toLocaleString('vi-VN')} VND</p>
                             <p className="text-xs mt-1">
-                              Bảo hiểm sẽ bao gồm các trường hợp hỏng hóc không do lỗi của người thuê.
+                              Bảo hiểm miễn toàn bộ chi phí sửa chữa trong phạm vi mức miễn trừ quy định, ngay cả khi hư hỏng do người thuê gây ra.
                             </p>
                           </div>
                         </div>
@@ -1428,6 +1438,26 @@ const ReservationsPage = () => {
                   </p>
                 </div>
               )}
+              {/* Agree Policy Checkbox */}
+              <div className="w-full p-4 border rounded-lg bg-gray-50 flex justify-between">
+                <div className="flex items-center gap-3 w-full">
+                  <Checkbox
+                    id="agreePolicy"
+                    checked={agreePolicy}
+                    onCheckedChange={(checked) => setAgreePolicy(checked)}
+                    className="mt-[4px]"  // Nhích checkbox xuống chút
+                  />
+
+                  <label
+                    htmlFor="agreePolicy"
+                    className="text-sm text-gray-700 leading-relaxed cursor-pointer w-full"
+                  >
+                    <span className="font-semibold text-gray-900">Điều khoản sử dụng:</span><br />
+                    Nếu bạn không check-in trong vòng <span className="font-medium text-red-600">1 giờ </span>
+                    kể từ thời điểm tạo đơn, lịch hẹn sẽ bị <span className="font-medium">hủy tự động</span>.
+                  </label>
+                </div>
+              </div>
 
               <div className="flex justify-end space-x-3 pt-4">
                 <Button
@@ -1447,11 +1477,16 @@ const ReservationsPage = () => {
                     !isValidStartTime() ||
                     !isValidEndTime() ||
                     !isWithinBookingHours(createForm.reserved_start_time) ||
-                    !isWithinBookingHours(createForm.reserved_end_time)
+                    !isWithinBookingHours(createForm.reserved_end_time) ||
+                    !agreePolicy              // <<==== THÊM DÒNG NÀY
                   }
                   className="bg-green-600 hover:bg-green-700"
                 >
-                  {loading ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-2" />}
+                  {loading ? (
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                  )}
                   Tạo
                 </Button>
               </div>

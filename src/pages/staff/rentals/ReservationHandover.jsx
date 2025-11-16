@@ -109,7 +109,7 @@ const ReservationHandover = () => {
       setReservations(response || []);
     } catch (error) {
       console.error('Error fetching reservations:', error);
-      error("Không thể tải danh sách đặt chỗ", error.message);
+      error("Không thể tải danh sách đặt chỗ", err.message);
     } finally {
       setLoading(false);
     }
@@ -127,7 +127,7 @@ const ReservationHandover = () => {
       if (error.status === 403) {
         error("Lỗi truy cập", "Nhân viên chưa được phân công trạm làm việc");
       } else {
-        error("Không thể tải danh sách xe cần giao", error.message);
+        error("Không thể tải danh sách xe cần giao", err.message);
       }
     } finally {
       setLoading(false);
@@ -202,7 +202,7 @@ const ReservationHandover = () => {
 
     } catch (error) {
       console.error('Error submitting check-in:', error);
-      error("Không thể thực hiện check-in", error.message);
+      error("Không thể thực hiện check-in", err.message);
     } finally {
       setLoading(false);
     }
@@ -232,6 +232,32 @@ const ReservationHandover = () => {
         !pickupForm.customer_signature_url ||
         !pickupForm.staff_signature_url) {
         warning("Thiếu thông tin", "Điền đầy đủ biên bản, số km, mức pin và 3 file ảnh");
+        return;
+      }
+
+      // --- Validate ODO & Battery Level ---
+      const newOdo = parseInt(pickupForm.odo);
+      const oldOdo = parseInt(selectedRental?.vehicle?.odo || 0);
+
+      if (isNaN(newOdo) || newOdo < 0) {
+        warning("Dữ liệu ODO không hợp lệ", "Số km hiện tại không được âm và phải là số hợp lệ.");
+        return;
+      }
+
+      if (newOdo < oldOdo) {
+        warning("Sai số Km", `Số km hiện tại (${newOdo} km) không được nhỏ hơn số km trước đó (${oldOdo} km).`);
+        return;
+      }
+
+      const battery = parseInt(pickupForm.batteryLevel);
+
+      if (isNaN(battery) || battery < 0) {
+        warning("Dữ liệu pin không hợp lệ", "Mức pin không được âm.");
+        return;
+      }
+
+      if (battery > 100) {
+        warning("Dữ liệu pin không hợp lệ", "Mức pin tối đa là 100%.");
         return;
       }
 
@@ -271,6 +297,9 @@ const ReservationHandover = () => {
       await staffRentalService.confirmPickup(formData);
 
       success("Xác nhận giao xe thành công", "Khách hàng đã nhận xe.");
+      setTimeout(() => {
+        loadData();
+      }, 150);
 
       setPickupDialogOpen(false);
       setPickupForm({
@@ -285,7 +314,7 @@ const ReservationHandover = () => {
 
     } catch (error) {
       console.error('Error confirming pickup:', error);
-      error("Không thể xác nhận giao xe", error.message);
+      error("Không thể xác nhận giao xe", err.message);
     } finally {
       setLoading(false);
     }
@@ -304,7 +333,7 @@ const ReservationHandover = () => {
       fetchPendingRentals();
     } catch (error) {
       console.error('Error holding deposit:', error);
-      error("Không thể ghi nhận đặt cọc", error.message);
+      error("Không thể ghi nhận đặt cọc", err.message);
     } finally {
       setLoading(false);
     }
@@ -458,6 +487,20 @@ const ReservationHandover = () => {
     return `${API_BASE_URL}${url}`;
   };
 
+  // Kiểm tra có được phép giao xe chưa
+  const canPickupNow = (startTime) => {
+    if (!startTime) return false;
+
+    const now = new Date();
+    const start = new Date(startTime);
+
+    const diffMs = start - now; // ms còn lại tới giờ bắt đầu
+    const diffMinutes = diffMs / 1000 / 60;
+
+    // Nếu còn hơn 15 phút → KHÔNG cho giao
+    // Nếu <= 15 phút hoặc < 0 (đến muộn) → Cho giao
+    return diffMinutes <= 15;
+  };
 
   return (
     <div className="space-y-6">
@@ -692,10 +735,14 @@ const ReservationHandover = () => {
                           <Button
                             size="sm"
                             onClick={() => handlePickupCheck(rental)}
-                            disabled={loading}
+                            disabled={loading || !canPickupNow(rental.startTime)}
+                            className={!canPickupNow(rental.startTime) ? "opacity-50 cursor-not-allowed" : ""}
                           >
                             <CheckCircle className="h-4 w-4 mr-2" />
-                            Xác nhận giao xe
+
+                            {canPickupNow(rental.startTime)
+                              ? "Xác nhận giao xe"
+                              : "Chưa đến giờ giao (≤ 15')"}
                           </Button>
                         )}
                       </div>
@@ -1277,7 +1324,37 @@ const ReservationHandover = () => {
                     type="number"
                     placeholder="12000"
                     value={pickupForm.odo}
-                    onChange={(e) => setPickupForm(prev => ({ ...prev, odo: e.target.value }))}
+                    onChange={(e) => {
+                      let value = e.target.value;
+
+                      // 🚫 Không cho nhập số âm
+                      if (value.startsWith("-")) value = value.replace("-", "");
+                      if (value < 0) value = 0;
+
+                      setPickupForm(prev => ({ ...prev, odo: value }));
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        const value = parseInt(pickupForm.odo);
+                        const oldOdo = selectedRental?.vehicle?.odo || 0;
+
+                        if (isNaN(value)) {
+                          warning("Giá trị không hợp lệ", "Số km phải là số hợp lệ.");
+                        } else if (value < oldOdo) {
+                          warning("Sai số Km", `Số km phải từ ${oldOdo} km trở lên.`);
+                        }
+                      }
+                    }}
+                    onBlur={() => {
+                      const value = parseInt(pickupForm.odo);
+                      const oldOdo = selectedRental?.vehicle?.odo || 0;
+
+                      if (isNaN(value)) {
+                        warning("Giá trị không hợp lệ", "Số km phải là số hợp lệ.");
+                      } else if (value < oldOdo) {
+                        warning("Sai số Km", `Số km phải từ ${oldOdo} km trở lên.`);
+                      }
+                    }}
                   />
                   <span className="text-sm text-muted-foreground mt-3">km</span>
                 </div>
@@ -1290,11 +1367,37 @@ const ReservationHandover = () => {
                   <Input
                     id="battery-level"
                     type="number"
-                    min="0"
-                    max="100"
                     placeholder="95"
                     value={pickupForm.batteryLevel}
-                    onChange={(e) => setPickupForm(prev => ({ ...prev, batteryLevel: e.target.value }))}
+                    onChange={(e) => {
+                      let value = e.target.value;
+
+                      // 🚫 Không cho nhập số âm
+                      if (value.startsWith("-")) value = value.replace("-", "");
+                      if (value < 0) value = 0;
+
+                      setPickupForm(prev => ({ ...prev, batteryLevel: value }));
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        const value = parseInt(pickupForm.batteryLevel);
+
+                        if (isNaN(value)) {
+                          warning("Giá trị không hợp lệ", "Mức pin phải là số hợp lệ.");
+                        } else if (value > 100) {
+                          warning("Giá trị không hợp lệ", "Mức pin không được vượt quá 100%.");
+                        }
+                      }
+                    }}
+                    onBlur={() => {
+                      const value = parseInt(pickupForm.batteryLevel);
+
+                      if (isNaN(value)) {
+                        warning("Giá trị không hợp lệ", "Mức pin phải là số hợp lệ.");
+                      } else if (value > 100) {
+                        warning("Giá trị không hợp lệ", "Mức pin không được vượt quá 100%.");
+                      }
+                    }}
                   />
                   <span className="text-sm text-muted-foreground mt-3">%</span>
                 </div>

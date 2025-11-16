@@ -342,30 +342,68 @@ const RentalsTab = () => {
               {/* Rental Status and Timing */}
               <div className='bg-gray-50 p-4 rounded-lg'>
                 <h3 className='font-semibold text-gray-900 mb-3'>Trạng thái và thời gian</h3>
-                <div className='grid grid-cols-2 gap-4'>
-                  <div>
-                    <Label className='text-sm font-medium text-muted-foreground'>Trạng thái lượt thuê</Label>
-                    <div className='mt-1'>
+
+                <div className='grid grid-cols-2 gap-6'>
+
+                  {/* Trạng thái lượt thuê */}
+                  <div className='space-y-1'>
+                    <Label className='text-sm text-muted-foreground'>Trạng thái lượt thuê: </Label>
+                    <Badge
+                      className={
+                        selectedRental.status === 'ongoing'
+                          ? 'bg-blue-100 text-blue-800'
+                          : selectedRental.status === 'completed'
+                            ? 'bg-green-100 text-green-800'
+                            : selectedRental.status === 'cancelled'
+                              ? 'bg-red-100 text-red-800'
+                              : 'bg-gray-100 text-gray-800'
+                      }
+                    >
                       {getRentalStatusBadge(selectedRental.status)}
-                    </div>
-                  </div>
-                  <div>
-                    <Label className='text-sm font-medium text-muted-foreground'>Loại thuê</Label>
-                    <Badge className={selectedRental.rentalType === 'booking' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'}>
-                      {selectedRental.rentalType === 'booking' ? 'Đặt trước' :
-                        selectedRental.rentalType === 'walkin' ? 'Thuê tại chỗ' : selectedRental.rentalType}
                     </Badge>
                   </div>
-                  <div>
-                    <Label className='text-sm font-medium text-muted-foreground'>Thời gian bắt đầu</Label>
-                    <p className='text-lg'>{new Date(selectedRental.startTime).toLocaleString('vi-VN')}</p>
+
+                  {/* Loại thuê */}
+                  <div className='space-y-1'>
+                    <Label className='text-sm text-muted-foreground'>Loại thuê: </Label>
+                    <Badge className={
+                      selectedRental.rentalType === 'booking'
+                        ? 'bg-blue-100 text-blue-800'
+                        : 'bg-yellow-100 text-yellow-800'
+                    }>
+                      {selectedRental.rentalType === 'booking'
+                        ? 'Đặt trước'
+                        : selectedRental.rentalType === 'walkin'
+                          ? 'Thuê tại chỗ'
+                          : selectedRental.rentalType}
+                    </Badge>
                   </div>
-                  <div>
-                    <Label className='text-sm font-medium text-muted-foreground'>Thời gian kết thúc</Label>
-                    <p className='text-lg'>
-                      {selectedRental.endTime ?
-                        new Date(selectedRental.endTime).toLocaleString('vi-VN') :
-                        'Chưa kết thúc'}
+
+                  {/* Thời gian bắt đầu */}
+                  <div className='space-y-1'>
+                    <Label className='text-sm text-muted-foreground'>Thời gian bắt đầu</Label>
+                    <p className='text-lg font-medium'>
+                      {new Date(selectedRental.startTime).toLocaleString('vi-VN')}
+                    </p>
+                  </div>
+
+                  {/* Thời gian kết thúc */}
+                  <div className='space-y-1'>
+                    <Label className='text-sm text-muted-foreground'>Thời gian kết thúc</Label>
+                    <p className='text-lg font-medium'>
+                      {selectedRental.endTime
+                        ? new Date(selectedRental.endTime).toLocaleString('vi-VN')
+                        : 'Chưa kết thúc'}
+                    </p>
+                  </div>
+
+                  {/* Thời gian trả xe */}
+                  <div className='space-y-1'>
+                    <Label className='text-sm text-muted-foreground'>Thời gian trả xe</Label>
+                    <p className='text-lg font-medium'>
+                      {selectedRental.returnTime
+                        ? new Date(selectedRental.returnTime).toLocaleString('vi-VN')
+                        : '-'}
                     </p>
                   </div>
                 </div>
@@ -374,7 +412,7 @@ const RentalsTab = () => {
               {/* Financial Information */}
               <div className='bg-yellow-50 p-4 rounded-lg'>
                 <h3 className='font-semibold text-yellow-900 mb-3'>Thông tin thanh toán</h3>
-                
+
                 {/* Chi tiết các loại tiền */}
                 <div className='grid grid-cols-3 gap-4 mb-4'>
                   <div>

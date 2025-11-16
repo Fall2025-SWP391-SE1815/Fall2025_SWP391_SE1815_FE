@@ -270,8 +270,9 @@ const InUseRentals = () => {
 
                       <TableCell>
                         <div className="flex flex-col space-y-2">
+
+                          {/* Tổng tiền */}
                           <div className="flex items-center gap-2">
-                            <DollarSign className="h-4 w-4" />
                             <div className="flex flex-col">
                               <span className="text-xs text-muted-foreground">Tổng tiền</span>
                               <span className="font-medium text-sm">
@@ -279,8 +280,9 @@ const InUseRentals = () => {
                               </span>
                             </div>
                           </div>
+
+                          {/* Đặt cọc */}
                           <div className="flex items-center gap-2">
-                            <DollarSign className="h-4 w-4 text-green-600" />
                             <div className="flex flex-col">
                               <span className="text-xs text-muted-foreground">Đặt cọc</span>
                               <span className="font-medium text-sm">
@@ -288,6 +290,8 @@ const InUseRentals = () => {
                               </span>
                             </div>
                           </div>
+
+                          {/* Badge trạng thái */}
                           <Badge variant={depositBadge.variant} className="w-fit text-xs">
                             {depositBadge.text}
                           </Badge>
