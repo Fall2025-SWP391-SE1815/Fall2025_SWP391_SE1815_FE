@@ -43,6 +43,7 @@ const ReservationsPage = () => {
   });
   const [stations, setStations] = useState([]);
   const [vehicles, setVehicles] = useState([]);
+  const [rentals, setRentals] = useState([]); // Thêm state cho rentals
 
 
   // Filters
@@ -56,6 +57,7 @@ const ReservationsPage = () => {
   useEffect(() => {
     loadReservations();
     loadStationsAndVehicles();
+    loadRentals();
   }, []); // Remove authentication dependency
 
   // Handle query parameters from VehiclesPage
@@ -194,6 +196,18 @@ const ReservationsPage = () => {
     }
   };
 
+  // Load rentals for conflict checking
+  const loadRentals = async () => {
+    try {
+      const rentalsRes = await renterService.rentals.getAll();
+      const rentalsData = Array.isArray(rentalsRes) ? rentalsRes : rentalsRes?.data || rentalsRes?.rentals || [];
+      setRentals(rentalsData);
+    } catch (err) {
+      console.error('Error loading rentals:', err);
+      setRentals([]);
+    }
+  };
+
   const handleCreateBooking = async () => {
     setLoading(true);
     setError('');
@@ -220,22 +234,34 @@ const ReservationsPage = () => {
         throw new Error('Vui lòng chọn xe cụ thể');
       }
 
-      // Check if user already has an active reservation and block API call
-      const activeReservations = reservations.filter(reservation =>
-        ['pending', 'confirmed'].includes(reservation.status) &&
-        new Date(reservation.reservedStartTime || reservation.reserved_start_time) > new Date()
+      // Check conflict với reservations - chỉ check pending
+      const pendingReservations = reservations.filter(reservation =>
+        reservation.status?.toLowerCase() === 'pending'
       );
 
-      if (activeReservations.length > 0) {
+      // Check conflict với rentals - chặn nếu có status: booked, in_use, waiting_for_payment
+      const conflictRentals = rentals.filter(rental => {
+        const status = rental.status?.toLowerCase();
+        return ['booked', 'in_use', 'waiting_for_payment'].includes(status);
+      });
+
+      let conflictMessage = '';
+      if (pendingReservations.length > 0) {
+        conflictMessage = `Bạn đã có ${pendingReservations.length} lịch hẹn đang chờ xác nhận. Không thể tạo thêm lịch mới.`;
+      } else if (conflictRentals.length > 0) {
+        conflictMessage = `Bạn đang có ${conflictRentals.length} lượt thuê xe chưa hoàn thành (đã đặt/đang sử dụng/chờ thanh toán). Không thể tạo thêm lịch mới.`;
+      }
+
+      if (conflictMessage) {
         toast({
           title: (
             <div className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-red-600" />
-              Cảnh báo: Đã có lịch hẹn!
+              Cảnh báo: Có xung đột lịch hẹn!
             </div>
           ),
-          description: "Bạn đã có lịch hẹn đang chờ hoặc đã xác nhận. Không thể tạo thêm lịch mới.",
-          variant: "destructive", 
+          description: conflictMessage,
+          variant: "destructive",
           className: "border-l-red-500 border-red-200 bg-red-50",
           duration: 4000
         });
@@ -566,13 +592,12 @@ const ReservationsPage = () => {
             <div className="flex items-center space-x-3">
               <Button
                 onClick={() => {
-                  // Check for active reservations when opening modal
-                  const activeReservations = reservations.filter(reservation =>
-                    ['pending', 'confirmed'].includes(reservation.status) &&
-                    new Date(reservation.reservedStartTime || reservation.reserved_start_time) > new Date()
+                  // Check for pending reservations when opening modal
+                  const pendingReservations = reservations.filter(reservation =>
+                    reservation.status?.toLowerCase() === 'pending'
                   );
 
-                  if (activeReservations.length > 0) {
+                  if (pendingReservations.length > 0) {
                     toast({
                       title: (
                         <div className="flex items-center gap-2">
@@ -580,7 +605,7 @@ const ReservationsPage = () => {
                           Cảnh báo!
                         </div>
                       ),
-                      description: `Bạn đã có ${activeReservations.length} lịch hẹn đang chờ/đã xác nhận. Tạo thêm có thể gây xung đột.`,
+                      description: `Bạn đã có ${pendingReservations.length} lịch hẹn đang chờ xác nhận. Không thể tạo thêm lịch mới.`,
                       variant: "destructive",
                       className: "border-l-red-500 border-red-200 bg-red-50",
                       duration: 4000
@@ -1071,17 +1096,16 @@ const ReservationsPage = () => {
             <div className="space-y-4">
               {/* Active Reservations Warning */}
               {(() => {
-                const activeReservations = reservations.filter(reservation =>
-                  ['pending', 'confirmed'].includes(reservation.status) &&
-                  new Date(reservation.reservedStartTime || reservation.reserved_start_time) > new Date()
+                const pendingReservations = reservations.filter(reservation =>
+                  reservation.status?.toLowerCase() === 'pending'
                 );
 
-                return activeReservations.length > 0 && (
+                return pendingReservations.length > 0 && (
                   <Alert className="border-yellow-200 bg-yellow-50">
                     <AlertCircle className="h-4 w-4 text-yellow-600" />
                     <AlertDescription className="text-yellow-700">
-                      <strong>Cảnh báo:</strong> Bạn đã có {activeReservations.length} lịch hẹn đang chờ/đã xác nhận.
-                      Tạo thêm lịch mới có thể gây xung đột thời gian.
+                      <strong>Cảnh báo:</strong> Bạn đã có {pendingReservations.length} lịch hẹn đang chờ xác nhận.
+                      Bạn không thể tạo thêm lịch mới cho đến khi lịch hiện tại được xử lý.
                     </AlertDescription>
                   </Alert>
                 );
