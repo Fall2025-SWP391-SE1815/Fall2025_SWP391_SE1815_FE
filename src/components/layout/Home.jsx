@@ -26,6 +26,7 @@ import {
   LogIn,
   UserPlus
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 const Home = () => {
   const navigate = useNavigate();
@@ -86,6 +87,32 @@ const Home = () => {
     }
   ];
 
+  const [vehicles, setVehicles] = useState([]);
+  const [loadingVehicles, setLoadingVehicles] = useState(true);
+
+  useEffect(() => {
+    const fetchVehicles = async () => {
+      try {
+        const res = await fetch("http://localhost:8080/api/public/vehicles");
+        const data = await res.json();
+        setVehicles(data);
+      } catch (error) {
+        console.error("Fetch vehicles failed:", error);
+      } finally {
+        setLoadingVehicles(false);
+      }
+    };
+
+    fetchVehicles();
+  }, []);
+
+  const handleBookVehicleHome = (vehicle) => {
+    const url = `/reservations?vehicle_id=${vehicle.id}&station_id=${vehicle.station?.id}`;
+    window.location.href = url;
+
+    toast.success(`Chuyển đến trang đặt chỗ cho xe ${vehicle.brand} ${vehicle.model}`);
+  };
+
   return (
     <div className="min-h-screen bg-white">
       {/* Notification Section for authenticated users */}
@@ -136,7 +163,7 @@ const Home = () => {
               </h1>
 
               <p className="text-xl text-gray-600 mb-8 leading-relaxed animate-in fade-in slide-in-from-left duration-700 delay-600">
-                Thuê xe điện theo giờ - linh hoạt, tiện lợi và thân thiện môi trường. 
+                Thuê xe điện theo giờ - linh hoạt, tiện lợi và thân thiện môi trường.
                 Tính phí chính xác theo thời gian sử dụng, phù hợp mọi chuyến đi.
               </p>
 
@@ -344,6 +371,91 @@ const Home = () => {
               </Card>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Vehicle Listing Section */}
+      <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-3">
+              Xe có sẵn tại hệ thống
+            </h2>
+            <p className="text-lg text-gray-600">
+              Danh sách xe đang trống – sẵn sàng cho bạn thuê ngay
+            </p>
+          </div>
+
+          {loadingVehicles ? (
+            <p className="text-center text-gray-500">Đang tải danh sách xe...</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {vehicles.map((v) => {
+                const imgSrc = `http://localhost:8080${v.imageUrl}`;
+
+                return (
+                  <Card className="hover:shadow-xl transition-all hover:-translate-y-1 cursor-pointer flex flex-col">
+                    {/* IMAGE FIXED */}
+                    <div className="w-full aspect-[16/9] overflow-hidden rounded-t-lg bg-gray-100 flex items-center justify-center">
+                      <img
+                        src={imgSrc}
+                        onError={(e) => { e.target.src = "/fallback.jpg"; }}
+                        alt={v.model}
+                        className="max-w-full max-h-full object-contain"
+                      />
+                    </div>
+
+                    <CardContent className="p-4 flex flex-col gap-3 flex-grow">
+
+                      {/* Title */}
+                      <div className="font-semibold text-gray-900 text-lg">
+                        {v.brand} {v.model}
+                      </div>
+
+                      <div className="text-gray-600 text-sm">
+                        Biển số: <span className="font-medium">{v.licensePlate || v.license_plate}</span>
+                      </div>
+
+                      {/* Price */}
+                      <div className="text-green-600 font-bold text-xl">
+                        {v.pricePerHour.toLocaleString("vi-VN")} VNĐ/giờ
+                      </div>
+
+                      {/* Info */}
+                      <div className="grid grid-cols-3 text-sm text-gray-600">
+                        <div className="flex items-center gap-1">
+                          <Car size={14} />
+                          {v.numberSeat} chỗ
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Battery size={14} />
+                          {v.batteryLevel}%
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <MapPin size={14} />
+                          {v.station?.name}
+                        </div>
+                      </div>
+
+                      {/* 🔥 PUSH NÚT XUỐNG DƯỚI */}
+                      <div className="mt-auto pt-2">
+                        <Button
+                          className="w-full bg-green-600 text-white hover:bg-green-700 transition-all hover:scale-105"
+                          onClick={(e) => {
+                            e.stopPropagation();   // tránh click trúng card
+                            handleBookVehicleHome(v);
+                          }}
+                        >
+                          Đặt xe
+                        </Button>
+                      </div>
+
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
         </div>
       </section>
 
