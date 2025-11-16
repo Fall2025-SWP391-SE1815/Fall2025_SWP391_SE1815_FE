@@ -274,13 +274,12 @@ const ReservationsPage = () => {
       // Normalize returned reservation to local shape
       const newReservation = {
         id: created.id,
-        vehicle_id: created.vehicle?.id || created.vehicleId || null,
-        vehicle_type: (created.vehicle?.type || created.vehicleType || '').toLowerCase(),
-        station_id: created.vehicle?.station?.id || created.stationId || null,
-        reserved_start_time: created.reservedStartTime || created.reserved_start_time,
-        reserved_end_time: created.reservedEndTime || created.reserved_end_time,
-        status: created.status,
-        created_at: created.createdAt || created.created_at
+        vehicle: created.vehicle || null,
+        status: (created.status || '').toLowerCase(),
+        reservedStartTime: created.reservedStartTime || created.reserved_start_time,
+        reservedEndTime: created.reservedEndTime || created.reserved_end_time,
+        createdAt: created.createdAt || created.created_at,
+        insurance: created.insurance || null,
       };
 
       setReservations(prev => [newReservation, ...prev]);
@@ -306,8 +305,30 @@ const ReservationsPage = () => {
       });
 
     } catch (err) {
-      console.error('Error creating booking:', err);
-      setError(err.message || 'Không thể tạo booking. Vui lòng thử lại.');
+      console.log("ERR DEBUG >>>", err);
+      console.error("Error creating booking:", err);
+
+      const message =
+        err?.response?.data?.message ||   // axios standard
+        err?.response?.message ||         // some BE custom style
+        err?.data?.message ||             // normalized error format
+        err?.message ||                   // fallback axios error
+        "Không thể tạo booking. Vui lòng thử lại.";
+
+      toast({
+        title: (
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-red-600" />
+            Lỗi tạo lịch hẹn
+          </div>
+        ),
+        description: message,
+        variant: "destructive",
+        className: "border-l-red-500 border-red-200 bg-red-50",
+        duration: 4000
+      });
+
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -1450,7 +1471,7 @@ const ReservationsPage = () => {
                     htmlFor="agreePolicy"
                     className="text-sm text-gray-700 leading-relaxed cursor-pointer w-full"
                   >
-                    <span className="font-semibold text-gray-900">Điều khoản sử dụng:</span><br />
+                    <span className="font-semibold text-red-600">Điều khoản sử dụng:</span><br />
                     Nếu bạn không check-in trong vòng <span className="font-medium text-red-600">1 giờ </span>
                     kể từ thời điểm tạo đơn, lịch hẹn sẽ bị <span className="font-medium">hủy tự động</span>.
                   </label>

@@ -198,7 +198,11 @@ const ReservationHandover = () => {
       success("Check-in thành công", "Khách hàng đã nhận xe và đặt cọc đã được ghi nhận.");
 
       setCheckInDialogOpen(false);
-      await loadData(); // Refresh both lists
+
+      // Reload toàn trang sau 300ms
+      setTimeout(() => {
+        window.location.reload();
+      }, 300);
 
     } catch (error) {
       console.error('Error submitting check-in:', error);
@@ -297,11 +301,10 @@ const ReservationHandover = () => {
       await staffRentalService.confirmPickup(formData);
 
       success("Xác nhận giao xe thành công", "Khách hàng đã nhận xe.");
-      setTimeout(() => {
-        loadData();
-      }, 150);
 
       setPickupDialogOpen(false);
+
+      // Reset form
       setPickupForm({
         condition_report: '',
         odo: '',
@@ -310,7 +313,11 @@ const ReservationHandover = () => {
         customer_signature_url: null,
         staff_signature_url: null
       });
-      await loadData();
+
+      // Reload toàn trang sau 300ms
+      setTimeout(() => {
+        window.location.reload();
+      }, 3000);
 
     } catch (error) {
       console.error('Error confirming pickup:', error);
