@@ -27,12 +27,10 @@ const ResetPasswordPage = () => {
   const token = location.state?.token || '';
   
   // Debug log
-  console.log('ResetPasswordPage - Received:', { email, token });
   
   // If no email or token provided, redirect back to forgot password
   useEffect(() => {
     if (!email || !token) {
-      console.log('Missing email or token, redirecting to forgot-password');
       navigate('/forgot-password');
     }
   }, [email, token, navigate]);
@@ -101,9 +99,7 @@ const ResetPasswordPage = () => {
     setSubmitError('');
 
     try {
-      console.log('ResetPasswordPage - Calling resetPassword with:', { token, newPassword: formData.newPassword });
       const result = await authService.resetPassword(token, formData.newPassword);
-      console.log('ResetPasswordPage - Reset result:', result);
       
       if (result.success) {
         setIsSuccess(true);

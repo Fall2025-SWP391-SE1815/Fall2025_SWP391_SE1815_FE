@@ -70,8 +70,6 @@ const AdminDashboard = () => {
       setLoading(true);
       setError(null);
 
-      console.log('Loading dashboard data...');
-
       const [statsData, revenueDataResponse] = await Promise.all([
         dashboardService.getDashboardStats().catch(err => {
           console.error('Stats error:', err);
@@ -120,10 +118,7 @@ const AdminDashboard = () => {
       setLoadingRevenue(true);
       const rangeToUse = customDateRange || dateRange;
 
-      console.log('Loading revenue data with date range:', rangeToUse);
-
       const revenueDataResponse = await dashboardService.getRevenueData(rangeToUse);
-      console.log('Revenue data response:', revenueDataResponse);
 
       setRevenueData(revenueDataResponse);
     } catch (err) {

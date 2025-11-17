@@ -103,22 +103,22 @@ const LoginPage = () => {
   };
 
   // Demo login functions for testing (phone-based)
-  const handleDemoLogin = async (role) => {
-    const demoCredentials = {
-      admin: { phone: '0123456789', password: 'Admin@123' },
-      staff: { phone: '0123456781', password: 'Abc@1234' },
-      renter: { phone: '0999999999', password: 'User1@123' }
-    };
+  // const handleDemoLogin = async (role) => {
+  //   const demoCredentials = {
+  //     admin: { phone: '0123456789', password: 'Admin@123' },
+  //     staff: { phone: '0123456781', password: 'Abc@1234' },
+  //     renter: { phone: '0999999999', password: 'User1@123' }
+  //   };
 
-    const credentials = demoCredentials[role];
-    if (credentials) {
-      setFormData(prev => ({
-        ...prev,
-        phone: credentials.phone,
-        password: credentials.password
-      }));
-    }
-  };
+  //   const credentials = demoCredentials[role];
+  //   if (credentials) {
+  //     setFormData(prev => ({
+  //       ...prev,
+  //       phone: credentials.phone,
+  //       password: credentials.password
+  //     }));
+  //   }
+  // };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-green-100 flex items-center justify-center p-4">
@@ -226,7 +226,7 @@ const LoginPage = () => {
               </div>
 
               {/* Demo Login Buttons */}
-              <div className="space-y-2">
+              {/* <div className="space-y-2">
                 <p className="text-xs text-gray-500 text-center">Tài khoản demo:</p>
                 <div className="grid grid-cols-3 gap-2">
                   <Button
@@ -260,7 +260,8 @@ const LoginPage = () => {
                     Renter
                   </Button>
                 </div>
-              </div>
+              </div> */}
+              
             </CardContent>
 
             <CardFooter className="flex flex-col space-y-4">

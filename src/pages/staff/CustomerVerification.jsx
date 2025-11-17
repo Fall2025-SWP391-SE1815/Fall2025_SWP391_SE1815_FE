@@ -139,7 +139,6 @@ const CustomerVerification = () => {
 
         success(`Tìm thấy ${documents.length} tài liệu của ${tempCustomer.full_name}`);
       } else {
-        console.log('No documents found or invalid response:', documentsData);
         warning("Không tìm thấy tài liệu nào cho Renter ID này");
       }
 

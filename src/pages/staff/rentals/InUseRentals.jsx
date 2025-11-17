@@ -47,7 +47,6 @@ const InUseRentals = () => {
     try {
       setLoading(true);
       const response = await staffRentalService.getRentals({ status: 'in_use' });
-      console.log('In-use rentals response:', response);
       setInUseRentals(response || []);
     } catch (error) {
       console.error('Error fetching in-use rentals:', error);

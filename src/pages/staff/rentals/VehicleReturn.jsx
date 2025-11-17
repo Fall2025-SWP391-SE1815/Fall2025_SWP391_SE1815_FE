@@ -76,7 +76,6 @@ const VehicleReturn = () => {
     try {
       setLoading(true);
       const response = await staffRentalService.getRentals({ status: 'in_use' });
-      console.log('Returning rentals (in_use) response:', response);
       setReturningRentals(response || []);
     } catch (error) {
       console.error('Error fetching returning rentals:', error);

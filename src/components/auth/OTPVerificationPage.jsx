@@ -108,7 +108,6 @@ const OTPVerificationPage = () => {
           // If this is forgot password verification, redirect to reset password
           // Extract token from various possible response structures
           const token = result.data?.token || result.token || result.data?.data?.token || 'dummy-token';
-          console.log('OTP Verification - Token received:', token);
           
           setTimeout(() => {
             navigate('/reset-password', { 

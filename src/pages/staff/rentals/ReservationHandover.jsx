@@ -105,7 +105,6 @@ const ReservationHandover = () => {
     try {
       setLoading(true);
       const response = await staffRentalService.getReservations({ status: 'pending' });
-      console.log('Reservations response:', response);
       setReservations(response || []);
     } catch (error) {
       console.error('Error fetching reservations:', error);
@@ -120,7 +119,6 @@ const ReservationHandover = () => {
     try {
       setLoading(true);
       const response = await staffRentalService.getRentals({ status: 'booked' });
-      console.log('Pending rentals response:', response);
       setPendingRentals(response || []);
     } catch (error) {
       console.error('Error fetching pending rentals:', error);
@@ -190,8 +188,6 @@ const ReservationHandover = () => {
         insurance: parseFloat(checkInForm.insurance),
         highRisk: checkInForm.highRisk
       };
-
-      console.log('Check-in request data:', requestData);
 
       const response = await staffRentalService.checkIn(requestData);
 

@@ -59,7 +59,6 @@ const RentalCurrentPage = () => {
           currentRental = inUseRentals[0];
         }
       } catch (error) {
-        console.log('No in_use rentals found');
       }
 
       // If no in_use rental found, try wait_confirm
@@ -71,7 +70,6 @@ const RentalCurrentPage = () => {
             currentRental = waitConfirmRentals[0];
           }
         } catch (error) {
-          console.log('No wait_confirm rentals found');
         }
       }
 
@@ -196,9 +194,6 @@ const RentalCurrentPage = () => {
       });
 
       setError(''); // Clear any previous errors
-
-      // Stay on current page to show the updated status
-      console.log('Rental confirmed successfully, status updated to in_use');
 
     } catch (err) {
       console.error('Error confirming rental:', err);

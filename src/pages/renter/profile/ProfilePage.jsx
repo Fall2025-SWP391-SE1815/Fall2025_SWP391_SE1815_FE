@@ -73,7 +73,6 @@ const ProfilePage = () => {
       const metadata = { type: uploadType || 'CMND', documentNumber: uploadNumber || '' };
       const res = await documentService.upload(uploadFile, metadata);
       const newDoc = res?.data || res;
-      console.log('Document uploaded:', newDoc); // Debug log
       
       // API trả về document object, thêm vào đầu danh sách
       if (newDoc) {
