@@ -153,7 +153,7 @@ const InUseRentals = () => {
             Danh sách xe đang cho thuê
           </CardTitle>
           <CardDescription>
-            Các xe hiện đang được khách hàng sử dụng (status: in_use)
+            Các xe hiện đang được khách hàng sử dụng
           </CardDescription>
         </CardHeader>
         <CardContent>
