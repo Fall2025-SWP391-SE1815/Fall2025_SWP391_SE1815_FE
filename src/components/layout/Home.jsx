@@ -399,9 +399,15 @@ const Home = () => {
                     <div className="w-full aspect-[16/9] overflow-hidden rounded-t-lg bg-gray-100 flex items-center justify-center">
                       <img
                         src={imgSrc}
-                        onError={(e) => { e.target.src = "/fallback.jpg"; }}
-                        alt={v.model}
+                        alt={`${v.brand} ${v.model}`}
                         className="max-w-full max-h-full object-contain"
+                        onError={(e) => {
+                          if (!e.target.dataset.fallback) {
+                            e.target.dataset.fallback = "true";
+                            e.target.src =
+                              'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="120" height="80" viewBox="0 0 24 24" fill="none" stroke="%239CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"%3E%3Crect x="3" y="11" width="18" height="11" rx="2" ry="2"%3E%3C/rect%3E%3Cpath d="M7 11V7a5 5 0 0 1 10 0v4"%3E%3C/path%3E%3C/svg%3E';
+                          }
+                        }}
                       />
                     </div>
 
