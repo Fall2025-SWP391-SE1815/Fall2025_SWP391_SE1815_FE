@@ -1122,9 +1122,20 @@ const ReservationHandover = () => {
                     <Label className="text-muted-foreground text-sm">Hình ảnh xe</Label>
                     <div className="mt-2">
                       <img
-                        src={getImageUrl(selectedReservation.vehicle.imageUrl)}  // ✅ dùng helper
-                        alt={`${selectedReservation.vehicle.brand} ${selectedReservation.vehicle.model}`}
+                        src={getImageUrl(selectedReservation.vehicle.imageUrl)}
+                        alt="Vehicle"
                         className="w-full max-w-md h-auto max-h-[300px] object-cover rounded-xl border shadow"
+                        onError={(e) => {
+                          e.target.outerHTML = `
+                            <div class="w-full max-w-md h-[200px] flex flex-col items-center justify-center bg-gray-100 border rounded-xl text-gray-400">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+                                <rect x="3" y="11" width="18" height="11" rx="2"></rect>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                              </svg>
+                              <p class="mt-2 text-sm">Không thể tải ảnh</p>
+                            </div>
+                          `;
+                        }}
                       />
                     </div>
                   </div>
