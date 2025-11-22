@@ -21,18 +21,13 @@ const OTPVerificationPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // Get email from navigation state (passed from RegisterPage)
-  const email = location.state?.email || '';
+  // Get email from navigation state (passed from RegisterPage or ForgotPasswordPage)
+  const stateEmail = location.state?.email || '';
   const isRegistration = location.state?.isRegistration || false;
+  const isForgotPassword = location.state?.isForgotPassword || false;
   
-  // If no email provided, redirect back to register
-  useEffect(() => {
-    if (!email) {
-      navigate('/register');
-    }
-  }, [email, navigate]);
-
   // Form state
+  const [email, setEmail] = useState(stateEmail);
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
@@ -40,6 +35,7 @@ const OTPVerificationPage = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [canResendOtp, setCanResendOtp] = useState(false);
   const [resendCountdown, setResendCountdown] = useState(60);
+  const [showEmailInput, setShowEmailInput] = useState(!stateEmail);
 
   // Start countdown for resend OTP
   useEffect(() => {
@@ -58,6 +54,13 @@ const OTPVerificationPage = () => {
     if (!otp) return 'Mã OTP không được để trống';
     if (otp.length !== 6) return 'Mã OTP phải có 6 chữ số';
     if (!/^\d{6}$/.test(otp)) return 'Mã OTP chỉ được chứa số';
+    return '';
+  };
+
+  // Validate Email
+  const validateEmail = (email) => {
+    if (!email) return 'Email không được để trống';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return 'Email không hợp lệ';
     return '';
   };
 
@@ -80,6 +83,15 @@ const OTPVerificationPage = () => {
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
     
+    // Validate email if showing email input
+    if (showEmailInput) {
+      const emailError = validateEmail(email);
+      if (emailError) {
+        setErrors({ email: emailError });
+        return;
+      }
+    }
+    
     const otpError = validateOtp(otp);
     if (otpError) {
       setErrors({ otp: otpError });
@@ -95,16 +107,18 @@ const OTPVerificationPage = () => {
       if (result.success) {
         setSuccessMessage('Xác thực OTP thành công!');
         
-        // If this is registration verification, redirect to login
-        if (isRegistration) {
+        // If this is registration verification OR standalone verification, redirect to login
+        if (isRegistration || !isForgotPassword) {
           setTimeout(() => {
             navigate('/login', { 
               state: { 
-                message: 'Đăng ký thành công! Bạn có thể đăng nhập ngay bây giờ.' 
+                message: isRegistration 
+                  ? 'Đăng ký thành công! Bạn có thể đăng nhập ngay bây giờ.' 
+                  : 'Xác thực tài khoản thành công! Bạn có thể đăng nhập ngay bây giờ.'
               }
             });
           }, 2000);
-        } else {
+        } else if (isForgotPassword) {
           // If this is forgot password verification, redirect to reset password
           // Extract token from various possible response structures
           const token = result.data?.token || result.token || result.data?.data?.token || 'dummy-token';
@@ -131,6 +145,20 @@ const OTPVerificationPage = () => {
   // Handle resend OTP
   const handleResendOtp = async () => {
     if (!canResendOtp) return;
+
+    // Validate email if showing email input
+    if (showEmailInput) {
+      const emailError = validateEmail(email);
+      if (emailError) {
+        setErrors({ email: emailError });
+        return;
+      }
+    }
+
+    if (!email) {
+      setSubmitError('Vui lòng nhập email');
+      return;
+    }
 
     setLoading(true);
     setSubmitError('');
@@ -175,7 +203,9 @@ const OTPVerificationPage = () => {
             <CardDescription className="text-gray-600">
               {isRegistration 
                 ? 'Nhập mã OTP được gửi đến email để hoàn tất đăng ký'
-                : 'Nhập mã OTP được gửi đến email để đặt lại mật khẩu'
+                : isForgotPassword
+                  ? 'Nhập mã OTP được gửi đến email để đặt lại mật khẩu'
+                  : 'Nhập mã OTP được gửi đến email để xác thực tài khoản'
               }
             </CardDescription>
           </CardHeader>
@@ -206,10 +236,39 @@ const OTPVerificationPage = () => {
 
           <form onSubmit={handleVerifyOtp}>
             <CardContent className="space-y-4">
-              {/* Email Display */}
-              <div className="text-center text-sm text-gray-600 mb-4">
-                Mã OTP đã được gửi đến <strong>{email}</strong>
-              </div>
+              {/* Email Input (if not provided from registration) */}
+              {showEmailInput ? (
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email đã đăng ký</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="Nhập email bạn đã đăng ký"
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (errors.email) setErrors(prev => ({ ...prev, email: '' }));
+                      if (submitError) setSubmitError('');
+                    }}
+                    className={errors.email ? 'border-red-500' : ''}
+                    disabled={loading}
+                  />
+                  {errors.email && (
+                    <p className="text-sm text-red-600 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {errors.email}
+                    </p>
+                  )}
+                  <p className="text-xs text-gray-500">
+                    Nhập email bạn đã sử dụng khi đăng ký để nhận lại mã OTP
+                  </p>
+                </div>
+              ) : (
+                /* Email Display */
+                <div className="text-center text-sm text-gray-600 mb-4">
+                  Mã OTP đã được gửi đến <strong>{email}</strong>
+                </div>
+              )}
               
               {/* OTP Input */}
               <div className="space-y-2">
@@ -222,13 +281,19 @@ const OTPVerificationPage = () => {
                   onChange={(e) => handleOtpChange(e.target.value)}
                   className={`text-center text-lg tracking-widest ${errors.otp ? 'border-red-500 focus:border-red-500' : ''}`}
                   maxLength={6}
-                  disabled={loading}
+                  disabled={loading || (showEmailInput && !email)}
                   autoComplete="off"
                 />
                 {errors.otp && (
                   <p className="text-sm text-red-600 flex items-center gap-1">
                     <AlertCircle className="h-3 w-3" />
                     {errors.otp}
+                  </p>
+                )}
+                {showEmailInput && !email && (
+                  <p className="text-xs text-yellow-600 flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    Vui lòng nhập email trước
                   </p>
                 )}
               </div>

@@ -218,6 +218,12 @@ const LoginPage = () => {
               {/* Forgot Password */}
               <div className="flex items-center justify-between">
                 <Link
+                  to="/verify-otp"
+                  className="text-sm text-blue-600 hover:text-blue-800 transition-colors"
+                >
+                  Xác thực tài khoản
+                </Link>
+                <Link
                   to="/forgot-password"
                   className="text-sm text-green-600 hover:text-green-800 transition-colors"
                 >

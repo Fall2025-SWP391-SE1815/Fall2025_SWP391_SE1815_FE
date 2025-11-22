@@ -149,12 +149,14 @@ const ReservationHandover = () => {
   // Handle check-in button click
   const handleCheckIn = async (reservation) => {
     setSelectedReservation(reservation);
-    const totalCost = calculateTotalCost(reservation);
+    const rentalCost = calculateTotalCost(reservation);
+    const insuranceCost = reservation?.insurance || 0;
+    const totalCost = rentalCost + insuranceCost;
     const suggestedDeposit = totalCost > 0 ? Math.round(totalCost * 0.3) : 0;
 
     setCheckInForm({
       depositAmount: suggestedDeposit.toString(),
-      insurance: reservation?.insurance?.toString() || '0',
+      insurance: insuranceCost.toString(),
       highRisk: false
     });
     setCheckInDialogOpen(true);
@@ -836,7 +838,10 @@ const ReservationHandover = () => {
                       }
                     >
                       {(() => {
-                        const baseDeposit = Math.round(calculateTotalCost(selectedReservation) * 0.3);
+                        const rentalCost = calculateTotalCost(selectedReservation);
+                        const insuranceCost = parseFloat(checkInForm.insurance) || 0;
+                        const totalCost = rentalCost + insuranceCost;
+                        const baseDeposit = Math.round(totalCost * 0.3);
 
                         if (!checkInForm.highRisk) {
                           return formatCurrency(baseDeposit);
@@ -864,10 +869,10 @@ const ReservationHandover = () => {
                     {formatCurrency(
                       (
                         calculateTotalCost(selectedReservation) + // ✅ chi phí thuê xe
-                        (parseFloat(checkInForm.insurance) || 0) + // ✅ phí bảo hiểm
-                        (checkInForm.highRisk
-                          ? calculateHighRiskDeposit(Math.round(calculateTotalCost(selectedReservation) * 0.3))
-                          : Math.round(calculateTotalCost(selectedReservation) * 0.3)) // ✅ cọc thực tế
+                        (parseFloat(checkInForm.insurance) || 0)  // ✅ phí bảo hiểm
+                        // (checkInForm.highRisk
+                        //   ? calculateHighRiskDeposit(Math.round(calculateTotalCost(selectedReservation) * 0.3))
+                        //   : Math.round(calculateTotalCost(selectedReservation) * 0.3)) // ✅ cọc thực tế
                       )
                     )}
                   </div>
@@ -942,7 +947,10 @@ const ReservationHandover = () => {
                     id="high-risk"
                     checked={checkInForm.highRisk}
                     onCheckedChange={(checked) => {
-                      const baseDeposit = Math.round(calculateTotalCost(selectedReservation) * 0.3);
+                      const rentalCost = calculateTotalCost(selectedReservation);
+                      const insuranceCost = parseFloat(checkInForm.insurance) || 0;
+                      const totalCost = rentalCost + insuranceCost;
+                      const baseDeposit = Math.round(totalCost * 0.3);
                       const newDeposit = checked
                         ? calculateHighRiskDeposit(baseDeposit)
                         : baseDeposit;

@@ -69,7 +69,8 @@ const ForgotPasswordPage = () => {
         navigate('/verify-otp', { 
           state: { 
             email: email,
-            isRegistration: false 
+            isRegistration: false,
+            isForgotPassword: true
           }
         });
       } else {
