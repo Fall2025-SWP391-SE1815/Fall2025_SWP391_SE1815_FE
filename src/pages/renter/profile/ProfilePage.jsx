@@ -104,6 +104,33 @@ const ProfilePage = () => {
     }
   };
 
+  // Validate password format
+  const validatePassword = (password) => {
+    const errors = [];
+    
+    if (password.length < 8) {
+      errors.push('Mật khẩu phải có ít nhất 8 ký tự');
+    }
+    
+    if (!/[a-z]/.test(password)) {
+      errors.push('Mật khẩu phải có ít nhất 1 chữ thường');
+    }
+    
+    if (!/[A-Z]/.test(password)) {
+      errors.push('Mật khẩu phải có ít nhất 1 chữ hoa');
+    }
+    
+    if (!/[0-9]/.test(password)) {
+      errors.push('Mật khẩu phải có ít nhất 1 số');
+    }
+    
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+      errors.push('Mật khẩu phải có ít nhất 1 ký tự đặc biệt (!@#$%^&*(),.?":{}|<>)');
+    }
+    
+    return errors;
+  };
+
   // Handle change password
   const handleChangePassword = async () => {
     setPasswordError('');
@@ -119,42 +146,63 @@ const ProfilePage = () => {
       return;
     }
 
-    if (changePasswordData.newPassword.length < 6) {
-      setPasswordError('Mật khẩu mới phải có ít nhất 6 ký tự');
-      return;
-    }
-
     if (changePasswordData.currentPassword === changePasswordData.newPassword) {
       setPasswordError('Mật khẩu mới phải khác mật khẩu hiện tại');
       return;
     }
 
+    // Validate new password format
+    const passwordValidationErrors = validatePassword(changePasswordData.newPassword);
+    if (passwordValidationErrors.length > 0) {
+      setPasswordError(passwordValidationErrors.join('. '));
+      return;
+    }
+
     try {
       setChangingPassword(true);
-      await authService.changePassword(
+      const result = await authService.changePassword(
         changePasswordData.currentPassword,
         changePasswordData.newPassword,
         changePasswordData.confirmNewPassword
       );
       
-      // Reset form
-      setChangePasswordData({
-        currentPassword: '',
-        newPassword: '',
-        confirmNewPassword: ''
-      });
-      
-      toast({
-        title: (
-          <div className="flex items-center gap-2">
-            <CheckCircle className="h-5 w-5 text-green-600" />
-            Đổi mật khẩu thành công
-          </div>
-        ),
-        description: 'Mật khẩu của bạn đã được cập nhật thành công.',
-        className: 'border-l-green-500 border-green-200 bg-green-50',
-        duration: 5000
-      });
+      // Check if the operation was successful
+      if (result.success) {
+        // Reset form
+        setChangePasswordData({
+          currentPassword: '',
+          newPassword: '',
+          confirmNewPassword: ''
+        });
+        
+        toast({
+          title: (
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              Đổi mật khẩu thành công
+            </div>
+          ),
+          description: 'Mật khẩu của bạn đã được cập nhật thành công.',
+          className: 'border-l-green-500 border-green-200 bg-green-50',
+          duration: 5000
+        });
+      } else {
+        // Handle error from service response
+        const errorMessage = result.message || 'Đổi mật khẩu thất bại';
+        setPasswordError(errorMessage);
+        toast({
+          title: (
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-600" />
+              Đổi mật khẩu thất bại
+            </div>
+          ),
+          description: errorMessage,
+          variant: 'destructive',
+          className: 'border-l-red-500 border-red-200 bg-red-50',
+          duration: 5000
+        });
+      }
     } catch (err) {
       console.error('Change password error:', err);
       const errorMessage = err.response?.data?.message || err.message || 'Không thể đổi mật khẩu';
@@ -273,7 +321,7 @@ const ProfilePage = () => {
                         type={showPasswords.new ? 'text' : 'password'}
                         value={changePasswordData.newPassword}
                         onChange={(e) => handlePasswordInputChange('newPassword', e.target.value)}
-                        placeholder="Nhập mật khẩu mới (tối thiểu 6 ký tự)"
+                        placeholder="Nhập mật khẩu mới (8+ ký tự, có chữ hoa, thường, số, ký tự đặc biệt)"
                         className="pr-10"
                       />
                       <button
