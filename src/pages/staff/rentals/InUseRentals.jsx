@@ -201,7 +201,7 @@ const InUseRentals = () => {
                             </Badge>
                             <div className="flex items-center gap-1 text-xs text-muted-foreground">
                               <Zap className="h-3 w-3" />
-                              {rental.vehicle.capacity}% - {rental.vehicle.rangePerFullCharge}km
+                              {rental.vehicle.capacity}kWh - {rental.vehicle.rangePerFullCharge}km
                             </div>
                           </div>
                         </div>

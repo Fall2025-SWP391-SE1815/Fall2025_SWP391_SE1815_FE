@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
+import {
   ArrowLeft,
   AlertTriangle,
   Calendar,
@@ -38,7 +38,7 @@ const ComplaintDetailPage = () => {
     try {
       setLoading(true);
       setError('');
-      
+
       // GET /api/renter/complaint/:id
       const complaint = await renterComplaintsService.getById(id);
       setComplaint(complaint);
@@ -57,10 +57,10 @@ const ComplaintDetailPage = () => {
       resolved: { color: 'bg-green-100 text-green-800', label: 'Đã giải quyết', icon: CheckCircle },
       rejected: { color: 'bg-red-100 text-red-800', label: 'Từ chối', icon: XCircle }
     };
-    
+
     const config = statusConfig[status] || statusConfig.pending;
     const IconComponent = config.icon;
-    
+
     return (
       <div className="flex items-center space-x-2">
         <IconComponent className="h-5 w-5" />
@@ -132,7 +132,7 @@ const ComplaintDetailPage = () => {
             </p>
           </div>
         </div>
-        
+
         <div className="flex items-center space-x-3">
           {getStatusBadge(complaint.status)}
         </div>
@@ -153,7 +153,7 @@ const ComplaintDetailPage = () => {
               {complaint.description}
             </p>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <p className="text-sm font-medium text-gray-600">Mã chuyến liên quan:</p>
@@ -166,13 +166,13 @@ const ComplaintDetailPage = () => {
               </p>
             </div>
           </div>
-          
+
           {complaint.resolvedAt && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <p className="text-sm font-medium text-gray-600">Người xử lý:</p>
                 <p className="font-semibold">{complaint.admin?.fullName || 'N/A'}</p>
-                <p className="text-sm text-gray-500">{complaint.admin?.email || 'N/A'}</p>
+                <p className="text-sm text-gray-500">{complaint.admin?.email || ''}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-600">Thời gian giải quyết:</p>

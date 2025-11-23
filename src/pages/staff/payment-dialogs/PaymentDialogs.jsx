@@ -277,11 +277,11 @@ const PaymentDialogs = (props) => {
                                         </div>
                                         <div>
                                             <Label className="text-muted-foreground">Pin ban đầu</Label>
-                                            <p className="font-medium capitalize">{selectedDetail.batteryLevelStart}</p>
+                                            <p className="font-medium capitalize">{selectedDetail.batteryLevelStart}%</p>
                                         </div>
                                         <div>
                                             <Label className="text-muted-foreground">Pin còn lại</Label>
-                                            <p className="font-medium capitalize">{selectedDetail.batteryLevelEnd}</p>
+                                            <p className="font-medium capitalize">{selectedDetail.batteryLevelEnd}%</p>
                                         </div>
                                         <div>
                                             <Label className="text-muted-foreground">Hãng xe</Label>
